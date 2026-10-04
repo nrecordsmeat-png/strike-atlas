@@ -35,6 +35,8 @@ input[type=range]{flex:1;accent-color:var(--enr)}
 .pop .d{color:var(--muted);font-size:11.5px;margin-bottom:5px}
 .pop p{margin:4px 0}
 .pop b{color:var(--muted);font-weight:600}
+.pop a{color:var(--brg);text-decoration:none;border-bottom:1px dotted var(--brg)}
+.pop a:hover{border-bottom-style:solid}
 .t{display:inline-block;font-size:10px;padding:2px 5px;border-radius:3px;margin-right:3px}
 .t-ua{color:var(--ua);background:var(--ua-bg)}.t-ru{color:var(--ru);background:var(--ru-bg)}
 .t-os{color:var(--os);background:var(--os-bg)}.t-soc{color:var(--soc);background:var(--soc-bg)}
@@ -66,7 +68,7 @@ dialog p{margin:7px 0}
 <dialog id="about">
 <button class="btn close" onclick="about.close()">Закрыть</button>
 <h2>О данных</h2>
-<p>Карта собрана по открытым источникам: заявления украинских властей (КГВА, КОВА, ГСЧС, Воздушные силы ВСУ), Минобороны РФ, независимые СМИ и OSINT. Каждое событие несёт теги источников; версии сторон — заявления, а не подтверждённые факты.</p>
+<p>Карта собрана по открытым источникам: заявления украинских властей (КГВА, КОВА, ГСЧС, Воздушные силы ВСУ), Минобороны РФ, независимые СМИ и OSINT. Каждое событие несёт теги источников; версии сторон — заявления, а не подтверждённые факты. В карточках событий — ссылки на публикации.</p>
 <p>Координаты расставлены вручную по общеизвестным адресам объектов. Метки с пунктирной обводкой указывают район, а не точное место. Эпизоды без локации в источниках (13–16, 19, 23, 29 сентября и часть областных) на карту не нанесены.</p>
 <p>Период: 4 сентября — 3 октября 2026. Обновляется вручную. Цвет метки — тип объекта, размер не несёт смысла.</p>
 </dialog>
@@ -98,6 +100,7 @@ function popup(e){
  if(e.ru)h+=`<p><b>Версия РФ:</b> ${e.ru}</p>`;
  if(e.osint)h+=`<p><b>Независимо:</b> ${e.osint}</p>`;
  if(e.cas)h+=`<p><b>Жертвы:</b> ${e.cas}</p>`;
+ if(e.links&&e.links.length)h+=`<p><b>Источники:</b> ${e.links.map(l=>`<a href="${l.u}" target="_blank" rel="noopener">${l.t} →</a>`).join(" · ")}</p>`;
  h+=`<p>${e.tags.map(badge).join("")}</p></div>`;return h}
 
 function render(){
