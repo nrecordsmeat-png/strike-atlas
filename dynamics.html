@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Динамика в цифрах — Атлас ударов, Киев</title>
+<title>Данные в цифрах — Атлас ударов, Киев</title>
 <meta name="description" content="Числовые индикаторы по Киеву: рынок долгосрочной аренды по берегам Днепра, упоминания генераторов, счётчики ударов по типам целей. Агрегаты, без адресов.">
 <style>
 :root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
@@ -16,7 +16,7 @@ header{background:var(--panel);border-bottom:1px solid var(--line)}
 .bar{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .brand h1{font-size:16px;margin:0;white-space:nowrap}
 .brand .tagline{font-size:11.5px;color:var(--muted);margin-top:1px}
-nav{margin-left:auto;display:flex;gap:4px}
+nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
 nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 12px;border-radius:6px;white-space:nowrap}
 nav a:hover{color:var(--ink)}
 nav a.cur{background:var(--line);color:var(--ink)}
@@ -47,11 +47,13 @@ footer a{color:var(--brg)}
   <div class="bar">
     <div class="brand">
       <h1>Атлас ударов — Киев и область</h1>
-      <div class="tagline">динамика индикаторов · агрегаты, без адресов · обновляется вручную · <span id="updated"></span></div>
+      <div class="tagline">данные в цифрах · агрегаты, без адресов · обновляется вручную · <span id="updated"></span></div>
     </div>
     <nav>
       <a href="./">Карта</a>
-      <a class="cur" href="dynamics.html">Динамика в цифрах</a>
+      <a class="cur" href="dynamics.html">Данные</a>
+      <a href="food.html">Еда</a>
+      <a href="traffic.html">Пробки</a>
       <a href="metodika.html">Методика</a>
     </nav>
   </div>
