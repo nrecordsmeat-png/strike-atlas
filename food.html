@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Еда и снабжение — Атлас ударов, Киев</title>
+<meta name="description" content="Доступность продуктов в киевских онлайн-витринах: фиксированная корзина, пометки «нет в наличии», динамика снабжения.">
+<style>
+:root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
+--enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--oth:#56d364}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+header{background:var(--panel);border-bottom:1px solid var(--line)}
+.bar{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand h1{font-size:16px;margin:0;white-space:nowrap}
+.brand .tagline{font-size:11.5px;color:var(--muted);margin-top:1px}
+nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
+nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 12px;border-radius:6px;white-space:nowrap}
+nav a:hover{color:var(--ink)}
+nav a.cur{background:var(--line);color:var(--ink)}
+@media(max-width:760px){nav{margin-left:0;width:100%}}
+.wrap{max-width:880px;margin:0 auto;padding:18px 16px 60px}
+h2{font-size:15px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.cards{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1 1 170px;min-width:170px}
+.card .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.card .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+.card .d{font-size:12px;margin-top:4px;color:var(--muted)}
+.up{color:var(--res)}.down{color:var(--oth)}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;font-size:11.5px}
+.note{font-size:12px;color:var(--muted)}
+.note a,a{color:var(--brg)}
+.pending{background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--muted);margin:12px 0}
+footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <h1>Атлас ударов — Киев и область</h1>
+      <div class="tagline">еда и снабжение · онлайн-витрины как прокси · <span id="updated">сбор начат 04.10.2026</span></div>
+    </div>
+    <nav>
+      <a href="./">Карта</a>
+      <a href="dynamics.html">Данные</a>
+      <a class="cur" href="food.html">Еда</a>
+      <a href="traffic.html">Пробки</a>
+      <a href="metodika.html">Методика</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap">
+
+<h2>Что меряем</h2>
+<p class="note">Гипотеза: перебои снабжения и энергетики проявляются в онлайн-витринах раньше заявлений — исчезают позиции, растут пометки «немає в наявності». Метод: ежедневно, в фиксированное время, бот запрашивает <b>фиксированную корзину</b> (вода, хлеб, гречка, яйца, масло, соль, сахар, туалетная бумага) в поиске трёх витрин — Novus и Metro (через zakaz.ua), Сильпо — и снимает со страниц два счётчика: ценовых меток (≈ карточек в продаже) и явных пометок «нет в наличии». Это <b>прокси онлайн-доступности</b>, не инвентаризация полок: смысл несут не абсолютные числа, а их динамика при неизменном методе.</p>
+
+<div id="foodBlock">
+<div class="pending" id="pendingNote">Первые строки ряда появятся после ближайших прогонов монитора (сбор два раза в сутки, корзина — ежедневно утром). Страница обновляется вручную вместе с остальными данными.</div>
+<div class="cards" id="foodCards" style="display:none"></div>
+<table id="foodTable" style="display:none"><thead><tr>
+<th>дата</th><th>витрина</th><th>карточек с ценой, Σ по корзине</th><th>пометок «нет в наличии», Σ</th>
+</tr></thead><tbody></tbody></table>
+</div>
+
+<h2>McDonald's и фастфуд</h2>
+<p class="note">Автоматический съём стоп-листа меню недоступен: сайт сети закрыт для ботов (Access Denied), витрина Glovo рисует меню скриптом после ввода адреса — зафиксировано зондом 04.10. Дефицит позиций Мака отслеживается косвенно: ленты монитора (мэрия, массовые каналы) собирают сообщения о стоп-листах и очередях; заметные эпизоды будут выноситься сюда вручную с датой и источником.</p>
+
+<h2>Контекст</h2>
+<p class="note">Онлайн-наличие чувствительнее к перебоям складов и логистики, чем полка магазина: доставка первой режет ассортимент. Поэтому ряд сторожит именно раннюю фазу дефицита. Разовые провалы по одной витрине — шум; синхронное падение по трём — сигнал.</p>
+
+<footer>
+Метод и ограничения — в <a href="metodika.html">методике</a>. Версии и интерпретации — агрегаты без адресов и персональных данных.
+</footer>
+</div>
+
+<script>
+// Ряд: [{d:"2026-10-05", s:{novus:{p:460,o:12}, metro:{p:471,o:9}, silpo:{p:510,o:3}}}, ...]
+// p = ценовых меток (Σ по корзине), o = пометок «немає в наявності» (Σ). Переносится вручную из монитора.
+const FOOD=[];
+if(FOOD.length){
+ document.getElementById("pendingNote").style.display="none";
+ const last=FOOD[FOOD.length-1];
+ document.getElementById("updated").textContent="данные на "+last.d.split("-").reverse().join(".");
+ const fc=document.getElementById("foodCards");fc.style.display="flex";
+ for(const[store,v]of Object.entries(last.s)){
+  fc.insertAdjacentHTML("beforeend",
+  `<div class="card"><div class="v">${v.p}<span style="font-size:13px;color:var(--muted)"> / ${v.o}</span></div>
+   <div class="l">${store}: в продаже / «нет в наличии»</div></div>`)}
+ const tb=document.querySelector("#foodTable tbody");
+ document.getElementById("foodTable").style.display="table";
+ [...FOOD].reverse().forEach(r=>{for(const[store,v]of Object.entries(r.s)){
+  tb.insertAdjacentHTML("beforeend",
+  `<tr><td>${r.d.split("-").reverse().join(".")}</td><td>${store}</td><td>${v.p}</td><td>${v.o}</td></tr>`)}});
+}
+</script>
+</body>
+</html>
