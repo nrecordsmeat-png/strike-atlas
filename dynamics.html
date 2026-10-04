@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Динамика в цифрах — Атлас ударов, Киев</title>
+<meta name="description" content="Числовые индикаторы по Киеву: рынок долгосрочной аренды по берегам Днепра, упоминания генераторов, счётчики ударов по типам целей. Агрегаты, без адресов.">
+<style>
+:root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
+--enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--gov:#c792ea;--ind:#9aa4ae;--oth:#56d364;
+--ru:#ff9d86;--ru-bg:#45201a}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+.wrap{max-width:880px;margin:0 auto;padding:18px 16px 60px}
+header h1{font-size:19px;margin:0 0 3px}
+.sub{font-size:12.5px;color:var(--muted);margin:0 0 4px}
+.sub a{color:var(--muted)}
+h2{font-size:15px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.cards{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1 1 150px;min-width:150px}
+.card .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.card .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+.card .d{font-size:12px;margin-top:4px;color:var(--muted)}
+.up{color:var(--res)}.down{color:var(--oth)}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;font-size:11.5px}
+.note{font-size:12px;color:var(--muted)}
+.tag-ru{color:var(--ru);background:var(--ru-bg);font-size:10px;padding:2px 5px;border-radius:3px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:baseline}
+footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Динамика в цифрах — Киев</h1>
+<p class="sub"><a href="./">← карта ударов</a> · агрегированные индикаторы, без адресов и персональных данных · обновляется вручную · <span id="updated"></span></p>
+</header>
+
+<h2>Рынок долгосрочной аренды (DIM.RIA, число объявлений)</h2>
+<p class="note">Гипотеза индикатора: обесточивание и удары по левому берегу → отъезд жильцов → рост числа свободных квартир, в первую очередь на левом берегу. Смотрим уровень и долю левого берега. Отток проявляется с лагом 2–5 дней.</p>
+<div class="cards" id="rentCards"></div>
+<table id="rentTable"><thead><tr>
+<th>дата</th><th>Киев всего</th><th>левый берег</th><th>правый берег</th><th>доля левого</th><th>«генератор», лев/прав*</th>
+</tr></thead><tbody></tbody></table>
+<p class="note">* число упоминаний слова «генератор» на первой странице выдачи — грубая метка энерготревожности объявлений.</p>
+
+<h2>Удары по Киеву и области — счётчики с карты</h2>
+<p class="note">Считается автоматически из данных <a href="./" style="color:var(--brg)">карты</a> (эпизоды 4.09–3.10 с установленной локацией; версии сторон не усредняются).</p>
+<div class="cards" id="strikeCards"></div>
+<table id="typeTable"><thead><tr><th>тип цели</th><th>событий</th></tr></thead><tbody></tbody></table>
+
+<h2>Контекст периода</h2>
+<p class="note">По подсчёту AFP на данных ACLED, за 1–18 сентября по Киеву пришлось 118 ударов — против 174 за весь март 2022-го; мониторинг ООН (HRMMU) фиксировал жертвы в Киеве в 16 из первых 24 дней сентября. Сентябрь 2026-го — самая плотная серия ударов по столице за войну. Подробности и источники — в карточках карты.</p>
+
+<footer>
+Методика и политика исправлений: <a href="https://github.com/nrecordsmeat-png/strike-atlas/blob/main/METODIKA.md">METODIKA.md</a>.
+Версии сторон — заявления, не подтверждённые факты. Ряд аренды пополняется вручную из ежедневных замеров.
+</footer>
+</div>
+
+<script src="events.js"></script>
+<script>
+// Ряд аренды: агрегаты ежедневных замеров (переносится вручную). gl/gr — «генератор»-метки, null = нет данных.
+const RENT=[
+ {d:"2026-10-04",k:7419,l:1295,r:5160,gl:null,gr:null}, // бейзлайн
+];
+const UPDATED="04.10.2026";
+
+document.getElementById("updated").textContent="данные на "+UPDATED;
+const last=RENT[RENT.length-1], first=RENT[0];
+const share=v=>(v.l/v.k*100).toFixed(1)+"%";
+function delta(cur,base){const d=cur-base;const s=d>0?"+"+d:""+d;
+ return base===cur?"±0":`<span class="${d>0?"up":"down"}">${s}</span>`}
+const rc=document.getElementById("rentCards");
+rc.innerHTML=`
+ <div class="card"><div class="v">${last.k}</div><div class="l">Киев всего</div><div class="d">Δ от 04.10: ${delta(last.k,first.k)}</div></div>
+ <div class="card"><div class="v">${last.l}</div><div class="l">левый берег</div><div class="d">Δ: ${delta(last.l,first.l)}</div></div>
+ <div class="card"><div class="v">${last.r}</div><div class="l">правый берег</div><div class="d">Δ: ${delta(last.r,first.r)}</div></div>
+ <div class="card"><div class="v">${share(last)}</div><div class="l">доля левого берега</div><div class="d">бейзлайн 17.5%</div></div>`;
+const tb=document.querySelector("#rentTable tbody");
+[...RENT].reverse().forEach(v=>{
+ const g=(v.gl==null&&v.gr==null)?"—":`${v.gl??"—"} / ${v.gr??"—"}`;
+ tb.insertAdjacentHTML("beforeend",
+ `<tr><td>${v.d.split("-").reverse().join(".")}</td><td>${v.k}</td><td>${v.l}</td><td>${v.r}</td><td>${share(v)}</td><td>${g}</td></tr>`)});
+
+// Счётчики ударов из events.js
+const TYPES={enr:["Энергетика","--enr"],brg:["Мосты","--brg"],res:["Жильё","--res"],gov:["Гос и наука","--gov"],ind:["Пром, склады, ИТ","--ind"],oth:["Прочее","--oth"]};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const days=new Set(EVENTS.map(e=>e.date)).size;
+const ruOnly=EVENTS.filter(e=>e.tags.includes("RU")&&!e.tags.includes("UA")).length;
+const approx=EVENTS.filter(e=>e.approx).length;
+document.getElementById("strikeCards").innerHTML=`
+ <div class="card"><div class="v">${EVENTS.length}</div><div class="l">эпизодов на карте</div><div class="d">${PERIOD.start.slice(8)}.09 – ${PERIOD.end.split("-").reverse().slice(0,2).join(".")}</div></div>
+ <div class="card"><div class="v">${days}</div><div class="l">дней с нанесёнными ударами</div><div class="d">из 30 дней периода</div></div>
+ <div class="card"><div class="v">${ruOnly}</div><div class="l">эпизоды только по версии РФ <span class="tag-ru">RU</span></div><div class="d">UA не подтверждала</div></div>
+ <div class="card"><div class="v">${EVENTS.length-approx}</div><div class="l">с точным адресом</div><div class="d">${approx} — зона ~2 км</div></div>`;
+const tt=document.querySelector("#typeTable tbody");
+Object.entries(TYPES).forEach(([k,[name,v]])=>{
+ const n=EVENTS.filter(e=>e.type===k).length;
+ tt.insertAdjacentHTML("beforeend",
+ `<tr><td><span class="dot" style="background:${css(v)}"></span>${name}</td><td>${n}</td></tr>`)});
+</script>
+</body>
+</html>
