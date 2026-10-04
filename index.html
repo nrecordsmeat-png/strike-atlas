@@ -13,21 +13,36 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
-header{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px}
-h1{font-size:16px;margin:0 0 2px}
-.sub{font-size:12px;color:var(--muted);margin:0}
-.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:9px}
-.datebox{display:flex;align-items:center;gap:9px;flex:1 1 260px;min-width:240px}
-#dateLabel{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;white-space:nowrap;min-width:92px}
-input[type=range]{flex:1;accent-color:var(--enr)}
-.btn{background:none;border:1px solid var(--line);color:var(--ink);border-radius:4px;padding:4px 9px;font-size:12px;cursor:pointer}
+
+header{background:var(--panel);border-bottom:1px solid var(--line)}
+.bar{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand h1{font-size:16px;margin:0;white-space:nowrap}
+.brand .period{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
+.brand .tagline{font-size:11.5px;color:var(--muted);margin-top:1px}
+nav{margin-left:auto;display:flex;gap:4px}
+nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 12px;border-radius:6px;white-space:nowrap}
+nav a:hover{color:var(--ink)}
+nav a.cur{background:var(--line);color:var(--ink)}
+
+.toolbar{border-top:1px solid var(--line);background:var(--panel)}
+.toolbar .bar{padding:8px 16px;gap:18px}
+.datebox{display:flex;align-items:center;gap:10px}
+#dateLabel{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;white-space:nowrap;min-width:88px}
+.sliderwrap{display:flex;flex-direction:column;width:clamp(180px,32vw,340px)}
+.sliderends{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:1px}
+input[type=range]{width:100%;accent-color:var(--enr);margin:0}
+.btn{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:5px 11px;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .btn.on{background:var(--line)}
+.sep{width:1px;align-self:stretch;background:var(--line)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:12px;padding:3px 9px;font-size:12px;cursor:pointer;user-select:none;color:var(--muted)}
-.chip.on{color:var(--ink);border-color:currentColor}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:4px 11px;font-size:12.5px;cursor:pointer;user-select:none;color:var(--ink)}
+.chip:not(.on){opacity:.4}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-#map{flex:1;min-height:0}
-.legend-approx{font-size:11.5px;color:var(--muted)}
+
+#map{flex:1;min-height:0;position:relative}
+.maplegend{position:absolute;left:10px;bottom:22px;z-index:900;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:11.5px;color:var(--muted);line-height:1.7;max-width:230px}
+.maplegend .sym{display:inline-block;width:16px;text-align:center;color:var(--ink)}
+
 .leaflet-popup-content-wrapper{background:var(--panel);color:var(--ink);border-radius:6px;border:1px solid var(--line)}
 .leaflet-popup-tip{background:var(--panel)}
 .pop{font-size:12.5px;line-height:1.5;max-width:270px}
@@ -45,32 +60,57 @@ dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);bor
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{font-size:15px;margin:0 0 8px}
 dialog p{margin:7px 0}
+dialog a{color:var(--brg)}
 .close{float:right}
-@media(max-width:640px){h1{font-size:14px}.controls{gap:7px 10px}}
+@media(max-width:760px){
+ .bar{gap:10px}
+ nav{margin-left:0;width:100%;order:3}
+ .toolbar .bar{flex-direction:column;align-items:stretch;gap:10px}
+ .sliderwrap{width:100%}
+ .sep{display:none}
+ .maplegend{bottom:12px}
+}
 </style>
 </head>
 <body>
 <header>
-<h1>Атлас ударов — Киев и область <span style="font-weight:400;color:var(--muted)">4.09 – 3.10.2026</span></h1>
-<p class="sub">OSINT по вторичным источникам · версии сторон приводятся раздельно и не усредняются · <a href="dynamics.html" style="color:var(--brg)">динамика в цифрах →</a> · <a href="#" id="aboutLink" style="color:var(--muted)">о данных и точности</a></p>
-<div class="controls">
-  <div class="datebox">
-    <span id="dateLabel"></span>
-    <input type="range" id="dateSlider" min="0" value="0" step="1">
-    <button class="btn on" id="modeBtn" title="Накопительно: все события по выбранную дату включительно">Накопительно</button>
+  <div class="bar">
+    <div class="brand">
+      <h1>Атлас ударов — Киев и область<span class="period">4.09 – 3.10.2026</span></h1>
+      <div class="tagline">OSINT по вторичным источникам · версии сторон приводятся раздельно и не усредняются</div>
+    </div>
+    <nav>
+      <a class="cur" href="./">Карта</a>
+      <a href="dynamics.html">Динамика в цифрах</a>
+      <a href="#" id="aboutLink">О данных</a>
+    </nav>
   </div>
-  <div class="chips" id="chips"></div>
-  <span class="legend-approx">⬤ точка — подтверждённый адрес · ◌ пунктирный круг — примерная зона (~2 км)</span>
-</div>
+  <div class="toolbar"><div class="bar">
+    <div class="datebox">
+      <span id="dateLabel"></span>
+      <div class="sliderwrap">
+        <input type="range" id="dateSlider" min="0" value="0" step="1">
+        <div class="sliderends"><span>4.09</span><span>3.10</span></div>
+      </div>
+      <button class="btn on" id="modeBtn" title="Накопительно: все события по выбранную дату включительно">Накопительно</button>
+    </div>
+    <div class="sep"></div>
+    <div class="chips" id="chips"></div>
+  </div></div>
 </header>
-<div id="map"></div>
+<div id="map">
+  <div class="maplegend">
+    <span class="sym">⬤</span> точка — адрес подтверждён источником<br>
+    <span class="sym">◌</span> пунктирный круг — зона ~2 км, точное место не названо
+  </div>
+</div>
 
 <dialog id="about">
 <button class="btn close" onclick="about.close()">Закрыть</button>
 <h2>О данных</h2>
 <p>Карта собрана по открытым источникам: заявления украинских властей (КГВА, КОВА, ГСЧС, Воздушные силы ВСУ), Минобороны РФ, независимые СМИ и OSINT. Каждое событие несёт теги источников; версии сторон — заявления, а не подтверждённые факты. В карточках событий — ссылки на публикации; пометка «пока не определены» означает, что подтверждённую публикацию под эпизод ещё не подобрали.</p>
 <p>Координаты расставлены вручную по общеизвестным адресам объектов. Сплошная точка — адрес объекта назван в источниках. Пунктирный полупрозрачный круг очерчивает примерную зону (~2 км): источники назвали только район, точное место неизвестно — любая точка внутри круга равновероятна. Эпизоды без локации в источниках (13–16, 19, 23, 29 сентября и часть областных) на карту не нанесены.</p>
-<p>Период: 4 сентября — 3 октября 2026. Обновляется вручную. Цвет — тип объекта, размер зоны не отражает масштаб разрушений. Полная методика: <a href="https://github.com/nrecordsmeat-png/strike-atlas/blob/main/METODIKA.md" style="color:var(--brg)">METODIKA.md</a>.</p>
+<p>Период: 4 сентября — 3 октября 2026. Обновляется вручную. Цвет — тип объекта, размер зоны не отражает масштаб разрушений. Полная методика: <a href="https://github.com/nrecordsmeat-png/strike-atlas/blob/main/METODIKA.md">METODIKA.md</a>.</p>
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -111,7 +151,6 @@ function render(){
  EVENTS.filter(e=>active.has(e.type)&&(cumulative?e.date<=sel:e.date===sel)).forEach(e=>{
   const col=css("--"+e.type),pop=popup(e);
   if(e.approx){
-   // зона неопределённости: круг ~2 км; точной точки у события нет
    L.circle([e.lat,e.lng],{radius:1800,color:col,weight:1.5,dashArray:"5 4",fillColor:col,fillOpacity:.16})
     .bindPopup(pop,{maxWidth:290}).addTo(layer);
    L.circleMarker([e.lat,e.lng],{radius:4.5,color:col,weight:1.5,dashArray:"3 3",fillColor:col,fillOpacity:.45})
