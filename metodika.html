@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Методика — Атлас ударов, Киев</title>
+<meta name="description" content="Методика Атласа ударов: источники и теги, порядок внесения событий, типы меток, политика аудита и исправлений, ограничения данных.">
+<style>
+:root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
+--enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--gov:#c792ea;--ind:#9aa4ae;--oth:#56d364;
+--ua:#92b5ff;--ua-bg:#1c2a49;--ru:#ff9d86;--ru-bg:#45201a;--os:#abd08d;--os-bg:#273620;--soc:#aab3be;--soc-bg:#2b3037}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+header{background:var(--panel);border-bottom:1px solid var(--line)}
+.bar{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand h1{font-size:16px;margin:0;white-space:nowrap}
+.brand .tagline{font-size:11.5px;color:var(--muted);margin-top:1px}
+nav{margin-left:auto;display:flex;gap:4px}
+nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 12px;border-radius:6px;white-space:nowrap}
+nav a:hover{color:var(--ink)}
+nav a.cur{background:var(--line);color:var(--ink)}
+@media(max-width:760px){nav{margin-left:0;width:100%}}
+.wrap{max-width:760px;margin:0 auto;padding:18px 16px 60px;font-size:14px}
+h2{font-size:15.5px;margin:30px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+p{margin:9px 0}
+ol,ul{margin:9px 0;padding-left:22px}
+li{margin:7px 0}
+.muted{color:var(--muted)}
+.t{display:inline-block;font-size:10.5px;padding:2px 6px;border-radius:3px;margin-right:2px;vertical-align:1px}
+.t-ua{color:var(--ua);background:var(--ua-bg)}.t-ru{color:var(--ru);background:var(--ru-bg)}
+.t-os{color:var(--os);background:var(--os-bg)}.t-soc{color:var(--soc);background:var(--soc-bg)}
+.sym{display:inline-block;width:18px;text-align:center}
+.ex{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:10px 14px;font-size:13px;margin:10px 0}
+footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+footer a,a{color:var(--brg)}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <h1>Атлас ударов — Киев и область</h1>
+      <div class="tagline">методика сбора, разметки и исправлений</div>
+    </div>
+    <nav>
+      <a href="./">Карта</a>
+      <a href="dynamics.html">Динамика в цифрах</a>
+      <a class="cur" href="metodika.html">Методика</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap">
+
+<h2>Источники и теги</h2>
+<p>Атлас собран по открытым вторичным источникам. Каждое событие несёт теги происхождения сведений:</p>
+<ul>
+<li><span class="t t-ua">официально-UA</span> — КГВА, КОВА, ГСЧС, Воздушные силы ВСУ, первые лица Украины;</li>
+<li><span class="t t-ru">официально-RU</span> — Минобороны РФ и росСМИ, пересказывающие его сводки;</li>
+<li><span class="t t-os">OSINT</span> — независимые данные: NASA FIRMS (тепловые аномалии), геолокация по фото и видео;</li>
+<li><span class="t t-soc">соцсети</span> — мониторы и очевидцы без независимого подтверждения.</li>
+</ul>
+<p><b>Версии сторон приводятся раздельно и не усредняются.</b> «Поражён» и «повреждён» — формулировки источников, они сохраняются за источником и не являются нашей оценкой. Заявление — не подтверждённый факт.</p>
+
+<h2>Порядок внесения события</h2>
+<ol>
+<li><b>Сначала публикация — потом маркер.</b> Сплошная точка ставится, только если адрес объекта назван в источнике. Нет адреса — пунктирная зона ~2 км. Нет подобранной публикации — в карточке честно значится «источники: пока не определены».</li>
+<li><b>Дедупликация по географии и дате, а не по названию.</b> Новый эпизод сверяется с уже нанесёнными в радиусе ~5 км за ту же дату; совпадение означает слияние карточек с сохранением обеих формулировок.
+<div class="ex">Пример из практики: «подстанция „Киевская"» у одних источников и «подстанция в Наливайковке» у других оказались одним объектом — 750 кВ в с. Наливайковка. Два маркера слиты в один, исправление видно в журнале правок.</div></li>
+<li><b>Координаты — из источника</b> или геокодированием адреса, названного источником. Память составителя — гипотеза для поиска, а не значение для карты.</li>
+<li><b>Жертвы — с атрибуцией</b> (кто сообщил) и вилками, если данные источников расходятся. Цифры разных сторон не суммируются.</li>
+</ol>
+
+<h2>Типы меток</h2>
+<ul>
+<li><span class="sym">⬤</span> сплошная точка — адрес объекта подтверждён источником;</li>
+<li><span class="sym">◌</span> пунктирный полупрозрачный круг ~2 км — источники назвали только район; любая точка внутри круга равновероятна, центр не несёт смысла;</li>
+<li>эпизоды совсем без локации в источниках на карту не наносятся (в периоде 4.09–3.10 это 13–16, 19, 23, 29 сентября и часть областных) — они учитываются в текстовых сводках.</li>
+</ul>
+<p class="muted">Цвет метки — тип объекта (энергетика, мосты, жильё, гос и наука, промышленность, прочее). Размер зоны не отражает масштаб разрушений.</p>
+
+<h2>Аудит и исправления</h2>
+<ul>
+<li>Еженедельный повторный прогон всех приблизительных зон и карточек «пока не определены»: добор публикаций, уточнение координат.</li>
+<li>Все правки вносятся коммитами в открытый репозиторий — <a href="https://github.com/nrecordsmeat-png/strike-atlas/commits/main/">журнал исправлений</a> публичен: видно, что, когда и почему изменилось.</li>
+<li>Исправление ошибки — норма работы, а не исключение. Найденные ошибки не затираются молча: слияния и переносы меток остаются в истории.</li>
+</ul>
+
+<h2>Страница «Динамика в цифрах»</h2>
+<p>Числовые индикаторы на <a href="dynamics.html">соседней странице</a> — только агрегаты, без адресов и персональных данных: счётчики объявлений долгосрочной аренды по берегам Днепра (DIM.RIA, ежедневный замер в фиксированное время), грубая метка «генератор» в выдаче, счётчики событий атласа. Гипотезы индикаторов сформулированы на самой странице рядом с данными; ряд пополняется вручную.</p>
+
+<h2>Известные ограничения</h2>
+<ul>
+<li>Атлас опирается на вторичные источники; собственной полевой верификации нет.</li>
+<li>Радиус зоны (~2 км) условен.</li>
+<li>Покрытие несимметрично природе источников: у украинской стороны публикуются и адреса, и жертвы; российская сторона публикует заявления о целях — поэтому часть эпизодов существует только «по версии РФ» и помечена соответственно.</li>
+<li>Период: с 4 сентября 2026. Пополнение вручную, не в реальном времени.</li>
+</ul>
+
+<footer>
+Вопросы к конкретному событию — открывайте его карточку на <a href="./">карте</a>: там дата, версии сторон, жертвы с атрибуцией и ссылки на публикации.
+</footer>
+</div>
+</body>
+</html>
