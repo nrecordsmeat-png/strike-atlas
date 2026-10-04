@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Атлас ударов — Киев и область, сентябрь–октябрь 2026</title>
+<meta name="description" content="Интерактивная карта российских ударов по Киеву и Киевской области, 4 сентября — 3 октября 2026. OSINT, вторичные источники, версии сторон приводятся раздельно.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
+--enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--gov:#c792ea;--ind:#9aa4ae;--oth:#56d364;
+--ua:#92b5ff;--ua-bg:#1c2a49;--ru:#ff9d86;--ru-bg:#45201a;--os:#abd08d;--os-bg:#273620;--soc:#aab3be;--soc-bg:#2b3037}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 14px}
+h1{font-size:16px;margin:0 0 2px}
+.sub{font-size:12px;color:var(--muted);margin:0}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:9px}
+.datebox{display:flex;align-items:center;gap:9px;flex:1 1 260px;min-width:240px}
+#dateLabel{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;white-space:nowrap;min-width:92px}
+input[type=range]{flex:1;accent-color:var(--enr)}
+.btn{background:none;border:1px solid var(--line);color:var(--ink);border-radius:4px;padding:4px 9px;font-size:12px;cursor:pointer}
+.btn.on{background:var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:12px;padding:3px 9px;font-size:12px;cursor:pointer;user-select:none;color:var(--muted)}
+.chip.on{color:var(--ink);border-color:currentColor}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+#map{flex:1;min-height:0}
+.legend-approx{font-size:11.5px;color:var(--muted)}
+.leaflet-popup-content-wrapper{background:var(--panel);color:var(--ink);border-radius:6px;border:1px solid var(--line)}
+.leaflet-popup-tip{background:var(--panel)}
+.pop{font-size:12.5px;line-height:1.5;max-width:270px}
+.pop h3{margin:0 0 3px;font-size:13.5px}
+.pop .d{color:var(--muted);font-size:11.5px;margin-bottom:5px}
+.pop p{margin:4px 0}
+.pop b{color:var(--muted);font-weight:600}
+.t{display:inline-block;font-size:10px;padding:2px 5px;border-radius:3px;margin-right:3px}
+.t-ua{color:var(--ua);background:var(--ua-bg)}.t-ru{color:var(--ru);background:var(--ru-bg)}
+.t-os{color:var(--os);background:var(--os-bg)}.t-soc{color:var(--soc);background:var(--soc-bg)}
+.apx{color:var(--enr);font-size:11px}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;max-width:520px;padding:18px 20px;font-size:13.5px;line-height:1.55}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h2{font-size:15px;margin:0 0 8px}
+dialog p{margin:7px 0}
+.close{float:right}
+@media(max-width:640px){h1{font-size:14px}.controls{gap:7px 10px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Атлас ударов — Киев и область <span style="font-weight:400;color:var(--muted)">4.09 – 3.10.2026</span></h1>
+<p class="sub">OSINT по вторичным источникам · версии сторон приводятся раздельно и не усредняются · <a href="#" id="aboutLink" style="color:var(--muted)">о данных и точности</a></p>
+<div class="controls">
+  <div class="datebox">
+    <span id="dateLabel"></span>
+    <input type="range" id="dateSlider" min="0" value="0" step="1">
+    <button class="btn on" id="modeBtn" title="Накопительно: все события по выбранную дату включительно">Накопительно</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <span class="legend-approx">◌ пунктир — район, не точка</span>
+</div>
+</header>
+<div id="map"></div>
+
+<dialog id="about">
+<button class="btn close" onclick="about.close()">Закрыть</button>
+<h2>О данных</h2>
+<p>Карта собрана по открытым источникам: заявления украинских властей (КГВА, КОВА, ГСЧС, Воздушные силы ВСУ), Минобороны РФ, независимые СМИ и OSINT. Каждое событие несёт теги источников; версии сторон — заявления, а не подтверждённые факты.</p>
+<p>Координаты расставлены вручную по общеизвестным адресам объектов. Метки с пунктирной обводкой указывают район, а не точное место. Эпизоды без локации в источниках (13–16, 19, 23, 29 сентября и часть областных) на карту не нанесены.</p>
+<p>Период: 4 сентября — 3 октября 2026. Обновляется вручную. Цвет метки — тип объекта, размер не несёт смысла.</p>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="events.js"></script>
+<script>
+const TYPES={enr:["Энергетика","--enr"],brg:["Мосты","--brg"],res:["Жильё","--res"],gov:["Гос и наука","--gov"],ind:["Пром, склады, ИТ","--ind"],oth:["Прочее","--oth"]};
+const TAGS={UA:["официально-UA","t-ua"],RU:["официально-RU","t-ru"],OSINT:["OSINT","t-os"],SOC:["соцсети","t-soc"]};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// даты периода
+const DATES=[];{let d=new Date(PERIOD.start+"T00:00:00Z");const end=new Date(PERIOD.end+"T00:00:00Z");
+while(d<=end){DATES.push(d.toISOString().slice(0,10));d=new Date(d.getTime()+864e5);}}
+const slider=document.getElementById("dateSlider");slider.max=DATES.length-1;slider.value=DATES.length-1;
+let cumulative=true;const active=new Set(Object.keys(TYPES));
+
+// карта
+const map=L.map("map",{zoomControl:true}).setView([50.42,30.52],9);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,
+ attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const layer=L.layerGroup().addTo(map);
+
+function badge(t){const x=TAGS[t];return x?`<span class="t ${x[1]}">${x[0]}</span>`:""}
+function popup(e){
+ let h=`<div class="pop"><h3>${e.title}</h3><div class="d">${e.date.split("-").reverse().join(".")}${e.approx?' · <span class="apx">локация приблизительная</span>':""}</div>`;
+ if(e.means)h+=`<p><b>Средства:</b> ${e.means}</p>`;
+ if(e.ua)h+=`<p><b>Версия UA:</b> ${e.ua}</p>`;
+ if(e.ru)h+=`<p><b>Версия РФ:</b> ${e.ru}</p>`;
+ if(e.osint)h+=`<p><b>Независимо:</b> ${e.osint}</p>`;
+ if(e.cas)h+=`<p><b>Жертвы:</b> ${e.cas}</p>`;
+ h+=`<p>${e.tags.map(badge).join("")}</p></div>`;return h}
+
+function render(){
+ const idx=+slider.value,sel=DATES[idx];
+ document.getElementById("dateLabel").textContent=sel.split("-").reverse().join(".");
+ layer.clearLayers();
+ EVENTS.filter(e=>active.has(e.type)&&(cumulative?e.date<=sel:e.date===sel)).forEach(e=>{
+  L.circleMarker([e.lat,e.lng],{radius:e.approx?9:8,color:css("--"+e.type),weight:e.approx?2:1.5,
+   dashArray:e.approx?"4 3":null,fillColor:css("--"+e.type),fillOpacity:.75})
+   .bindPopup(popup(e),{maxWidth:290}).addTo(layer);});
+}
+
+// чипы фильтров
+const chips=document.getElementById("chips");
+for(const[k,[name,v]]of Object.entries(TYPES)){
+ const c=document.createElement("span");c.className="chip on";
+ c.innerHTML=`<span class="dot" style="background:${css(v)}"></span>${name}`;
+ c.onclick=()=>{active.has(k)?active.delete(k):active.add(k);c.classList.toggle("on");render();};
+ chips.appendChild(c);}
+
+slider.oninput=render;
+document.getElementById("modeBtn").onclick=function(){cumulative=!cumulative;
+ this.textContent=cumulative?"Накопительно":"Только день";this.classList.toggle("on",cumulative);render();};
+const about=document.getElementById("about");
+document.getElementById("aboutLink").onclick=e=>{e.preventDefault();about.showModal();};
+render();
+</script>
+</body>
+</html>
