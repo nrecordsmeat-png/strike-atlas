@@ -60,7 +60,7 @@ dialog p{margin:7px 0}
     <button class="btn on" id="modeBtn" title="Накопительно: все события по выбранную дату включительно">Накопительно</button>
   </div>
   <div class="chips" id="chips"></div>
-  <span class="legend-approx">◌ пунктир — район, не точка</span>
+  <span class="legend-approx">⬤ точка — подтверждённый адрес · ◌ пунктирный круг — примерная зона (~2 км)</span>
 </div>
 </header>
 <div id="map"></div>
@@ -69,8 +69,8 @@ dialog p{margin:7px 0}
 <button class="btn close" onclick="about.close()">Закрыть</button>
 <h2>О данных</h2>
 <p>Карта собрана по открытым источникам: заявления украинских властей (КГВА, КОВА, ГСЧС, Воздушные силы ВСУ), Минобороны РФ, независимые СМИ и OSINT. Каждое событие несёт теги источников; версии сторон — заявления, а не подтверждённые факты. В карточках событий — ссылки на публикации.</p>
-<p>Координаты расставлены вручную по общеизвестным адресам объектов. Метки с пунктирной обводкой указывают район, а не точное место. Эпизоды без локации в источниках (13–16, 19, 23, 29 сентября и часть областных) на карту не нанесены.</p>
-<p>Период: 4 сентября — 3 октября 2026. Обновляется вручную. Цвет метки — тип объекта, размер не несёт смысла.</p>
+<p>Координаты расставлены вручную по общеизвестным адресам объектов. Сплошная точка — адрес объекта назван в источниках. Пунктирный полупрозрачный круг очерчивает примерную зону (~2 км): источники назвали только район, точное место неизвестно — любая точка внутри круга равновероятна. Эпизоды без локации в источниках (13–16, 19, 23, 29 сентября и часть областных) на карту не нанесены.</p>
+<p>Период: 4 сентября — 3 октября 2026. Обновляется вручную. Цвет — тип объекта, размер зоны не отражает масштаб разрушений.</p>
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -94,7 +94,7 @@ const layer=L.layerGroup().addTo(map);
 
 function badge(t){const x=TAGS[t];return x?`<span class="t ${x[1]}">${x[0]}</span>`:""}
 function popup(e){
- let h=`<div class="pop"><h3>${e.title}</h3><div class="d">${e.date.split("-").reverse().join(".")}${e.approx?' · <span class="apx">локация приблизительная</span>':""}</div>`;
+ let h=`<div class="pop"><h3>${e.title}</h3><div class="d">${e.date.split("-").reverse().join(".")}${e.approx?' · <span class="apx">зона ~2 км, точное место не названо</span>':""}</div>`;
  if(e.means)h+=`<p><b>Средства:</b> ${e.means}</p>`;
  if(e.ua)h+=`<p><b>Версия UA:</b> ${e.ua}</p>`;
  if(e.ru)h+=`<p><b>Версия РФ:</b> ${e.ru}</p>`;
@@ -108,9 +108,18 @@ function render(){
  document.getElementById("dateLabel").textContent=sel.split("-").reverse().join(".");
  layer.clearLayers();
  EVENTS.filter(e=>active.has(e.type)&&(cumulative?e.date<=sel:e.date===sel)).forEach(e=>{
-  L.circleMarker([e.lat,e.lng],{radius:e.approx?9:8,color:css("--"+e.type),weight:e.approx?2:1.5,
-   dashArray:e.approx?"4 3":null,fillColor:css("--"+e.type),fillOpacity:.75})
-   .bindPopup(popup(e),{maxWidth:290}).addTo(layer);});
+  const col=css("--"+e.type),pop=popup(e);
+  if(e.approx){
+   // зона неопределённости: круг ~2 км; точной точки у события нет
+   L.circle([e.lat,e.lng],{radius:1800,color:col,weight:1.5,dashArray:"5 4",fillColor:col,fillOpacity:.16})
+    .bindPopup(pop,{maxWidth:290}).addTo(layer);
+   L.circleMarker([e.lat,e.lng],{radius:4.5,color:col,weight:1.5,dashArray:"3 3",fillColor:col,fillOpacity:.45})
+    .bindPopup(pop,{maxWidth:290}).addTo(layer);
+  }else{
+   L.circleMarker([e.lat,e.lng],{radius:8,color:col,weight:1.5,fillColor:col,fillOpacity:.8})
+    .bindPopup(pop,{maxWidth:290}).addTo(layer);
+  }
+ });
 }
 
 // чипы фильтров
