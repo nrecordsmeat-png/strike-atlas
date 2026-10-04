@@ -19,7 +19,7 @@ header{background:var(--panel);border-bottom:1px solid var(--line)}
 .brand h1{font-size:16px;margin:0;white-space:nowrap}
 .brand .period{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
 .brand .tagline{font-size:11.5px;color:var(--muted);margin-top:1px}
-nav{margin-left:auto;display:flex;gap:4px}
+nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
 nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 12px;border-radius:6px;white-space:nowrap}
 nav a:hover{color:var(--ink)}
 nav a.cur{background:var(--line);color:var(--ink)}
@@ -56,12 +56,6 @@ input[type=range]{width:100%;accent-color:var(--enr);margin:0}
 .t-ua{color:var(--ua);background:var(--ua-bg)}.t-ru{color:var(--ru);background:var(--ru-bg)}
 .t-os{color:var(--os);background:var(--os-bg)}.t-soc{color:var(--soc);background:var(--soc-bg)}
 .apx{color:var(--enr);font-size:11px}
-dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;max-width:520px;padding:18px 20px;font-size:13.5px;line-height:1.55}
-dialog::backdrop{background:rgba(0,0,0,.6)}
-dialog h2{font-size:15px;margin:0 0 8px}
-dialog p{margin:7px 0}
-dialog a{color:var(--brg)}
-.close{float:right}
 @media(max-width:760px){
  .bar{gap:10px}
  nav{margin-left:0;width:100%;order:3}
@@ -81,9 +75,10 @@ dialog a{color:var(--brg)}
     </div>
     <nav>
       <a class="cur" href="./">Карта</a>
-      <a href="dynamics.html">Динамика в цифрах</a>
+      <a href="dynamics.html">Данные</a>
+      <a href="food.html">Еда</a>
+      <a href="traffic.html">Пробки</a>
       <a href="metodika.html">Методика</a>
-      <a href="#" id="aboutLink">О данных</a>
     </nav>
   </div>
   <div class="toolbar"><div class="bar">
@@ -105,14 +100,6 @@ dialog a{color:var(--brg)}
     <span class="sym">◌</span> пунктирный круг — зона ~2 км, точное место не названо
   </div>
 </div>
-
-<dialog id="about">
-<button class="btn close" onclick="about.close()">Закрыть</button>
-<h2>О данных</h2>
-<p>Карта собрана по открытым источникам: заявления украинских властей (КГВА, КОВА, ГСЧС, Воздушные силы ВСУ), Минобороны РФ, независимые СМИ и OSINT. Каждое событие несёт теги источников; версии сторон — заявления, а не подтверждённые факты. В карточках событий — ссылки на публикации; пометка «пока не определены» означает, что подтверждённую публикацию под эпизод ещё не подобрали.</p>
-<p>Сплошная точка — адрес объекта назван в источниках. Пунктирный круг очерчивает примерную зону (~2 км): любая точка внутри равновероятна. Эпизоды без локации на карту не нанесены.</p>
-<p>Период: 4 сентября — 3 октября 2026. Обновляется вручную. Подробности: <a href="metodika.html">полная методика</a>.</p>
-</dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="events.js"></script>
@@ -174,8 +161,6 @@ for(const[k,[name,v]]of Object.entries(TYPES)){
 slider.oninput=render;
 document.getElementById("modeBtn").onclick=function(){cumulative=!cumulative;
  this.textContent=cumulative?"Накопительно":"Только день";this.classList.toggle("on",cumulative);render();};
-const about=document.getElementById("about");
-document.getElementById("aboutLink").onclick=e=>{e.preventDefault();about.showModal();};
 render();
 </script>
 </body>
