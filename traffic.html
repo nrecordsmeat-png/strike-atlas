@@ -21,6 +21,11 @@ nav a.cur{background:var(--line);color:var(--ink)}
 @media(max-width:760px){nav{margin-left:0;width:100%}}
 .wrap{max-width:880px;margin:0 auto;padding:18px 16px 60px}
 h2{font-size:15px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.cards{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;flex:1 1 150px;min-width:150px}
+.card .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.card .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+.card .d{font-size:12px;margin-top:4px;color:var(--muted)}
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:right}
 th:first-child,td:first-child{text-align:left}
@@ -37,7 +42,7 @@ footer a{color:var(--muted)}
   <div class="bar">
     <div class="brand">
       <h1>Атлас ударов — Киев и область</h1>
-      <div class="tagline">пробки и мосты · время в пути между берегами как индикатор</div>
+      <div class="tagline">пробки и мосты · время в пути между берегами · <span id="updated">сбор начат 04.10.2026</span></div>
     </div>
     <nav>
       <a href="./">Карта</a>
@@ -51,18 +56,22 @@ footer a{color:var(--muted)}
 <div class="wrap">
 
 <h2>Что меряем</h2>
-<p class="note">После ударов по мостам (Южный закрыт с 1.10, Северный повреждён 3.10 — см. <a href="./">карту</a>) главный транспортный вопрос Киева — цена переправы через Днепр. Индикатор: <b>время в пути в минутах</b> по трём фиксированным коридорам левый берег → правый (север / центр / юг), снимаемое дважды в день в часы пик. Рост минут на коридоре = перегрузка оставшихся мостов; расползание между коридорами показывает, куда перетёк поток. Публикуются только минуты по коридорам — без точных адресов точек замера.</p>
+<p class="note">После ударов по мостам (Южный закрыт с 1.10, Северный повреждён 3.10 — см. <a href="./">карту</a>) главный транспортный вопрос Киева — цена переправы через Днепр. Индикатор: <b>время в пути в минутах</b> по трём фиксированным коридорам левый берег → правый (север: Троещина→Оболонь · центр: Дарница→центр · юг: Позняки→Лыбедская), снимаемое дважды в день в часы пик по данным TomTom с учётом живых пробок. Рост минут на коридоре = перегрузка оставшихся мостов; расползание между коридорами показывает, куда перетёк поток. Публикуются только минуты — без точных адресов точек замера.</p>
 
-<div class="pending">
-<b>Статус: в постройке.</b> Публичный индекс пробок для Киева недоступен — города нет в TomTom Traffic Index (проверено зондом 04.10). Маршрутный замер строится через бесплатный Routing API; до его запуска транспортная картина отслеживается по лентам монитора (мэрия, ДТЭК, массовые каналы) — сообщения о перекрытиях и заторах. Ряд появится на этой странице с первых замеров.
-</div>
+<div class="cards" id="trafCards" style="display:none"></div>
 
 <table id="trafficTable" style="display:none"><thead><tr>
-<th>дата</th><th>время</th><th>север, мин</th><th>центр, мин</th><th>юг, мин</th>
+<th>дата</th><th>время (Киев)</th><th>север, мин</th><th>центр, мин</th><th>юг, мин</th>
 </tr></thead><tbody></tbody></table>
 
+<p class="note" id="satNote" style="display:none">Срез 04.10 — суббота, вечер: задержка от пробок по всем коридорам 0 минут — это и есть «пустая дорога», нижняя планка. Будничные пики — с понедельника 6.10; их превышение над этой планкой и станет рабочим сигналом.</p>
+
+<div class="pending" id="pendingNote">
+<b>Статус: в постройке.</b> Публичный индекс пробок для Киева недоступен — города нет в TomTom Traffic Index (проверено зондом 04.10). Маршрутный замер строится через Routing API; ряд появится здесь с первых замеров.
+</div>
+
 <h2>Контекст мостов</h2>
-<p class="note">До ударов у Киева шесть автомобильных переправ через Днепр. Южный мост закрыт после удара 1 октября (КРСН по опоре, версия UA), Северный (Московский) повреждён 3 октября — движение ограничено. Нагрузка перетекает на мост Патона, Дарницкий и Гавань: именно их пропускную способность и сторожит индикатор.</p>
+<p class="note">До ударов у Киева шесть автомобильных переправ через Днепр. Южный мост закрыт после удара 1 октября (КРСН по опоре, версия UA), Северный (Московский) повреждён 3 октября — движение ограничено. Нагрузка перетекает на мост Патона, Дарницкий и Гавань: именно их пропускную способность и сторожит индикатор. Южный коридор при закрытом Южном мосте строится через Дарницкий — его текущие 13.5 мин и есть точка отсчёта объезда.</p>
 
 <footer>
 Метод и ограничения — в <a href="metodika.html">методике</a>.
@@ -70,10 +79,20 @@ footer a{color:var(--muted)}
 </div>
 
 <script>
-// Ряд: [{d:"2026-10-06",t:"08:30",n:38,c:52,s:44}, ...] — минуты по коридорам; переносится вручную.
-const TRAFFIC=[];
+// Ряд: [{d:"2026-10-04",t:"17:31",n:17.1,c:20.5,s:13.5}] — минуты по коридорам, время Киев; переносится вручную.
+const TRAFFIC=[
+ {d:"2026-10-04",t:"17:31",n:17.1,c:20.5,s:13.5},
+];
 if(TRAFFIC.length){
- document.querySelector(".pending").style.display="none";
+ document.getElementById("pendingNote").style.display="none";
+ document.getElementById("satNote").style.display="block";
+ const last=TRAFFIC[TRAFFIC.length-1];
+ document.getElementById("updated").textContent="данные на "+last.d.split("-").reverse().join(".")+" "+last.t;
+ const tc=document.getElementById("trafCards");tc.style.display="flex";
+ tc.innerHTML=`
+  <div class="card"><div class="v">${last.n}</div><div class="l">север, мин</div><div class="d">Троещина → Оболонь</div></div>
+  <div class="card"><div class="v">${last.c}</div><div class="l">центр, мин</div><div class="d">Дарница → центр</div></div>
+  <div class="card"><div class="v">${last.s}</div><div class="l">юг, мин</div><div class="d">Позняки → Лыбедская (объезд Южного)</div></div>`;
  const tb=document.querySelector("#trafficTable tbody");
  document.getElementById("trafficTable").style.display="table";
  [...TRAFFIC].reverse().forEach(r=>tb.insertAdjacentHTML("beforeend",
