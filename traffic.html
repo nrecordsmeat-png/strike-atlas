@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Пробки и мосты — Атлас ударов, Киев</title>
-<meta name="description" content="Транспортный индикатор Киева: время в пути между берегами Днепра как мера давления закрытых мостов.">
+<meta name="description" content="Транспортный индикатор Киева: время в пути между берегами Днепра и задержки поездов УЗ как мера давления на инфраструктуру.">
 <style>
 :root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
 --enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--oth:#56d364}
@@ -32,7 +32,6 @@ th:first-child,td:first-child{text-align:left}
 th{color:var(--muted);font-weight:600;font-size:11.5px}
 .note{font-size:12px;color:var(--muted)}
 .note a,a{color:var(--brg)}
-.pending{background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--muted);margin:12px 0}
 footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
 footer a{color:var(--muted)}
 </style>
@@ -42,7 +41,7 @@ footer a{color:var(--muted)}
   <div class="bar">
     <div class="brand">
       <h1>Атлас ударов — Киев и область</h1>
-      <div class="tagline">пробки и мосты · время в пути между берегами · <span id="updated">сбор начат 04.10.2026</span></div>
+      <div class="tagline">пробки, мосты и железная дорога · <span id="updated"></span></div>
     </div>
     <nav>
       <a href="./">Карта</a>
@@ -55,23 +54,24 @@ footer a{color:var(--muted)}
 </header>
 <div class="wrap">
 
-<h2>Что меряем</h2>
-<p class="note">После ударов по мостам (Южный закрыт с 1.10, Северный повреждён 3.10 — см. <a href="./">карту</a>) главный транспортный вопрос Киева — цена переправы через Днепр. Индикатор: <b>время в пути в минутах</b> по трём фиксированным коридорам левый берег → правый (север: Троещина→Оболонь · центр: Дарница→центр · юг: Позняки→Лыбедская), снимаемое дважды в день в часы пик по данным TomTom с учётом живых пробок. Рост минут на коридоре = перегрузка оставшихся мостов; расползание между коридорами показывает, куда перетёк поток. Публикуются только минуты — без точных адресов точек замера.</p>
+<h2>Переправа через Днепр: минуты по коридорам</h2>
+<p class="note">После ударов по мостам (Южный закрыт с 1.10, Северный повреждён 3.10 — см. <a href="./">карту</a>) индикатор меряет цену переправы: время в пути по трём фиксированным коридорам левый берег → правый (север: Троещина→Оболонь · центр: Дарница→центр · юг: Позняки→Лыбедская), по данным TomTom с живыми пробками, на каждом прогоне монитора. Рост минут = перегрузка оставшихся мостов. Публикуются только минуты, без адресов точек.</p>
 
-<div class="cards" id="trafCards" style="display:none"></div>
-
-<table id="trafficTable" style="display:none"><thead><tr>
+<div class="cards" id="trafCards"></div>
+<table id="trafficTable"><thead><tr>
 <th>дата</th><th>время (Киев)</th><th>север, мин</th><th>центр, мин</th><th>юг, мин</th>
 </tr></thead><tbody></tbody></table>
+<p class="note">Будний пик виден уже по первым точкам: утро пн (08:16) — центр 31.6 мин против 21.4 в межпик (+48%). Нули выходного — нижняя планка «пустой дороги». Колонка «задержка от пробок» появится после калибровки (нужно время «свободного потока» — параметр добавлен 05.10).</p>
 
-<p class="note" id="satNote" style="display:none">Срез 04.10 — суббота, вечер: задержка от пробок по всем коридорам 0 минут — это и есть «пустая дорога», нижняя планка. Будничные пики — с понедельника 6.10; их превышение над этой планкой и станет рабочим сигналом.</p>
-
-<div class="pending" id="pendingNote">
-<b>Статус: в постройке.</b> Публичный индекс пробок для Киева недоступен — города нет в TomTom Traffic Index (проверено зондом 04.10). Маршрутный замер строится через Routing API; ряд появится здесь с первых замеров.
-</div>
+<h2>Железная дорога: задержки поездов (официальное табло УЗ)</h2>
+<p class="note">Агрегаты с uz-vezemo.uz.gov.ua на каждом прогоне: задержки поездов — прямой след ударов по энергетике и путям (обесточенные участки, обходы, резервные тепловозы). Сигнал — рост числа задержанных рейсов и суммарных минут.</p>
+<div class="cards" id="uzCards"></div>
+<table id="uzTable"><thead><tr>
+<th>дата</th><th>время (Киев)</th><th>рейсов с задержкой</th><th>Σ минут</th><th>макс</th><th>медиана</th>
+</tr></thead><tbody></tbody></table>
 
 <h2>Контекст мостов</h2>
-<p class="note">До ударов у Киева шесть автомобильных переправ через Днепр. Южный мост закрыт после удара 1 октября (КРСН по опоре, версия UA), Северный (Московский) повреждён 3 октября — движение ограничено. Нагрузка перетекает на мост Патона, Дарницкий и Гавань: именно их пропускную способность и сторожит индикатор. Южный коридор при закрытом Южном мосте строится через Дарницкий — его текущие 13.5 мин и есть точка отсчёта объезда.</p>
+<p class="note">До ударов у Киева шесть автомобильных переправ через Днепр. Южный мост закрыт после удара 1 октября (КРСН по опоре, версия UA), Северный (Московский) повреждён 3 октября. Нагрузка перетекает на мост Патона, Дарницкий и Гавань. Южный коридор при закрытом Южном строится через Дарницкий.</p>
 
 <footer>
 Метод и ограничения — в <a href="metodika.html">методике</a>.
@@ -79,25 +79,35 @@ footer a{color:var(--muted)}
 </div>
 
 <script>
-// Ряд: [{d:"2026-10-04",t:"17:31",n:17.1,c:20.5,s:13.5}] — минуты по коридорам, время Киев; переносится вручную.
+// Минуты по коридорам (время Киев); переносится вручную из монитора.
 const TRAFFIC=[
  {d:"2026-10-04",t:"17:31",n:17.1,c:20.5,s:13.5},
+ {d:"2026-10-05",t:"08:16",n:22.2,c:31.6,s:18.5}, // будний утренний пик
+ {d:"2026-10-05",t:"11:32",n:16.4,c:21.4,s:13.7},
 ];
-if(TRAFFIC.length){
- document.getElementById("pendingNote").style.display="none";
- document.getElementById("satNote").style.display="block";
- const last=TRAFFIC[TRAFFIC.length-1];
- document.getElementById("updated").textContent="данные на "+last.d.split("-").reverse().join(".")+" "+last.t;
- const tc=document.getElementById("trafCards");tc.style.display="flex";
- tc.innerHTML=`
-  <div class="card"><div class="v">${last.n}</div><div class="l">север, мин</div><div class="d">Троещина → Оболонь</div></div>
-  <div class="card"><div class="v">${last.c}</div><div class="l">центр, мин</div><div class="d">Дарница → центр</div></div>
-  <div class="card"><div class="v">${last.s}</div><div class="l">юг, мин</div><div class="d">Позняки → Лыбедская (объезд Южного)</div></div>`;
- const tb=document.querySelector("#trafficTable tbody");
- document.getElementById("trafficTable").style.display="table";
- [...TRAFFIC].reverse().forEach(r=>tb.insertAdjacentHTML("beforeend",
-  `<tr><td>${r.d.split("-").reverse().join(".")}</td><td>${r.t}</td><td>${r.n}</td><td>${r.c}</td><td>${r.s}</td></tr>`));
-}
+// Задержки УЗ: рейсов, сумма/макс/медиана минут.
+const UZ=[
+ {d:"2026-10-05",t:"11:32",tr:246,sum:17708,max:250,med:61},
+];
+
+const last=TRAFFIC[TRAFFIC.length-1];
+document.getElementById("updated").textContent="данные на "+last.d.split("-").reverse().join(".")+" "+last.t;
+document.getElementById("trafCards").innerHTML=`
+ <div class="card"><div class="v">${last.n}</div><div class="l">север, мин</div><div class="d">Троещина → Оболонь</div></div>
+ <div class="card"><div class="v">${last.c}</div><div class="l">центр, мин</div><div class="d">Дарница → центр</div></div>
+ <div class="card"><div class="v">${last.s}</div><div class="l">юг, мин</div><div class="d">Позняки → Лыбедская (объезд Южного)</div></div>`;
+const tb=document.querySelector("#trafficTable tbody");
+[...TRAFFIC].reverse().forEach(r=>tb.insertAdjacentHTML("beforeend",
+ `<tr><td>${r.d.split("-").reverse().join(".")}</td><td>${r.t}</td><td>${r.n}</td><td>${r.c}</td><td>${r.s}</td></tr>`));
+
+const uzl=UZ[UZ.length-1];
+document.getElementById("uzCards").innerHTML=`
+ <div class="card"><div class="v">${uzl.tr}</div><div class="l">рейсов с задержкой</div><div class="d">${uzl.d.split("-").reverse().join(".")} ${uzl.t}</div></div>
+ <div class="card"><div class="v">${(uzl.sum/60).toFixed(0)} ч</div><div class="l">суммарная задержка</div><div class="d">${uzl.sum} минут</div></div>
+ <div class="card"><div class="v">+${Math.floor(uzl.max/60)}:${String(uzl.max%60).padStart(2,"0")}</div><div class="l">максимальная</div><div class="d">медиана ${uzl.med} мин</div></div>`;
+const ub=document.querySelector("#uzTable tbody");
+[...UZ].reverse().forEach(r=>ub.insertAdjacentHTML("beforeend",
+ `<tr><td>${r.d.split("-").reverse().join(".")}</td><td>${r.t}</td><td>${r.tr}</td><td>${r.sum}</td><td>${r.max}</td><td>${r.med}</td></tr>`));
 </script>
 </body>
 </html>
