@@ -61,15 +61,16 @@ footer a{color:var(--brg)}
 <div class="wrap">
 
 <h2>Рынок долгосрочной аренды (DIM.RIA, число объявлений)</h2>
-<p class="note">Гипотеза индикатора: обесточивание и удары по левому берегу → отъезд жильцов → рост числа свободных квартир, в первую очередь на левом берегу. Смотрим уровень и долю левого берега. Отток проявляется с лагом 2–5 дней. За день берётся последний утренний замер.</p>
+<p class="note">Гипотеза индикатора: обесточивание и удары по левому берегу → отъезд жильцов → рост числа свободных квартир, в первую очередь на левом берегу. Смотрим уровень и долю левого берега. Отток проявляется с лагом 2–5 дней. За день берётся утренний замер.</p>
 <div class="cards" id="rentCards"></div>
 <table id="rentTable"><thead><tr>
 <th>дата</th><th>Киев всего</th><th>левый берег</th><th>правый берег</th><th>доля левого</th><th>«генератор», лев/прав*</th>
 </tr></thead><tbody></tbody></table>
-<p class="note">* число упоминаний слова «генератор» на первой странице выдачи — грубая метка энерготревожности объявлений.</p>
+<p class="note">* число упоминаний слова «генератор» на первой странице выдачи — грубая метка энерготревожности объявлений.<br>
+** строка 05.10 — ночной замер (05:12), несопоставим с дневными по времени суток: ночью витрина всегда тоньше. С 06.10 ряд фиксируется строго в утреннем окне.</p>
 
 <h2>Еда и транспорт — отдельные страницы</h2>
-<p class="note">Доступность продуктов в онлайн-витринах — на странице <a href="food.html">«Еда»</a>; время переправы через Днепр по трём коридорам — на странице <a href="traffic.html">«Пробки»</a>. Оба ряда стартовали 04.10.</p>
+<p class="note">Доступность и цены продуктов — на странице <a href="food.html">«Еда»</a>; переправа через Днепр и задержки поездов УЗ — на странице <a href="traffic.html">«Пробки»</a>.</p>
 
 <h2>Удары по Киеву и области — счётчики с карты</h2>
 <p class="note">Считается автоматически из данных <a href="./">карты</a> (эпизоды 4.09–3.10 с установленной локацией; версии сторон не усредняются — см. <a href="metodika.html">методику</a>).</p>
@@ -86,12 +87,13 @@ footer a{color:var(--brg)}
 
 <script src="events.js"></script>
 <script>
-// Бейзлайн 04.10 (первый замер) и ряд: за день — последний утренний замер. gl/gr — «генератор»-метки.
+// Бейзлайн 04.10 (первый замер); night — ночная точка, несопоставимая по времени суток.
 const BASE={k:7419,l:1295,r:5160};
 const RENT=[
  {d:"2026-10-04",k:7432,l:1297,r:5170,gl:12,gr:12},
+ {d:"2026-10-05",k:7262,l:1254,r:5057,gl:12,gr:12,night:true},
 ];
-const UPDATED="04.10.2026";
+const UPDATED="05.10.2026";
 
 document.getElementById("updated").textContent="данные на "+UPDATED;
 const last=RENT[RENT.length-1];
@@ -100,7 +102,7 @@ function delta(cur,base){const d=cur-base;const s=d>0?"+"+d:""+d;
  return base===cur?"±0":`<span class="${d>0?"up":"down"}">${s}</span>`}
 const rc=document.getElementById("rentCards");
 rc.innerHTML=`
- <div class="card"><div class="v">${last.k}</div><div class="l">Киев всего</div><div class="d">Δ от бейзлайна 04.10: ${delta(last.k,BASE.k)}</div></div>
+ <div class="card"><div class="v">${last.k}</div><div class="l">Киев всего${last.night?" (ночной замер**)":""}</div><div class="d">Δ от бейзлайна 04.10: ${delta(last.k,BASE.k)}</div></div>
  <div class="card"><div class="v">${last.l}</div><div class="l">левый берег</div><div class="d">Δ: ${delta(last.l,BASE.l)}</div></div>
  <div class="card"><div class="v">${last.r}</div><div class="l">правый берег</div><div class="d">Δ: ${delta(last.r,BASE.r)}</div></div>
  <div class="card"><div class="v">${share(last)}</div><div class="l">доля левого берега</div><div class="d">бейзлайн 17.5%</div></div>`;
@@ -108,7 +110,7 @@ const tb=document.querySelector("#rentTable tbody");
 [...RENT].reverse().forEach(v=>{
  const g=(v.gl==null&&v.gr==null)?"—":`${v.gl??"—"} / ${v.gr??"—"}`;
  tb.insertAdjacentHTML("beforeend",
- `<tr><td>${v.d.split("-").reverse().join(".")}</td><td>${v.k}</td><td>${v.l}</td><td>${v.r}</td><td>${share(v)}</td><td>${g}</td></tr>`)});
+ `<tr><td>${v.d.split("-").reverse().join(".")}${v.night?"**":""}</td><td>${v.k}</td><td>${v.l}</td><td>${v.r}</td><td>${share(v)}</td><td>${g}</td></tr>`)});
 
 // Счётчики ударов из events.js
 const TYPES={enr:["Энергетика","--enr"],brg:["Мосты","--brg"],res:["Жильё","--res"],gov:["Гос и наука","--gov"],ind:["Пром, склады, ИТ","--ind"],oth:["Прочее","--oth"]};
