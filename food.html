@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Еда и снабжение — Атлас ударов, Киев</title>
-<meta name="description" content="Доступность продуктов в киевских онлайн-витринах: фиксированная корзина, пометки «нет в наличии», динамика снабжения.">
+<meta name="description" content="Доступность и цены продуктов в киевских онлайн-витринах: фиксированная корзина, пометки «нет в наличии», динамика снабжения.">
 <style>
 :root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
 --enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--oth:#56d364}
@@ -26,14 +26,12 @@ h2{font-size:15px;margin:28px 0 10px;border-bottom:1px solid var(--line);padding
 .card .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
 .card .l{font-size:11.5px;color:var(--muted);margin-top:2px}
 .card .d{font-size:12px;margin-top:4px;color:var(--muted)}
-.up{color:var(--res)}.down{color:var(--oth)}
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:right}
 th:first-child,td:first-child{text-align:left}
 th{color:var(--muted);font-weight:600;font-size:11.5px}
 .note{font-size:12px;color:var(--muted)}
 .note a,a{color:var(--brg)}
-.pending{background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--muted);margin:12px 0}
 footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
 footer a{color:var(--muted)}
 </style>
@@ -43,7 +41,7 @@ footer a{color:var(--muted)}
   <div class="bar">
     <div class="brand">
       <h1>Атлас ударов — Киев и область</h1>
-      <div class="tagline">еда и снабжение · онлайн-витрины как прокси · <span id="updated">сбор начат 04.10.2026</span></div>
+      <div class="tagline">еда и снабжение · онлайн-витрины как прокси · <span id="updated"></span></div>
     </div>
     <nav>
       <a href="./">Карта</a>
@@ -56,23 +54,27 @@ footer a{color:var(--muted)}
 </header>
 <div class="wrap">
 
-<h2>Что меряем</h2>
-<p class="note">Гипотеза: перебои снабжения и энергетики проявляются в онлайн-витринах раньше заявлений — исчезают позиции, растут пометки «немає в наявності». Метод: ежедневно, в фиксированное время, бот обходит <b>фиксированный набор из 16 страниц категорий</b> трёх витрин — Novus и Metro (платформа zakaz.ua: напитки, хлеб, бакалея, молочка и яйца, консервы и масло, специи и соль, гигиена) и Сильпо — и снимает счётчики: ценовых меток (≈ товаров в продаже) и явных пометок «нет в наличии». У Novus/Metro первая страница категории фиксировано отдаёт ~90 карточек, поэтому там сигнал несут именно ценовые метки и пометки отсутствия. Это <b>прокси онлайн-доступности</b>, не инвентаризация полок: смысл несут не абсолютные числа, а их динамика при неизменном методе.</p>
+<h2>Доступность: что меряем</h2>
+<p class="note">Гипотеза: перебои снабжения и энергетики проявляются в онлайн-витринах раньше заявлений — исчезают позиции, растут пометки «немає в наявності». Метод: ежедневно, в фиксированное время, бот обходит <b>16 страниц категорий</b> трёх витрин — Novus и Metro (платформа zakaz.ua: напитки, хлеб, бакалея, молочка и яйца, консервы и масло, специи и соль, гигиена) и Сильпо — и снимает счётчики: ценовых меток и явных пометок «нет в наличии». У Novus/Metro первая страница категории фиксировано отдаёт ~90 карточек, поэтому там сигнал несут ценовые метки и пометки отсутствия. Это <b>прокси онлайн-доступности</b>: смысл несут не абсолютные числа, а динамика при неизменном методе.</p>
 
-<div id="foodBlock">
-<div class="pending" id="pendingNote">Первые строки ряда появятся после ближайших прогонов монитора (сбор два раза в сутки, корзина — ежедневно утром). Страница обновляется вручную вместе с остальными данными.</div>
-<div class="cards" id="foodCards" style="display:none"></div>
-<table id="foodTable" style="display:none"><thead><tr>
-<th>дата</th><th>витрина</th><th>ценовых меток, Σ по категориям</th><th>«нет в наличии», Σ</th>
+<div class="cards" id="foodCards"></div>
+<table id="foodTable"><thead><tr>
+<th>дата</th><th>витрина</th><th>ценовых меток, Σ</th><th>«нет в наличии», Σ</th>
 </tr></thead><tbody></tbody></table>
-<p class="note" id="baseNote" style="display:none">Срез 04.10 — бейзлайн: фоновый уровень пометок отсутствия у Novus/Metro ≈ 5 на категорию (элементы интерфейса платформы), у Сильпо — 0. Сигналом считается отклонение от этих фонов, синхронное по витринам.</p>
-</div>
+<p class="note">Бейзлайн 04.10: фоновый уровень пометок отсутствия у Novus/Metro ≈ 5 на категорию (элементы интерфейса платформы), у Сильпо — 0. Сигнал — отклонение от фонов, синхронное по витринам. Точки 04–05.10 идентичны: полки стабильны.</p>
+
+<h2>Цены (медианы категорий, грн)</h2>
+<p class="note">Ценовой ряд ведётся по Сильпо — её страницы отдают цены товаров статикой. Витрины платформы zakaz рисуют цены скриптом: в статике остаются только шаблонные суммы интерфейса, поэтому их медианы в ряд не идут [зафиксировано замером 05.10].</p>
+<div class="cards" id="priceCards"></div>
+<table id="priceTable"><thead><tr>
+<th>дата</th><th>овощи (Сильпо)</th><th>мясо (Сильпо)</th>
+</tr></thead><tbody></tbody></table>
 
 <h2>McDonald's и фастфуд</h2>
-<p class="note">Автоматический съём стоп-листа меню недоступен: сайт сети закрыт для ботов (Access Denied), витрина Glovo рисует меню скриптом после ввода адреса — зафиксировано зондом 04.10. Дефицит позиций Мака отслеживается косвенно: ленты монитора (мэрия, массовые каналы) собирают сообщения о стоп-листах и очередях; заметные эпизоды будут выноситься сюда вручную с датой и источником.</p>
+<p class="note">Автоматический съём стоп-листа меню недоступен: сайт сети закрыт для ботов, витрина Glovo рисует меню скриптом после ввода адреса — зафиксировано зондом 04.10. Дефицит позиций отслеживается косвенно по лентам монитора; заметные эпизоды будут выноситься сюда вручную с датой и источником.</p>
 
 <h2>Контекст</h2>
-<p class="note">Онлайн-наличие чувствительнее к перебоям складов и логистики, чем полка магазина: доставка первой режет ассортимент. Поэтому ряд сторожит именно раннюю фазу дефицита. Разовые провалы по одной витрине — шум; синхронное падение по трём — сигнал.</p>
+<p class="note">Онлайн-наличие чувствительнее к перебоям складов и логистики, чем полка магазина: доставка первой режет ассортимент. Разовые провалы по одной витрине — шум; синхронное падение по трём — сигнал.</p>
 
 <footer>
 Метод и ограничения — в <a href="metodika.html">методике</a>. Только агрегаты, без адресов и персональных данных.
@@ -80,26 +82,34 @@ footer a{color:var(--muted)}
 </div>
 
 <script>
-// Ряд: [{d:"2026-10-04", s:{novus:{p,o}, metro:{p,o}, silpo:{p,o}}}] — p: Σ ценовых меток, o: Σ «немає в наявності». Вручную из монитора.
+// Доступность: p — Σ ценовых меток, o — Σ «немає в наявності». Цены: медианы категорий Сильпо, грн.
 const FOOD=[
- {d:"2026-10-04", s:{novus:{p:641,o:35}, metro:{p:514,o:36}, silpo:{p:238,o:0}}}, // бейзлайн: 7+7+2 категорий
+ {d:"2026-10-04", s:{novus:{p:641,o:35}, metro:{p:514,o:36}, silpo:{p:238,o:0}}},
+ {d:"2026-10-05", s:{novus:{p:641,o:35}, metro:{p:514,o:36}, silpo:{p:238,o:0}}},
 ];
-if(FOOD.length){
- document.getElementById("pendingNote").style.display="none";
- document.getElementById("baseNote").style.display="block";
- const last=FOOD[FOOD.length-1];
- document.getElementById("updated").textContent="данные на "+last.d.split("-").reverse().join(".");
- const fc=document.getElementById("foodCards");fc.style.display="flex";
- for(const[store,v]of Object.entries(last.s)){
-  fc.insertAdjacentHTML("beforeend",
-  `<div class="card"><div class="v">${v.p}<span style="font-size:13px;color:var(--muted)"> / ${v.o}</span></div>
-   <div class="l">${store}: ценовых меток / «нет в наличии»</div></div>`)}
- const tb=document.querySelector("#foodTable tbody");
- document.getElementById("foodTable").style.display="table";
- [...FOOD].reverse().forEach(r=>{for(const[store,v]of Object.entries(r.s)){
-  tb.insertAdjacentHTML("beforeend",
-  `<tr><td>${r.d.split("-").reverse().join(".")}</td><td>${store}</td><td>${v.p}</td><td>${v.o}</td></tr>`)}});
-}
+const PRICES=[
+ {d:"2026-10-05", ov:9.90, mi:38.39},
+];
+
+const last=FOOD[FOOD.length-1];
+document.getElementById("updated").textContent="данные на "+last.d.split("-").reverse().join(".");
+const fc=document.getElementById("foodCards");
+for(const[store,v]of Object.entries(last.s)){
+ fc.insertAdjacentHTML("beforeend",
+ `<div class="card"><div class="v">${v.p}<span style="font-size:13px;color:var(--muted)"> / ${v.o}</span></div>
+  <div class="l">${store}: ценовых меток / «нет в наличии»</div></div>`)}
+const tb=document.querySelector("#foodTable tbody");
+[...FOOD].reverse().forEach(r=>{for(const[store,v]of Object.entries(r.s)){
+ tb.insertAdjacentHTML("beforeend",
+ `<tr><td>${r.d.split("-").reverse().join(".")}</td><td>${store}</td><td>${v.p}</td><td>${v.o}</td></tr>`)}});
+
+const pl=PRICES[PRICES.length-1];
+document.getElementById("priceCards").innerHTML=`
+ <div class="card"><div class="v">${pl.ov.toFixed(2)}</div><div class="l">овощи, медиана грн</div><div class="d">Сильпо, страница категории</div></div>
+ <div class="card"><div class="v">${pl.mi.toFixed(2)}</div><div class="l">мясо, медиана грн</div><div class="d">Сильпо, страница категории</div></div>`;
+const pb=document.querySelector("#priceTable tbody");
+[...PRICES].reverse().forEach(r=>pb.insertAdjacentHTML("beforeend",
+ `<tr><td>${r.d.split("-").reverse().join(".")}</td><td>${r.ov.toFixed(2)}</td><td>${r.mi.toFixed(2)}</td></tr>`));
 </script>
 </body>
 </html>
