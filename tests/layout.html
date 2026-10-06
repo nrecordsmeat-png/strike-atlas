@@ -13,7 +13,7 @@
 <main><iframe id="layout-frame" src="../functions-test.html" title="Тестовый экран городских функций"></iframe></main>
 <script>
 const picker=document.getElementById('layout-page');
-function choosePage(){const path=picker.value==='activity'?'../activity-test.html':'../functions-test.html';document.getElementById('layout-frame').src=path;document.getElementById('layout-open').href=path;}
+function choosePage(){const path=picker.value==='activity'?'../activity-test.html':'../functions-test.html';document.getElementById('layout-frame').src=path+'?layout-test='+Date.now();document.getElementById('layout-open').href=path;}
 if(new URLSearchParams(location.search).get('page')==='activity')picker.value='activity';
 picker.addEventListener('change',choosePage);choosePage();
 document.querySelectorAll('[data-width]').forEach(button=>button.addEventListener('click',()=>{
