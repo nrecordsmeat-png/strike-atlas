@@ -146,12 +146,14 @@ test('embedded activity resizes only from the expected origin and frame', () => 
   assert.equal(frame.style.height, '722px');
 });
 
-test('presentation keeps the baseline, source and limits and fullscreen starts only after a click', () => {
+test('presentation keeps the description, method, source and limits and fullscreen starts only after a click', () => {
   const data = activityData();
   const f = fixture('activity-test.html', data, { search: '?view=show', fullscreen: true });
   assert.equal(f.document.body.getAttribute('data-presentation'), 'true');
-  assert.equal(f.byId('activity-show-source').hidden, false);
-  assert.match(f.byId('activity-show-source').textContent, /АСОП.*Киев.*не уникальные люди.*не доказывает эффект ударов/s);
+  assert.match(f.byId('activity-description').textContent, /фактическое использование.*первый тестовый слой.*Общего балла активности города пока нет/s);
+  assert.match(f.byId('activity-method').textContent, /Индекс дня =.*Индекс за 7 дней =.*отношение сумм.*Пропуск не заменяется нулём/s);
+  assert.match(f.byId('activity-source').textContent, /АСОП.*Киев.*не уникальные люди/s);
+  assert.match(f.byId('activity-limits').textContent, /не процент работоспособности.*не доказывает эффект удара/s);
   assert.match(f.byId('activity-banner').textContent, /27\.09\.2026.*9 дн/);
   assert.match(f.byId('activity-kpis').textContent, /82,1/);
   assert.match(f.byId('activity-baseline').textContent, /06\.07\.2026.*30\.08\.2026/);
