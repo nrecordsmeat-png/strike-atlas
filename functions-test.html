@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Функции города · тест — Киев</title>
+<link rel="stylesheet" href="site.css">
+<style>
+.function-hero{padding:26px 0 22px;max-width:790px}.function-hero h2{font-size:36px;line-height:1.15;letter-spacing:-.035em;margin:8px 0 13px}.function-hero p{color:var(--muted);font-size:15px}.mode-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}.mode-bar button{min-height:44px;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:9px 16px}.mode-bar button[aria-pressed=true]{background:var(--ink);color:var(--bg)}.mode-bar .minor{margin-left:auto}.mode-banner{padding:13px 16px;background:var(--soft);border-left:3px solid var(--muted);border-radius:5px;font-size:13px}.mode-banner.demo{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}.function-panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:18px;min-width:0}.function-panel .section-head{margin:0 0 14px}.calendar-scroll{overflow-x:auto;padding-bottom:8px}.function-calendar{border-collapse:separate;border-spacing:6px;table-layout:fixed;min-width:710px;width:100%}.function-calendar th,.function-calendar td{padding:0;border:0;vertical-align:middle}.function-calendar th{font-size:12px;text-align:center}.function-calendar .row-name{width:148px;text-align:left;color:var(--ink);font-size:14px;font-weight:600;padding-right:9px}.function-cell{width:100%;min-height:76px;border:1px solid var(--line);border-radius:7px;padding:9px 5px;display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:12px;line-height:1.3;background:var(--soft);color:var(--muted)}.function-cell strong{font-size:13px;font-weight:600}.function-cell small{font-size:11px}.function-cell[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:1px}.function-cell.restricted,.function-cell.announced{background:var(--red-bg);color:var(--red)}.function-cell.partial{background:var(--amber-bg);color:var(--amber)}.function-cell.reserve{background:var(--blue-bg);color:var(--blue)}.function-cell.restored{background:var(--green-bg);color:var(--green)}.function-cell.mixed{background:var(--amber-bg);color:var(--amber)}.function-cell.empty{background:var(--paper);border-style:dashed}.reading-note{font-size:12px;color:var(--muted);margin-top:9px}.function-detail-grid{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.5fr);gap:18px;margin-top:18px}.function-episodes{display:flex;flex-direction:column;gap:8px}.function-episodes .episode-button{min-height:70px}.function-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:17px 0}.function-fact{padding:13px;border:1px solid var(--line);border-radius:8px;min-width:0}.function-fact .minor{font-size:11px}.function-fact strong{display:block;font-size:16px;line-height:1.3;margin:7px 0}.function-fact p{font-size:12px;color:var(--muted)}.function-source{font-size:12px;color:var(--muted);margin-top:10px}.supporting{border-top:1px solid var(--line);padding-top:14px;margin-top:17px;font-size:13px}.supporting p{color:var(--muted);margin:6px 0}.demo-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;margin-top:18px}.demo-choices{display:flex;flex-direction:column;gap:7px}.demo-choices button{min-height:54px;text-align:left}.demo-choices button[aria-pressed=true]{background:var(--selected);border-color:var(--ink)}.demo-plot svg{display:block;width:100%;height:auto;min-width:460px}.demo-plot{overflow-x:auto;margin:16px 0 8px}.demo-plot text{fill:var(--muted);font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}.demo-point-controls{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}.demo-point-controls button[aria-pressed=true]{background:var(--selected)}.demo-observation{padding:15px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}.demo-observation h3{margin-bottom:8px}.demo-message{font-size:13px;color:var(--muted);margin:8px 0}.method-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.method-grid h3{margin-bottom:7px}.method-grid p{font-size:13px;color:var(--muted)}.function-panel p+p{margin-top:7px}.function-panel a{overflow-wrap:anywhere}
+@media(max-width:850px){.function-detail-grid,.demo-layout{grid-template-columns:1fr}.demo-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.function-facts{grid-template-columns:1fr 1fr}.method-grid{grid-template-columns:1fr;gap:15px}}
+@media(max-width:540px){.function-hero h2{font-size:29px}.function-panel{padding:15px}.function-facts{grid-template-columns:1fr}.mode-bar .minor{margin-left:0;width:100%}.function-calendar{min-width:670px}.demo-choices button{font-size:12px}.function-hero{padding-top:15px}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top">
+ <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">тест</span></h1><div class="minor">Атлас ударов · доступность · нагрузка · восстановление</div></div></div>
+ <nav class="sitenav" aria-label="Разделы сайта"><a href="./" class="cur">Обзор</a><a href="map.html">Карта</a><a href="data.html">Данные</a><a href="metodika.html">Методика</a></nav>
+</header>
+<section class="function-hero">
+ <div class="eyebrow">ЭКСПЕРИМЕНТ · ФУНКЦИИ ГОРОДА</div>
+ <h2>Как меняется работа услуг</h2>
+ <p>От ограничения до восстановления — по датированным сведениям. Доступность услуги, способ её работы и фактическое использование требуют разных измерений.</p>
+</section>
+<div class="mode-bar" role="group" aria-label="Источник данных">
+ <button type="button" data-mode="live" aria-pressed="true" aria-controls="live-section">Реальный реестр</button>
+ <button type="button" data-mode="demo" aria-pressed="false" aria-controls="demo-section">Учебные примеры</button>
+ <span class="minor">Новая версия интерфейса · <a href="./">основной обзор</a></span>
+</div>
+<div class="mode-banner" id="mode-banner" role="status" aria-live="polite">Загрузка снимка…</div>
+<div class="snapshot-note" id="snapshot-note"></div>
+<section id="live-section" aria-label="История реального реестра">
+ <div class="function-panel">
+  <div class="section-head"><div><h2>Сведения по услугам и дням</h2><p class="minor" id="coverage-note"></p></div><label class="date-control">День <select id="function-day" aria-label="День просмотра"></select></label></div>
+  <div class="calendar-scroll" id="function-calendar" tabindex="0" aria-label="Календарь сведений, прокрутка по горизонтали"></div>
+  <div class="legend"><span class="badge problem">Ограничение сообщено</span><span class="badge caution">Частичная работа</span><span class="badge info">Резерв</span><span class="badge good">Восстановление сообщено</span><span class="badge">Нет свежих сведений</span></div>
+  <p class="reading-note">Ячейка описывает сообщения в пилотной выборке. Одна запись о мосте или районе не определяет состояние всего Киева. Серый цвет означает пробел в сведениях.</p>
+ </div>
+ <div class="function-detail-grid">
+  <aside class="function-panel"><h3 id="function-selection"></h3><p class="minor" id="selection-cutoff"></p><div class="function-episodes" id="function-episodes"></div></aside>
+  <article class="function-panel" id="function-detail" aria-live="polite"></article>
+ </div>
+</section>
+<section id="demo-section" aria-label="Учебные примеры функций" hidden>
+ <div class="demo-layout">
+  <aside class="function-panel"><h3>Шесть случаев</h3><p class="minor">Условная территория · водоснабжение</p><div class="demo-choices" id="demo-choices"></div></aside>
+  <article class="function-panel">
+   <div class="eyebrow">УЧЕБНЫЕ ДАННЫЕ · НЕ СВЕДЕНИЯ О КИЕВЕ</div>
+   <h2 id="demo-title"></h2><p class="demo-message" id="demo-explanation"></p>
+   <div class="demo-plot" id="demo-plot" tabindex="0" aria-label="Учебная шкала времени, прокрутка по горизонтали"></div>
+   <p class="reading-note">Цвет показывает, что было известно в тот момент. Восстановление появляется после публикации; обещание не меняет состояние.</p>
+   <div class="demo-point-controls" id="demo-points" role="group" aria-label="Момент наблюдения"></div>
+   <div class="demo-observation" id="demo-observation" aria-live="polite"></div>
+  </article>
+ </div>
+</section>
+<section class="function-panel" aria-label="Что нужно для индекса активности">
+ <div class="section-head"><h2>До индекса активности ещё нужны измерения</h2></div>
+ <div class="method-grid">
+  <div><h3>1. Доступность</h3><p>Для какой территории работает услуга? Нужны подтверждённый охват и размер наблюдаемой группы. Резерв и частичная работа учитываются отдельно.</p></div>
+  <div><h3>2. Использование</h3><p>Сколько поездок, посещений или потребления состоялось? Время проезда и число новостей не заменяют эти величины.</p></div>
+  <div><h3>3. Сопоставимая база</h3><p>Одинаковые зоны, часы, дни недели и метод. База выбранного периода должна быть видна; сезонность и другие причины изменений проверяются отдельно.</p></div>
+ </div>
+ <p class="reading-note">Пока нет этих входов, общий процент «город работает на…» не рассчитывается. Длительность перебоя появляется только при подтверждённых времени начала и окончания.</p>
+</section>
+<footer class="foot"><span>Тестовая версия · реестр ведётся вручную · учебные примеры рассчитываются моделью реестра</span><a href="metodika.html#quality">Качество источников</a></footer>
+</main>
+<script>
+function boot(DATA){
+"use strict";
+if(!DATA||DATA.schema_version!==1||!DATA.as_of)throw new Error("Неподдерживаемый снимок");
+const services={mobility:"Перемещение",water_heat:"Вода и тепло",power:"Электричество",connectivity:"Связь"};
+const names={restricted:"Ограничение сообщено",announced:"Ограничение объявлено",partial:"Частичная работа",reserve:"Работа через резерв",restored:"Восстановление сообщено",unknown:"Нет свежих сведений"};
+const colors={restricted:"var(--red)",announced:"var(--red)",partial:"var(--amber)",reserve:"var(--blue)",restored:"var(--green)",unknown:"var(--muted)"};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const fmt=new Intl.DateTimeFormat("ru-RU",{timeZone:"Europe/Kyiv",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const date=s=>s?fmt.format(new Date(s)):"Не установлено";
+const short=s=>s.split("-").slice(1).reverse().join(".");
+const num=x=>x==null?"—":new Intl.NumberFormat("ru-RU",{maximumFractionDigits:1}).format(x);
+const host=id=>document.getElementById(id);
+const days=Object.keys(DATA.history||{}).sort(),cases=DATA.scenarios||[];
+let day=days.at(-1)||null,service="mobility",episodeId=null,scenarioId=cases[0]?.id||null,pointIndex=null,mode=location.hash==="#demo"?"demo":"live";
+const slice=()=>DATA.history?.[day]||{at:DATA.as_of,episodes:[],recovery_reports:[]};
+const episodes=()=>slice().episodes.filter(e=>e.service===service);
+function source(item){
+ const label=esc(item.source_name||"Источник");
+ try{const u=new URL(item.source_url);if(u.protocol!=="https:"||u.username||u.password)return "Источник не указан";}catch{return "Источник не указан";}
+ return '<a target="_blank" rel="noopener noreferrer" href="'+esc(item.source_url)+'">'+label+' ↗</a>';
+}
+function badge(state){const cls=state==="restored"?"good":state==="reserve"?"info":state==="partial"?"caution":["restricted","announced"].includes(state)?"problem":"";return '<span class="badge '+cls+'">'+esc(names[state]||names.unknown)+'</span>';}
+function summarise(items){
+ if(!items.length)return {state:"empty",title:"Нет записей",note:"Охват не установлен"};
+ const visible=items.filter(x=>x.display_state!=="unknown"),states=[...new Set(visible.map(x=>x.display_state))];
+ if(!visible.length)return {state:"unknown",title:"Нет свежих сведений",note:items.length+" эпиз. требуют уточнения"};
+ return {state:states.length===1?states[0]:"mixed",title:states.length===1?names[states[0]]:"Разные состояния",note:visible.length+" из "+items.length+" эпиз. со сведениями"};
+}
+function calendar(){
+ const shown=days.slice(-14);
+ host("function-calendar").innerHTML=shown.length?'<table class="function-calendar"><thead><tr><th class="row-name" scope="col">Услуга / день</th>'+shown.map(d=>'<th scope="col">'+esc(short(d))+'</th>').join("")+'</tr></thead><tbody>'+Object.entries(services).map(([key,label])=>'<tr><th class="row-name" scope="row">'+esc(label)+'</th>'+shown.map(d=>{const items=(DATA.history[d].episodes||[]).filter(e=>e.service===key),s=summarise(items);return '<td><button type="button" class="function-cell '+s.state+'" data-cell="'+key+'|'+d+'" aria-pressed="'+String(service===key&&day===d)+'" aria-label="'+esc(label+", "+short(d)+": "+s.title+". "+s.note)+'"><strong>'+esc(s.title)+'</strong><small>'+esc(s.note)+'</small></button></td>';}).join("")+'</tr>').join("")+'</tbody></table>':'<p class="empty-panel">В снимке нет истории. Отсутствие записей не доказывает доступность услуг.</p>';
+ document.querySelectorAll("[data-cell]").forEach(b=>b.addEventListener("click",()=>{[service,day]=b.dataset.cell.split("|");episodeId=null;renderLive();}));
+}
+function supporting(){
+ if(service==="mobility"){
+  const traffic=(DATA.indicators?.traffic||[]).filter(x=>new Date(x.at)<=new Date(slice().at));
+  const rows=Object.entries({north:"Северный",center:"Центральный",south:"Южный"}).map(([key,label])=>{const t=traffic.filter(x=>x.corridor===key&&x.travel_min!=null).at(-1);return t?'<p>'+label+' коридор · '+num(t.travel_min)+' мин · '+esc(date(t.at))+(t.route_changed?' · маршрут менялся':"")+'</p>':"";}).join("");
+  return '<div class="supporting"><h3>Сопутствующий замер</h3>'+(rows||'<p>К выбранной дате замеров проезда нет.</p>')+'<p>Время маршрута не измеряет число поездок и не подтверждает доступность всех видов транспорта.</p><a href="data.html#traffic">Ряд и границы метода</a></div>';
+ }
+ const reports=(slice().recovery_reports||[]).filter(r=>r.service===service);
+ return reports.length?'<div class="supporting"><h3>Отдельный отчёт о восстановлении</h3>'+reports.map(r=>'<p>'+num(r.value)+' '+esc(r.unit)+' · '+esc(r.period_label)+'</p><p>'+esc(r.summary)+'</p><div class="function-source">[официально] · '+esc(date(r.reported_at))+' · '+source(r)+'</div>').join("")+'<p>Отчёт не определяет текущую доступность всей услуги.</p></div>':"";
+}
+function fact(label,value,note){return '<div class="function-fact"><div class="minor">'+esc(label)+'</div><strong>'+esc(value)+'</strong><p>'+esc(note)+'</p></div>';}
+function renderDetail(){
+ const e=episodes().find(x=>x.id===episodeId);
+ if(!e){host("function-detail").innerHTML='<h2>'+esc(services[service])+'</h2><p class="note">По выбранной услуге и дню в реестре нет эпизодов. Состояние услуги по всему городу оценить нельзя.</p><div class="function-facts">'+fact("Доступность","Не установлена","Нет подходящих записей в выборке")+fact("Фактическое использование","Не измерено","Нет ряда поездок, посещений или потребления")+fact("Длительность перебоя","Не установлена","Нет подтверждённых начала и окончания")+'</div>'+supporting();return;}
+ const contexts=e.updates.filter(u=>u.kind==="context"),tag=e.provenance==="official"?"[официально]":"[соцсети/слухи]";
+ host("function-detail").innerHTML='<div class="eyebrow">ЭПИЗОД В РЕЕСТРЕ · '+esc(tag)+'</div><h2>'+esc(e.title)+'</h2><p class="note">'+esc(e.area)+'</p>'+badge(e.display_state)+'<div class="function-facts">'+fact("Доступность",names[e.display_state]||names.unknown,"Последнее сообщение о состоянии: "+date(e.last_reported_at))+fact("Фактическое использование","Не измерено","Известен режим услуги; объём использования не измерен")+fact("Длительность перебоя",e.duration_hours==null?"Не установлена":num(e.duration_hours)+" ч",e.duration_hours==null?"Возраст сообщения не равен длительности перебоя":"Начало и окончание названы источником")+'</div><p class="note">Воздействие: '+(contexts.length?esc(contexts.at(-1).summary):"отдельных сведений о повреждении в этом эпизоде нет. Ограничение услуги само по себе не устанавливает причину.")+'</p><h3>Основания на выбранный момент</h3><ol class="timeline">'+e.updates.map(u=>'<li><div class="tiny">'+esc(date(u.reported_at))+' · '+esc(u.kind==="state"?"Сообщение о состоянии":u.kind==="forecast"?"Обещание / условие":"Контекст; состояние не меняет")+'</div><p>'+esc(u.summary)+'</p><div class="function-source">'+esc(u.provenance==="official"?"[официально]":"[соцсети/слухи]")+' · '+source(u)+'</div></li>').join("")+'</ol>'+supporting();
+}
+function renderLive(){
+ host("function-day").value=day||"";
+ calendar();
+ const list=episodes();if(!list.some(e=>e.id===episodeId))episodeId=list[0]?.id||null;
+ host("function-selection").textContent=services[service]+(day?" · "+short(day):"");
+ host("selection-cutoff").textContent="Сведения к "+date(slice().at)+" · Киев";
+ host("function-episodes").innerHTML=list.length?list.map(e=>'<button type="button" class="episode-button" data-function-episode="'+esc(e.id)+'" aria-pressed="'+String(e.id===episodeId)+'"><strong>'+esc(e.title)+'</strong><span class="minor">'+esc(e.area)+'</span>'+badge(e.display_state)+'</button>').join(""):'<p class="empty-panel">В выборке нет эпизодов этой услуги.</p>';
+ document.querySelectorAll("[data-function-episode]").forEach(b=>b.addEventListener("click",()=>{episodeId=b.dataset.functionEpisode;renderLive();}));
+ renderDetail();
+}
+function plot(points){
+ if(!points.length)return '<p class="empty-panel">Переходы ещё не рассчитаны в этом снимке.</p>';
+ const start=new Date(points[0].at).getTime(),end=new Date(points.at(-1).at).getTime(),span=Math.max(end-start,1000),x=p=>24+(new Date(p.at).getTime()-start)/span*692;
+ const bars=points.slice(0,-1).map((p,i)=>'<rect x="'+x(p).toFixed(2)+'" y="26" width="'+Math.max(0,x(points[i+1])-x(p)).toFixed(2)+'" height="25" rx="2" fill="'+(colors[p.display_state]||colors.unknown)+'" opacity=".25"><title>'+esc(date(p.at)+": "+names[p.display_state])+'</title></rect>').join("");
+ const dots=points.map((p,i)=>'<circle cx="'+x(p).toFixed(2)+'" cy="38" r="'+(i===pointIndex?7:4)+'" fill="'+(colors[p.display_state]||colors.unknown)+'"><title>'+esc(date(p.at)+": "+names[p.display_state])+'</title></circle>').join("");
+ return '<svg viewBox="0 0 740 96" role="img" aria-label="Шкала известных состояний услуги во времени"><title>Учебные сведения по моментам публикаций и устаревания</title>'+bars+dots+'<text x="24" y="80">'+esc(date(points[0].at))+'</text><text x="716" y="80" text-anchor="end">'+esc(date(points.at(-1).at))+'</text></svg>';
+}
+function renderDemo(){
+ host("demo-choices").innerHTML=cases.map(c=>'<button class="plain-button" type="button" data-function-scenario="'+esc(c.id)+'" aria-pressed="'+String(c.id===scenarioId)+'">'+esc(c.title)+'</button>').join("");
+ document.querySelectorAll("[data-function-scenario]").forEach(b=>b.addEventListener("click",()=>{scenarioId=b.dataset.functionScenario;pointIndex=null;renderDemo();}));
+ const c=cases.find(x=>x.id===scenarioId);if(!c){host("demo-title").textContent="Учебные примеры отсутствуют";host("demo-explanation").textContent="Примеры не заменяют реальные наблюдения.";host("demo-plot").innerHTML="";host("demo-points").innerHTML="";host("demo-observation").innerHTML="";return;}
+ const points=c.timeline||[];if(pointIndex==null||!points[pointIndex])pointIndex=points.length-1;
+ host("demo-title").textContent=c.title;host("demo-explanation").textContent=c.explanation;
+ host("demo-plot").innerHTML=plot(points);
+ host("demo-points").innerHTML=points.map((p,i)=>'<button type="button" class="plain-button" data-function-point="'+i+'" aria-pressed="'+String(i===pointIndex)+'">'+esc(date(p.at))+'</button>').join("");
+ document.querySelectorAll("[data-function-point]").forEach(b=>b.addEventListener("click",()=>{pointIndex=Number(b.dataset.functionPoint);renderDemo();}));
+ const p=points[pointIndex];if(!p){host("demo-observation").innerHTML='<p class="note">В этом снимке нет рассчитанной шкалы времени. Обновите общий снимок, чтобы просмотреть переходы.</p>';return;}
+ const visible=c.episode.updates.filter(u=>new Date(u.reported_at)<=new Date(p.at));
+ host("demo-observation").innerHTML='<h3>Что известно к '+esc(date(p.at))+'</h3>'+badge(p.display_state)+'<div class="function-facts">'+fact("Длительность перебоя",p.duration_hours==null?"Не установлена":num(p.duration_hours)+" ч",p.closed?"Завершение подтверждено":"Завершение не подтверждено")+fact("Возраст сообщения",num(p.age_hours)+" ч","От последнего сообщения о состоянии")+fact("Фактическое использование","Не измерено","Даже учебное восстановление не задаёт объём использования")+'</div><p class="note">Сообщений без дублей: '+num(p.updates_visible)+'. Источник: учебный; территория условная.</p>'+visible.map(u=>'<p class="demo-message">'+esc(date(u.reported_at))+' · '+esc(u.kind==="forecast"?"Обещание / условие":u.kind==="context"?"Контекст":names[u.state])+ (u.kind==="state"&&u.state==="restored"&&u.occurred_at?' · фактическое время восстановления '+esc(date(u.occurred_at)):"")+'</p>').join("");
+}
+function showMode(){
+ host("live-section").hidden=mode!=="live";host("demo-section").hidden=mode!=="demo";
+ document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
+ host("mode-banner").setAttribute("class","mode-banner"+(mode==="demo"?" demo":""));
+ host("mode-banner").textContent=mode==="demo"?"УЧЕБНЫЕ ДАННЫЕ. Все события, времена и территории в примерах условные. Это проверка модели, а не оценка Киева.":"РЕАЛЬНЫЙ РЕЕСТР · [официально] для атрибутированных сообщений. Неполная ручная выборка; текущая доступность всего города не измерена.";
+ history.replaceState(null,"",mode==="demo"?"#demo":"#live");
+}
+host("snapshot-note").textContent="Снимок построен "+date(DATA.as_of)+" по Киеву. Время каждого источника указано отдельно.";
+host("coverage-note").textContent=DATA.coverage_note||"Неполная пилотная выборка";
+host("function-day").innerHTML=days.slice().reverse().map(d=>'<option value="'+esc(d)+'">'+esc(short(d))+'</option>').join("");host("function-day").disabled=!days.length;
+host("function-day").addEventListener("change",()=>{day=host("function-day").value;episodeId=null;renderLive();});
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>{mode=b.dataset.mode;showMode();}));
+renderLive();renderDemo();showMode();
+}
+fetch("city_data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(boot).catch(()=>{document.getElementById("mode-banner").textContent="Данные не загрузились. Оценить состояние услуг сейчас нельзя.";document.getElementById("snapshot-note").textContent="Повторите загрузку позже или откройте методику источников.";});
+</script>
+</body>
+</html>

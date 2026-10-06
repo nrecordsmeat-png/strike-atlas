@@ -1,0 +1,442 @@
+[
+  {
+    "id": "restored",
+    "title": "Восстановление подтверждено",
+    "at": "2026-10-01T15:00:00Z",
+    "explanation": "Эпизод завершён. Длительность 8 часов установлена из точных времён источника.",
+    "episode": {
+      "id": "scenario-water",
+      "service": "water_heat",
+      "title": "Учебный эпизод: вода",
+      "area": "Условная территория",
+      "display_state": "restored",
+      "last_reported_state": "restored",
+      "last_reported_at": "2026-10-01T14:10:00Z",
+      "first_reported_at": "2026-10-01T06:00:00Z",
+      "started_at": "2026-10-01T06:00:00Z",
+      "restored_at": "2026-10-01T14:00:00Z",
+      "restoration_reported_at": "2026-10-01T14:10:00Z",
+      "age_hours": 0.8,
+      "stale": false,
+      "closed": true,
+      "duration_hours": 8.0,
+      "duration_kind": "exact",
+      "since_first_report_hours": 9.0,
+      "provenance": "scenario",
+      "updates": [
+        {
+          "id": "begin",
+          "kind": "state",
+          "state": "restricted",
+          "reported_at": "2026-10-01T06:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        },
+        {
+          "id": "end",
+          "kind": "state",
+          "state": "restored",
+          "reported_at": "2026-10-01T14:10:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario",
+          "occurred_at": "2026-10-01T14:00:00Z"
+        }
+      ],
+      "fresh_hours": 24
+    },
+    "timeline": [
+      {
+        "at": "2026-10-01T06:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 1
+      },
+      {
+        "at": "2026-10-01T14:10:00Z",
+        "display_state": "restored",
+        "last_reported_at": "2026-10-01T14:10:00Z",
+        "closed": true,
+        "duration_hours": 8.0,
+        "age_hours": 0.0,
+        "updates_visible": 2
+      },
+      {
+        "at": "2026-10-01T15:00:00Z",
+        "display_state": "restored",
+        "last_reported_at": "2026-10-01T14:10:00Z",
+        "closed": true,
+        "duration_hours": 8.0,
+        "age_hours": 0.8,
+        "updates_visible": 2
+      }
+    ]
+  },
+  {
+    "id": "reserve",
+    "title": "Услуга работает через резерв",
+    "at": "2026-10-01T10:00:00Z",
+    "explanation": "Функция доступна через резерв. Обычный режим ещё не подтверждён; эпизод не закрывается.",
+    "episode": {
+      "id": "scenario-water",
+      "service": "water_heat",
+      "title": "Учебный эпизод: вода",
+      "area": "Условная территория",
+      "display_state": "reserve",
+      "last_reported_state": "reserve",
+      "last_reported_at": "2026-10-01T08:00:00Z",
+      "first_reported_at": "2026-10-01T06:00:00Z",
+      "started_at": "2026-10-01T06:00:00Z",
+      "restored_at": null,
+      "restoration_reported_at": null,
+      "age_hours": 2.0,
+      "stale": false,
+      "closed": false,
+      "duration_hours": null,
+      "duration_kind": "unknown",
+      "since_first_report_hours": 4.0,
+      "provenance": "scenario",
+      "updates": [
+        {
+          "id": "begin",
+          "kind": "state",
+          "state": "restricted",
+          "reported_at": "2026-10-01T06:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        },
+        {
+          "id": "reserve",
+          "kind": "state",
+          "state": "reserve",
+          "reported_at": "2026-10-01T08:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        }
+      ],
+      "fresh_hours": 24
+    },
+    "timeline": [
+      {
+        "at": "2026-10-01T06:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 1
+      },
+      {
+        "at": "2026-10-01T08:00:00Z",
+        "display_state": "reserve",
+        "last_reported_at": "2026-10-01T08:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 2
+      },
+      {
+        "at": "2026-10-01T10:00:00Z",
+        "display_state": "reserve",
+        "last_reported_at": "2026-10-01T08:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 2.0,
+        "updates_visible": 2
+      }
+    ]
+  },
+  {
+    "id": "silence",
+    "title": "Источник замолчал",
+    "at": "2026-10-03T06:00:00Z",
+    "explanation": "Истории перебоя 48 часов. Текущее состояние неизвестно; длительность самого перебоя не равна 48 часам.",
+    "episode": {
+      "id": "scenario-water",
+      "service": "water_heat",
+      "title": "Учебный эпизод: вода",
+      "area": "Условная территория",
+      "display_state": "unknown",
+      "last_reported_state": "restricted",
+      "last_reported_at": "2026-10-01T06:00:00Z",
+      "first_reported_at": "2026-10-01T06:00:00Z",
+      "started_at": "2026-10-01T06:00:00Z",
+      "restored_at": null,
+      "restoration_reported_at": null,
+      "age_hours": 48.0,
+      "stale": true,
+      "closed": false,
+      "duration_hours": null,
+      "duration_kind": "unknown",
+      "since_first_report_hours": 48.0,
+      "provenance": "scenario",
+      "updates": [
+        {
+          "id": "begin",
+          "kind": "state",
+          "state": "restricted",
+          "reported_at": "2026-10-01T06:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        }
+      ],
+      "fresh_hours": 24
+    },
+    "timeline": [
+      {
+        "at": "2026-10-01T06:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 1
+      },
+      {
+        "at": "2026-10-02T06:00:01Z",
+        "display_state": "unknown",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 24.0,
+        "updates_visible": 1
+      },
+      {
+        "at": "2026-10-03T06:00:00Z",
+        "display_state": "unknown",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 48.0,
+        "updates_visible": 1
+      }
+    ]
+  },
+  {
+    "id": "partial",
+    "title": "Восстановлено частично",
+    "at": "2026-10-01T12:00:00Z",
+    "explanation": "Частичная доступность не считается полным восстановлением.",
+    "episode": {
+      "id": "scenario-water",
+      "service": "water_heat",
+      "title": "Учебный эпизод: вода",
+      "area": "Условная территория",
+      "display_state": "partial",
+      "last_reported_state": "partial",
+      "last_reported_at": "2026-10-01T10:00:00Z",
+      "first_reported_at": "2026-10-01T06:00:00Z",
+      "started_at": "2026-10-01T06:00:00Z",
+      "restored_at": null,
+      "restoration_reported_at": null,
+      "age_hours": 2.0,
+      "stale": false,
+      "closed": false,
+      "duration_hours": null,
+      "duration_kind": "unknown",
+      "since_first_report_hours": 6.0,
+      "provenance": "scenario",
+      "updates": [
+        {
+          "id": "begin",
+          "kind": "state",
+          "state": "restricted",
+          "reported_at": "2026-10-01T06:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        },
+        {
+          "id": "partial",
+          "kind": "state",
+          "state": "partial",
+          "reported_at": "2026-10-01T10:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        }
+      ],
+      "fresh_hours": 24
+    },
+    "timeline": [
+      {
+        "at": "2026-10-01T06:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 1
+      },
+      {
+        "at": "2026-10-01T10:00:00Z",
+        "display_state": "partial",
+        "last_reported_at": "2026-10-01T10:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 2
+      },
+      {
+        "at": "2026-10-01T12:00:00Z",
+        "display_state": "partial",
+        "last_reported_at": "2026-10-01T10:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 2.0,
+        "updates_visible": 2
+      }
+    ]
+  },
+  {
+    "id": "promise",
+    "title": "Обещали восстановить",
+    "at": "2026-10-01T14:00:00Z",
+    "explanation": "Обещанный срок не меняет состояние услуги и не завершает эпизод.",
+    "episode": {
+      "id": "scenario-water",
+      "service": "water_heat",
+      "title": "Учебный эпизод: вода",
+      "area": "Условная территория",
+      "display_state": "restricted",
+      "last_reported_state": "restricted",
+      "last_reported_at": "2026-10-01T06:00:00Z",
+      "first_reported_at": "2026-10-01T06:00:00Z",
+      "started_at": "2026-10-01T06:00:00Z",
+      "restored_at": null,
+      "restoration_reported_at": null,
+      "age_hours": 8.0,
+      "stale": false,
+      "closed": false,
+      "duration_hours": null,
+      "duration_kind": "unknown",
+      "since_first_report_hours": 8.0,
+      "provenance": "scenario",
+      "updates": [
+        {
+          "id": "begin",
+          "kind": "state",
+          "state": "restricted",
+          "reported_at": "2026-10-01T06:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        },
+        {
+          "id": "promise",
+          "kind": "forecast",
+          "state": null,
+          "reported_at": "2026-10-01T10:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        }
+      ],
+      "fresh_hours": 24
+    },
+    "timeline": [
+      {
+        "at": "2026-10-01T06:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 1
+      },
+      {
+        "at": "2026-10-01T10:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 4.0,
+        "updates_visible": 2
+      },
+      {
+        "at": "2026-10-01T14:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 8.0,
+        "updates_visible": 2
+      }
+    ]
+  },
+  {
+    "id": "duplicate",
+    "title": "Повторили одно сообщение",
+    "at": "2026-10-01T08:00:00Z",
+    "explanation": "Повтор с тем же идентификатором не создаёт новое событие: в истории остаётся одно сообщение.",
+    "episode": {
+      "id": "scenario-water",
+      "service": "water_heat",
+      "title": "Учебный эпизод: вода",
+      "area": "Условная территория",
+      "display_state": "restricted",
+      "last_reported_state": "restricted",
+      "last_reported_at": "2026-10-01T06:00:00Z",
+      "first_reported_at": "2026-10-01T06:00:00Z",
+      "started_at": "2026-10-01T06:00:00Z",
+      "restored_at": null,
+      "restoration_reported_at": null,
+      "age_hours": 2.0,
+      "stale": false,
+      "closed": false,
+      "duration_hours": null,
+      "duration_kind": "unknown",
+      "since_first_report_hours": 2.0,
+      "provenance": "scenario",
+      "updates": [
+        {
+          "id": "begin",
+          "kind": "state",
+          "state": "restricted",
+          "reported_at": "2026-10-01T06:00:00Z",
+          "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+          "source_name": "Учебный источник",
+          "source_url": null,
+          "provenance": "scenario"
+        }
+      ],
+      "fresh_hours": 24
+    },
+    "timeline": [
+      {
+        "at": "2026-10-01T06:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 0.0,
+        "updates_visible": 1
+      },
+      {
+        "at": "2026-10-01T08:00:00Z",
+        "display_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "closed": false,
+        "duration_hours": null,
+        "age_hours": 2.0,
+        "updates_visible": 1
+      }
+    ]
+  }
+]

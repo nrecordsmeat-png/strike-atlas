@@ -74,15 +74,15 @@ function fixture(page = 'index.html', data = structuredClone(snapshot), options 
     button: (key, value) => document.querySelector(`[data-${key}="${value}"]`) };
 }
 
-test('all four production pages parse as JavaScript', () => {
-  for (const page of ['index.html', 'data.html', 'map.html', 'metodika.html']) {
+test('all public pages including the experiment parse as JavaScript', () => {
+  for (const page of ['index.html', 'data.html', 'map.html', 'metodika.html', 'functions-test.html']) {
     for (const script of inlineScripts(read(page))) new vm.Script(script, { filename: page });
   }
 });
 
 test('currently published snapshot renders on all data pages', () => {
   const current = JSON.parse(read('city_data.json'));
-  for (const [page, host] of [['index.html', 'topic-grid'], ['data.html', 'rent-cards'], ['metodika.html', 'quality-table']]) {
+  for (const [page, host] of [['index.html', 'topic-grid'], ['data.html', 'rent-cards'], ['metodika.html', 'quality-table'], ['functions-test.html','function-calendar']]) {
     const f = fixture(page, structuredClone(current));
     assert.ok(f.byId('snapshot-note').textContent);
     assert.doesNotMatch(f.byId(host).innerHTML, /\bNaN\b|\bInfinity\b|undefined/);
@@ -299,4 +299,103 @@ test('methodology agrees with rent and service status and retains unknown qualit
   assert.match(f.byId('quality-table').textContent, /успешность не отмечена/);
   assert.doesNotMatch(f.byId('quality-table').textContent, /0\/16|действующих ограничений/);
   assert.match(f.byId('source-commits').textContent, /контрольные суммы 6 входных файлов/);
+});
+
+const functionData = () => ({...structuredClone(snapshot), scenarios:JSON.parse(read('tests/fixtures/function_scenarios.json'))});
+
+test('function experiment defaults to the real registry and exposes missing coverage', () => {
+  const f = fixture('functions-test.html', functionData());
+  assert.equal(f.byId('demo-section').hidden, true);
+  assert.equal(f.byId('live-section').hidden, false);
+  assert.match(f.byId('mode-banner').textContent, /РЕАЛЬНЫЙ РЕЕСТР/);
+  assert.match(f.byId('function-calendar').textContent, /Нет свежих сведений/);
+  assert.match(f.byId('function-detail').textContent, /Фактическое использованиеНе измерено/);
+  assert.match(f.byId('function-detail').textContent, /Длительность перебояНе установлена/);
+  assert.doesNotMatch(f.byId('function-detail').textContent, /город работает на/);
+});
+
+test('function calendar selection hides future sources and measurements', () => {
+  const f = fixture('functions-test.html', functionData());
+  f.button('cell', 'mobility|2026-10-01').fire();
+  assert.equal(f.byId('function-day').value, '2026-10-01');
+  assert.match(f.byId('function-detail').textContent, /Ограничение сообщено/);
+  assert.doesNotMatch(f.byId('function-detail').textContent, /05\.10|06\.10/);
+  f.byId('function-day').value = '2026-10-06';
+  f.byId('function-day').fire('change');
+  assert.match(f.byId('function-detail').textContent, /Нет свежих сведений/);
+  assert.match(f.byId('function-detail').textContent, /Центральный коридор/);
+});
+
+test('weekly restoration report does not imply citywide availability', () => {
+  const f = fixture('functions-test.html', functionData());
+  f.button('cell', 'power|2026-10-06').fire();
+  assert.match(f.byId('function-detail').textContent, /300 семей/);
+  assert.match(f.byId('function-detail').textContent, /текущую доступность всей услуги/);
+  assert.match(f.byId('function-detail').textContent, /ДоступностьНе установлена/);
+  f.button('cell', 'power|2026-10-02').fire();
+  assert.doesNotMatch(f.byId('function-detail').textContent, /300 семей/);
+});
+
+test('demo mode is explicit and point selection never reveals future recovery', () => {
+  const f = fixture('functions-test.html', functionData());
+  f.button('mode', 'demo').fire();
+  assert.equal(f.byId('live-section').hidden, true);
+  assert.equal(f.location.hash, '#demo');
+  assert.match(f.byId('mode-banner').textContent, /Все события, времена и территории.*условные/);
+  f.button('function-scenario', 'restored').fire();
+  assert.match(f.byId('demo-observation').textContent, /Длительность перебоя8 ч/);
+  assert.match(f.byId('demo-observation').textContent, /17:10.*17:00/);
+  f.button('function-point', '0').fire();
+  assert.match(f.byId('demo-observation').textContent, /Завершение не подтверждено/);
+  assert.doesNotMatch(f.byId('demo-observation').textContent, /8 ч|фактическое время восстановления|17:00/);
+  assert.doesNotMatch(f.byId('demo-plot').innerHTML, /NaN|Infinity|undefined/);
+  f.button('mode', 'live').fire();
+  assert.equal(f.byId('demo-section').hidden, true);
+  assert.match(f.byId('mode-banner').textContent, /РЕАЛЬНЫЙ РЕЕСТР/);
+});
+
+test('reserve, partial work, silence, promises and duplicates remain distinct in the experiment', () => {
+  const f = fixture('functions-test.html', functionData(), {hash:'#demo'});
+  assert.equal(f.byId('live-section').hidden, true);
+  for (const [id,expected] of [['reserve',/Работа через резерв/], ['partial',/Частичная работа/],
+                              ['silence',/Нет свежих сведений/], ['promise',/Ограничение сообщено/]]) {
+    f.button('function-scenario', id).fire();
+    assert.match(f.byId('demo-observation').textContent, expected);
+    assert.match(f.byId('demo-observation').textContent, /Длительность перебояНе установлена/);
+  }
+  f.button('function-scenario', 'silence').fire();
+  assert.match(f.byId('demo-observation').textContent, /Возраст сообщения48 ч/);
+  f.button('function-scenario', 'duplicate').fire();
+  assert.match(f.byId('demo-observation').textContent, /Сообщений без дублей: 1/);
+});
+
+test('experiment escapes source text and refuses unsafe source links', () => {
+  const data = functionData(), latest = data.history[Object.keys(data.history).at(-1)];
+  const item = latest.episodes.find(e=>e.service==='mobility');
+  item.title = '<img src=x onerror=alert(1)>';
+  item.updates[0].summary = '<script>alert(1)</script>';
+  item.updates[0].source_url = 'javascript:alert(1)';
+  const f = fixture('functions-test.html', data);
+  assert.match(f.byId('function-detail').innerHTML, /&lt;img/);
+  assert.match(f.byId('function-detail').innerHTML, /&lt;script/);
+  assert.doesNotMatch(f.byId('function-detail').innerHTML, /<img|<script|href="javascript:/);
+});
+
+test('empty and older snapshots leave the experiment honest and usable', () => {
+  const data = functionData(); data.history = {}; data.scenarios = [];
+  const f = fixture('functions-test.html', data);
+  assert.equal(f.byId('function-day').disabled, true);
+  assert.match(f.byId('function-calendar').textContent, /нет истории/);
+  assert.match(f.byId('function-detail').textContent, /Состояние услуги по всему городу оценить нельзя/);
+  f.button('mode', 'demo').fire();
+  assert.match(f.byId('demo-title').textContent, /Учебные примеры отсутствуют/);
+  const old = fixture('functions-test.html', structuredClone(snapshot));
+  assert.match(old.byId('demo-plot').textContent, /Переходы ещё не рассчитаны/);
+});
+
+test('experiment fetch failure is explicit', async () => {
+  const f = fixture('functions-test.html', functionData(), {fetch:true, failFetch:true});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(f.byId('mode-banner').textContent, /Данные не загрузились/);
+  assert.match(f.byId('mode-banner').textContent, /Оценить состояние услуг сейчас нельзя/);
 });
