@@ -9,12 +9,13 @@
 </style>
 </head>
 <body>
-<header><strong>Проверка раскладки тестового экрана</strong><select id="layout-page" aria-label="Тестовый экран"><option value="functions">Функции и восстановление</option><option value="activity">Индекс активности</option></select><button type="button" data-width="390" aria-pressed="true">390 px · телефон</button><button type="button" data-width="1140" aria-pressed="false">1140 px · компьютер</button><span id="layout-size" role="status">390 × 844 CSS px</span><a id="layout-open" href="../functions-test.html">Открыть страницу</a></header>
-<main><iframe id="layout-frame" src="../functions-test.html" title="Тестовый экран городских функций"></iframe></main>
+<header><strong>Проверка раскладки тестового экрана</strong><select id="layout-page" aria-label="Тестовый экран"><option value="functions">Функции и восстановление</option><option value="activity">Индекс активности</option><option value="show">Индекс целиком</option><option value="home">Активность в обзоре</option></select><button type="button" data-width="390" aria-pressed="true">390 px · телефон</button><button type="button" data-width="1140" aria-pressed="false">1140 px · компьютер</button><span id="layout-size" role="status">390 × 844 CSS px</span><a id="layout-open" href="../functions-test.html">Открыть страницу</a></header>
+<main><iframe id="layout-frame" src="../functions-test.html" title="Проверка раскладки городского монитора" allow="fullscreen"></iframe></main>
 <script>
 const picker=document.getElementById('layout-page');
-function choosePage(){const path=picker.value==='activity'?'../activity-test.html':'../functions-test.html';document.getElementById('layout-frame').src=path+'?layout-test='+Date.now();document.getElementById('layout-open').href=path;}
-if(new URLSearchParams(location.search).get('page')==='activity')picker.value='activity';
+const pages={functions:'../functions-test.html',activity:'../activity-test.html',show:'../activity-test.html?view=show',home:'../index.html#activity'};
+function choosePage(){const path=pages[picker.value]||pages.functions,url=new URL(path,location.href);url.searchParams.set('layout-test',Date.now());document.getElementById('layout-frame').src=url.href;document.getElementById('layout-open').href=path;}
+const initialPage=new URLSearchParams(location.search).get('page');if(Object.hasOwn(pages,initialPage))picker.value=initialPage;
 picker.addEventListener('change',choosePage);choosePage();
 document.querySelectorAll('[data-width]').forEach(button=>button.addEventListener('click',()=>{
  const width=Number(button.dataset.width);

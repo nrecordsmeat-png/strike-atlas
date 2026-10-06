@@ -6,6 +6,9 @@
 <meta name="color-scheme" content="light dark">
 <title>Киев · городской монитор — Атлас ударов</title>
 <link rel="stylesheet" href="site.css">
+<style>
+.activity-entry-head{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin:17px 0 8px}.activity-entry-head h2{font-size:22px}.activity-entry-actions{display:flex;gap:8px;flex-wrap:wrap}.activity-entry-actions a{text-decoration:none}.activity-frame{display:block;width:100%;height:680px;border:0;border-radius:10px;background:var(--bg)}
+</style>
 </head>
 <body>
 <main class="shell">
@@ -15,16 +18,21 @@
 </header>
  <nav class="subnav" aria-label="Разделы обзора">
   <button type="button" data-view="overview" aria-controls="view-overview" aria-pressed="true">Обзор</button>
+  <button type="button" data-view="activity" aria-controls="view-activity" aria-pressed="false">Активность</button>
   <button type="button" data-view="services" aria-controls="view-services" aria-pressed="false">Услуги и восстановление</button>
   <button type="button" data-view="scenarios" aria-controls="view-scenarios" aria-pressed="false">Как читать реестр</button>
-  <label class="date-control">Дата просмотра <select id="day-picker" aria-label="Дата просмотра"></select></label>
+  <label class="date-control" id="overview-date-control">Дата просмотра <select id="day-picker" aria-label="Дата просмотра"></select></label>
  </nav>
  <div class="snapshot-note" id="snapshot-note" role="status" aria-live="polite"></div>
  <section id="view-overview" aria-label="Обзор города">
   <div class="hero"><div><div class="eyebrow">КИЕВ · НАБЛЮДАЕМЫЕ УСЛУГИ</div><h2 id="hero-title"></h2><p id="hero-note"></p></div><div class="hero-meta" id="hero-meta"></div></div>
-  <p class="info-strip"><span class="pill">тест</span> <a href="activity-test.html">Индекс активности: поездки</a> · <a href="functions-test.html">Функции города во времени</a></p>
+  <p class="info-strip"><span class="pill">тест</span> <a href="#activity">Индекс активности: поездки</a> · <a href="functions-test.html">Функции города во времени</a></p>
   <div class="topic-grid" id="topic-grid"></div>
   <div class="overview-bottom"><div><div class="section-head"><h2>Последние сообщения</h2><button class="plain-button" type="button" id="open-ledger">Весь реестр</button></div><div id="change-list"></div></div><aside class="recovery-box" id="recovery-box"></aside></div>
+ </section>
+ <section id="view-activity" aria-label="Индекс активности транспорта" hidden>
+  <div class="activity-entry-head"><div><h2>Активность транспорта <span class="pill">тест</span></h2><p class="minor">Зарегистрированные поездки в общественном транспорте Киева.</p></div><div class="activity-entry-actions"><a class="plain-button" href="activity-test.html?view=show" target="_blank" rel="noopener">Показать целиком ↗</a><a class="plain-button" href="activity-test.html">Полный расчёт</a></div></div>
+  <iframe id="activity-frame" class="activity-frame" title="Индекс зарегистрированных поездок Киева" allow="fullscreen" loading="lazy"></iframe>
  </section>
  <section id="view-services" aria-label="Реестр услуг" hidden>
   <div class="section-head"><div><h2>Ограничения и восстановление</h2><div class="minor" id="ledger-counts"></div></div><label class="minor">Услуга <select class="filter-select" id="service-filter"><option value="all">Все услуги</option><option value="mobility">Перемещение</option><option value="water_heat">Вода и тепло</option><option value="power">Электричество</option><option value="connectivity">Связь</option></select></label></div>
@@ -41,6 +49,26 @@
 </main>
 <script src="events.js"></script>
 <script>
+const overviewViews=["overview","activity","services","scenarios"];
+function show(next){
+ if(!overviewViews.includes(next))return;
+ document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===next)));
+ document.querySelectorAll("section[id^='view-']").forEach(p=>p.hidden=p.id!=="view-"+next);
+ document.getElementById("overview-date-control").hidden=next==="activity";
+ document.getElementById("snapshot-note").hidden=next==="activity";
+ document.getElementById("view-announcement").textContent=document.querySelector('[data-view="'+next+'"]').textContent;
+ if(next==="activity"){const frame=document.getElementById("activity-frame");if(!frame.getAttribute("src"))frame.setAttribute("src","activity-test.html?view=show&embed=1&show="+Date.now());}
+ if(history.replaceState)history.replaceState(null,"","#"+next);
+}
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.view)));
+window.addEventListener("hashchange",()=>show(location.hash.slice(1)));
+window.addEventListener("message",event=>{
+ const frame=document.getElementById("activity-frame"),data=event.data;
+ if(event.origin!==location.origin||event.source!==frame.contentWindow||data?.type!=="strike-atlas:activity-height")return;
+ if(typeof data.height!=="number"||!Number.isFinite(data.height)||data.height<100||data.height>4000)return;
+ frame.style.height=Math.max(320,Math.ceil(data.height))+"px";
+});
+if(overviewViews.includes(location.hash.slice(1)))show(location.hash.slice(1));
 function boot(DATA){
 "use strict";
 const services={mobility:"Перемещение",water_heat:"Вода и тепло",power:"Электричество",connectivity:"Связь"};
@@ -48,7 +76,7 @@ const stateNames={announced:"Ограничение объявлено",restrict
 if(!DATA||DATA.schema_version!==1||!DATA.as_of||!DATA.indicators)throw new Error("Неподдерживаемый снимок");
 const dayPicker=document.getElementById("day-picker");
 const days=Object.keys(DATA.history||{}).sort();
-let day=days.slice(-1)[0]||new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Kyiv"}).format(new Date(DATA.as_of)),view="overview",selectedEpisode=null,selectedScenario=DATA.scenarios?.[0]?.id||null;
+let day=days.slice(-1)[0]||new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Kyiv"}).format(new Date(DATA.as_of)),selectedEpisode=null,selectedScenario=DATA.scenarios?.[0]?.id||null;
 const emptyState={at:DATA.as_of,episodes:[],recovery_reports:[],counts:{total:0,restored:0,unclosed:0,unknown:0,fresh_restrictions:0}};
 const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const formatter=new Intl.DateTimeFormat("ru-RU",{timeZone:"Europe/Kyiv",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
@@ -67,7 +95,6 @@ function sourceLink(item,label){
  return '<a target="_blank" rel="noopener noreferrer" href="'+escape(item.source_url)+'">'+escape(label||item.source_name)+' ↗</a>';
 }
 function badge(state){const style=state==="restored"?"good":state==="reserve"?"info":state==="partial"?"caution":["restricted","announced"].includes(state)?"problem":"";return '<span class="badge '+style+'">'+escape(stateNames[state])+'</span>';}
-function show(next){view=next;document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===next)));document.querySelectorAll("section[id^='view-']").forEach(p=>p.hidden=p.id!=="view-"+next);document.getElementById("view-announcement").textContent=document.querySelector('[data-view="'+next+'"]').textContent;if(history.replaceState)history.replaceState(null,"","#"+next);}
 function latestByCorridor(){const list=traffic();return Object.fromEntries(["north","center","south"].map(key=>[key,list.filter(x=>x.corridor===key&&x.travel_min!=null).slice(-1)[0]]));}
 function topic(key,title,value,note,label,kind,action){return '<button type="button" class="topic" data-topic="'+key+'" data-action="'+action+'"><span class="topic-title">'+escape(title)+'</span><span class="topic-value '+(kind==="empty"?"empty":"")+'">'+escape(value)+'</span><span class="topic-note">'+escape(note)+'</span><span class="badge '+(kind==="caution"?"caution":"")+'">'+escape(label)+'</span></button>';}
 function strikesTopic(){
@@ -117,10 +144,9 @@ function renderScenario(){
 }
 function render(){document.getElementById("snapshot-note").textContent="Сохранённый снимок · создан "+date(DATA.generated_at)+" по Киеву · просмотр сведений по "+date(current().at)+". Обновление вручную.";renderOverview();renderLedger();renderScenario();}
 dayPicker.disabled=!days.length;dayPicker.innerHTML=days.map(d=>'<option value="'+d+'">'+d.split("-").reverse().join(".")+'</option>').join("");dayPicker.value=day;dayPicker.addEventListener("change",()=>{day=dayPicker.value;selectedEpisode=null;render();});
-document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.view)));
 document.getElementById("service-filter").addEventListener("change",()=>{selectedEpisode=null;renderLedger();});
 document.getElementById("open-ledger").addEventListener("click",()=>show("services"));
-render();{const h=location.hash.slice(1);if(["overview","services","scenarios"].includes(h))show(h);}
+render();
 }
 fetch("city_data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(boot).catch(e=>{document.getElementById("snapshot-note").textContent="Не удалось загрузить снимок: "+e.message;document.getElementById("hero-title").textContent="Данные сейчас недоступны.";document.getElementById("hero-note").textContent="Состояние города по этому снимку оценить нельзя. Попробуйте обновить страницу позже.";document.getElementById("day-picker").disabled=true;});
 </script>

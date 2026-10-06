@@ -14,6 +14,7 @@ class Element {
     this.hidden = Object.hasOwn(attrs, 'hidden'); this.listeners = {};
     this.dataset = Object.fromEntries(Object.entries(attrs).filter(([key]) => key.startsWith('data-')).map(([key, value]) => [key.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()), value]));
     this._html = text; this.children = [];
+    this.style = {}; if (tag === 'iframe') this.contentWindow = {};
     if (tag === 'select' && !this.value) this.value = text.match(/<option value="([^"]*)"/)?.[1] || '';
   }
   get id() { return this.attrs.id; }
@@ -23,13 +24,14 @@ class Element {
   get textContent() { return this.tag === 'script' ? this._html : decode(this._html.replace(/<[^>]*>/g, '')); }
   addEventListener(name, callback) { this.listeners[name] = callback; }
   setAttribute(name, value) { this.attrs[name] = value; }
+  getAttribute(name) { return this.attrs[name] ?? null; }
   getBoundingClientRect() { return { width: 360 }; }
   fire(name = 'click') { assert.ok(this.listeners[name], `Missing ${name} handler`); this.listeners[name](); }
 }
 
 function parse(markup) {
   const result = [];
-  const tags = /<(button|div|section|select|p|main|header|nav|article|aside|footer|h[123])\b([^>]*)>/g;
+  const tags = /<(button|div|section|select|p|main|header|nav|article|aside|footer|label|iframe|a|span|h[123])\b([^>]*)>/g;
   for (const match of markup.matchAll(tags)) {
     const attrs = {};
     for (const field of match[2].matchAll(/([\w-]+)(?:="([^"]*)")?/g)) attrs[field[1]] = decode(field[2] || '');
@@ -54,13 +56,21 @@ function fixture(page = 'index.html', data = structuredClone(snapshot), options 
     if (!match) throw new Error(`Unsupported test selector: ${selector}`);
     return Object.hasOwn(element.attrs, match[1]) && (match[2] === undefined || element.attrs[match[1]] === match[2]);
   };
+  const windowListeners = {}, documentListeners = {};
   const document = {
+    body: new Element('body'), documentElement: new Element('html'),
+    fullscreenEnabled: Boolean(options.fullscreen), fullscreenElement: null,
+    addEventListener(name, callback) { (documentListeners[name] ||= []).push(callback); },
     getElementById(id) { const result = all().find(x => x.attrs.id === id); assert.ok(result, `Unknown DOM id: ${id}`); return result; },
     querySelectorAll(selector) { return all().filter(x => matches(x, selector)); },
     querySelector(selector) { return this.querySelectorAll(selector)[0]; },
   };
-  const location = { hash: options.hash || '', href: '' };
-  const sandbox = { document, location, Intl, Date, URL, console,
+  let fullscreenRequests = 0;
+  document.documentElement.requestFullscreen = () => { fullscreenRequests++; document.fullscreenElement = document.documentElement; return Promise.resolve(); };
+  document.exitFullscreen = () => { document.fullscreenElement = null; return Promise.resolve(); };
+  const window = { addEventListener(name, callback) { (windowListeners[name] ||= []).push(callback); } }; window.parent = window;
+  const location = { hash: options.hash || '', search: options.search || '', origin: 'https://nrecordsmeat-png.github.io', href: '' };
+  const sandbox = { document, window, location, Intl, Date, URL, URLSearchParams, console,
     history: { replaceState(_state, _title, value) { location.hash = value; } },
     INPUT: data,
     fetch: () => options.failFetch ? Promise.reject(new Error('offline')) : Promise.resolve({ ok: true, json: () => Promise.resolve(data) }),
@@ -71,11 +81,14 @@ function fixture(page = 'index.html', data = structuredClone(snapshot), options 
   if (!options.fetch) script = script.replace(/^fetch\("city_data\.json".*$/m, '') + '\nboot(INPUT);';
   vm.runInContext(script, context);
   return { document, location, byId: id => document.getElementById(id),
+    emit: (name, value) => (windowListeners[name] || []).forEach(fn => fn(value)),
+    emitDocument: name => (documentListeners[name] || []).forEach(fn => fn()),
+    fullscreenRequests: () => fullscreenRequests,
     button: (key, value) => document.querySelector(`[data-${key}="${value}"]`) };
 }
 
 test('all public pages including the experiment parse as JavaScript', () => {
-  for (const page of ['index.html', 'data.html', 'map.html', 'metodika.html', 'functions-test.html', 'activity-test.html']) {
+  for (const page of ['index.html', 'data.html', 'map.html', 'metodika.html', 'functions-test.html', 'activity-test.html', 'tests/layout.html']) {
     for (const script of inlineScripts(read(page))) new vm.Script(script, { filename: page });
   }
 });
@@ -100,11 +113,54 @@ test('overview reports five unknown episodes with no unsupported current restric
 
 test('all navigation handlers select one panel and update the hash', () => {
   const f = fixture();
-  for (const view of ['services', 'scenarios', 'overview']) {
+  for (const view of ['activity', 'services', 'scenarios', 'overview']) {
     f.button('view', view).fire();
     assert.deepEqual(f.document.querySelectorAll("section[id^='view-']").filter(x => !x.hidden).map(x => x.id), [`view-${view}`]);
     assert.equal(f.location.hash, '#' + view);
   }
+});
+
+test('activity is embedded in the overview with its own dates and remains reachable when the overview fetch fails', async () => {
+  const f = fixture('index.html', structuredClone(snapshot), { hash: '#activity' });
+  assert.equal(f.byId('view-activity').hidden, false);
+  assert.match(f.byId('activity-frame').getAttribute('src'), /^activity-test\.html\?view=show&embed=1&show=\d+$/);
+  assert.equal(f.byId('overview-date-control').hidden, true);
+  assert.equal(f.byId('snapshot-note').hidden, true);
+  f.button('view', 'overview').fire();
+  assert.equal(f.byId('overview-date-control').hidden, false);
+  assert.equal(f.byId('snapshot-note').hidden, false);
+  f.location.hash = '#activity'; f.emit('hashchange');
+  assert.equal(f.byId('view-activity').hidden, false);
+  const unavailable = fixture('index.html', structuredClone(snapshot), { hash: '#activity', fetch: true, failFetch: true });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(unavailable.byId('view-activity').hidden, false);
+  assert.match(unavailable.byId('activity-frame').getAttribute('src'), /view=show&embed=1/);
+});
+
+test('embedded activity resizes only from the expected origin and frame', () => {
+  const f = fixture('index.html', structuredClone(snapshot), { hash: '#activity' }), frame = f.byId('activity-frame');
+  const trusted = { origin: f.location.origin, source: frame.contentWindow, data: { type: 'strike-atlas:activity-height', height: 721.5 } };
+  for (const event of [{ ...trusted, origin: 'https://other.example' }, { ...trusted, source: {} }, { ...trusted, data: { ...trusted.data, height: '900' } }, { ...trusted, data: { ...trusted.data, height: 99999 } }]) f.emit('message', event);
+  assert.equal(frame.style.height, undefined);
+  f.emit('message', trusted);
+  assert.equal(frame.style.height, '722px');
+});
+
+test('presentation keeps the baseline, source and limits and fullscreen starts only after a click', () => {
+  const data = activityData();
+  const f = fixture('activity-test.html', data, { search: '?view=show', fullscreen: true });
+  assert.equal(f.document.body.getAttribute('data-presentation'), 'true');
+  assert.equal(f.byId('activity-show-source').hidden, false);
+  assert.match(f.byId('activity-show-source').textContent, /АСОП.*Киев.*не уникальные люди.*не доказывает эффект ударов/s);
+  assert.match(f.byId('activity-banner').textContent, /27\.09\.2026.*9 дн/);
+  assert.match(f.byId('activity-kpis').textContent, /82,1/);
+  assert.match(f.byId('activity-baseline').textContent, /06\.07\.2026.*30\.08\.2026/);
+  assert.equal(f.fullscreenRequests(), 0);
+  f.byId('activity-fullscreen').fire(); f.emitDocument('fullscreenchange');
+  assert.equal(f.fullscreenRequests(), 1);
+  assert.equal(f.byId('activity-fullscreen').textContent, 'Вернуться к окну');
+  f.byId('activity-fullscreen').fire(); f.emitDocument('fullscreenchange');
+  assert.equal(f.byId('activity-fullscreen').textContent, 'На весь экран');
 });
 
 test('past date hides future measurements and recovery reports', () => {

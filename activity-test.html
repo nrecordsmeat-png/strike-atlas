@@ -11,19 +11,47 @@
 @media(max-width:850px){.activity-split{grid-template-columns:1fr}.activity-roadmap{grid-template-columns:1fr 1fr}.activity-kpis{grid-template-columns:1fr 1fr}.activity-kpi.primary{grid-column:1/-1}.activity-context{grid-template-columns:1fr}.activity-context>div+div{border-top:1px solid var(--line);padding-top:14px}}
 @media(max-width:540px){.activity-hero{padding-top:20px}.activity-hero h2{font-size:30px}.activity-panel{padding:16px}.activity-kpi{padding:15px}.activity-kpi strong{font-size:26px}.activity-controls label{width:100%}.activity-controls select{width:100%}.activity-roadmap{grid-template-columns:1fr}.activity-kpis{gap:10px}.activity-kpi.primary strong{font-size:44px}}
 @media(max-width:380px){.activity-kpis{grid-template-columns:1fr}}
+.show-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.show-actions a{text-decoration:none}.activity-open-show{margin-bottom:12px}.show-source{border-top:1px solid var(--line);padding-top:8px;margin-top:8px;font-size:11px;line-height:1.45;color:var(--muted)}.show-source p+p{margin-top:4px}.show-status{font-size:11px;color:var(--muted)}
+body[data-presentation=true] .shell{padding:14px 24px}
+body[data-presentation=true] .top{padding-bottom:10px;gap:14px}
+body[data-presentation=true] .brand h1{font-size:18px}
+body[data-presentation=true] .brand .minor,body[data-presentation=true] .sitenav,body[data-presentation=true] .activity-hero,body[data-presentation=true] .activity-open-show,body[data-presentation=true] .activity-split,body[data-presentation=true] .activity-details,body[data-presentation=true] .activity-secondary,body[data-presentation=true] .foot{display:none}
+body[data-presentation=true] .activity-banner{font-size:12px;line-height:1.45;padding:8px 12px;margin-bottom:0}
+body[data-presentation=true] .snapshot-note{font-size:11px;padding:5px 0}
+body[data-presentation=true] .activity-panel{margin:6px 0;padding:12px 14px}
+body[data-presentation=true] .activity-controls{gap:10px}
+body[data-presentation=true] .activity-controls h2{font-size:20px}
+body[data-presentation=true] .activity-controls label{font-size:11px;gap:3px}
+body[data-presentation=true] .activity-controls select{font-size:13px}
+body[data-presentation=true] .activity-controls .minor{font-size:11px}
+body[data-presentation=true] .activity-kpis{margin:10px 0;gap:10px}
+body[data-presentation=true] .activity-kpi{padding:10px 12px}
+body[data-presentation=true] .activity-kpi strong{font-size:32px;line-height:1.1;margin:5px 0}
+body[data-presentation=true] .activity-kpi.primary strong{font-size:38px}
+body[data-presentation=true] .activity-kpi p{font-size:11px;line-height:1.4}
+body[data-presentation=true] .activity-chart{margin-top:8px}
+body[data-presentation=true] .activity-chart svg{height:clamp(170px,24vh,230px)}
+body[data-presentation=true] .chart-guide{font-size:11px;line-height:1.4;margin-top:4px}
+body[data-presentation=true] .activity-baseline{padding:8px 10px;margin-top:8px;font-size:11px;line-height:1.45}
+body[data-embedded=true] .top{display:none}
+body[data-embedded=true] .shell{max-width:none;padding:2px 0 8px}
+body[data-embedded=true] .activity-chart svg{height:210px}
+@media(max-width:640px){body[data-presentation=true] .shell{padding:12px}body[data-presentation=true] .top{gap:9px}body[data-presentation=true] .activity-kpi strong{font-size:25px}body[data-embedded=true] .shell{padding:2px 0 8px}}
 </style>
 </head>
 <body>
-<main class="shell">
+<main class="shell" id="activity-stage">
 <header class="top">
  <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">тест</span></h1><div class="minor">Атлас ударов · доступность · нагрузка · восстановление</div></div></div>
  <nav class="sitenav" aria-label="Разделы сайта"><a href="./" class="cur">Обзор</a><a href="map.html">Карта</a><a href="data.html">Данные</a><a href="metodika.html">Методика</a></nav>
+ <div id="activity-show-actions" class="show-actions" hidden><button class="plain-button" id="activity-fullscreen" type="button">На весь экран</button><a class="plain-button" href="activity-test.html">Полный расчёт</a><a class="plain-button" href="./#activity">На сайт</a><span id="activity-show-status" class="show-status" role="status" aria-live="polite"></span></div>
 </header>
 <section class="activity-hero">
  <div class="eyebrow">ЭКСПЕРИМЕНТ · ИНДЕКС АКТИВНОСТИ</div>
  <h2>Начинаем с реальных поездок</h2>
  <p>Сколько поездок зарегистрировано в общественном транспорте Киева — относительно выбранной базы. Это первый измеряемый слой использования городских услуг.</p>
 </section>
+<p class="activity-open-show"><a class="plain-button" href="activity-test.html?view=show">Показать целиком ↗</a></p>
 <div id="activity-banner" class="activity-banner" role="status" aria-live="polite">Загрузка проверенного ряда…</div>
 <p id="snapshot-note" class="snapshot-note"></p>
 <div id="activity-content" hidden>
@@ -35,8 +63,9 @@
   </div>
   <div class="activity-kpis" id="activity-kpis" aria-live="polite"></div>
   <div class="activity-chart" id="activity-chart" tabindex="0" aria-label="График индекса поездок, прокрутка по горизонтали"></div>
-  <p class="activity-note">Линия — индекс каждого дня; пунктир — база 100. Выберите точку или день, чтобы увидеть исходное число поездок. Пробелы в данных разрывают линию.</p>
+  <p class="activity-note chart-guide">Линия — индекс дня; пунктир — база 100. Выбор точки меняет показатели; пропуски разрывают линию.</p>
   <div class="activity-baseline" id="activity-baseline"></div>
+  <div class="show-source" id="activity-show-source" aria-label="Источник и границы показателя" hidden></div>
  </section>
  <div class="activity-split">
   <section class="activity-panel"><h2>Что означает изменение</h2><p class="activity-source" id="activity-limits"></p><p class="activity-note">Изменение режима метро, сезон, погода, тарифы и переход на другой способ передвижения могут менять число поездок. Данные об использовании, ограничениях и восстановлении нужны вместе.</p></section>
@@ -44,11 +73,11 @@
  </div>
  <details class="activity-details"><summary>Проверить базу и все измерения</summary><div id="activity-evidence"></div></details>
 </div>
-<section class="activity-panel" aria-label="Другие слои мониторинга">
+<section class="activity-panel activity-secondary" aria-label="Другие слои мониторинга">
  <div class="section-head"><div><h2>Доступность и дополнительная нагрузка</h2><p class="minor">Отдельные наблюдения с собственными датами и охватом.</p></div></div>
  <div id="activity-context" class="activity-context"></div>
 </section>
-<section class="activity-panel" aria-label="Развитие индекса">
+<section class="activity-panel activity-secondary" aria-label="Развитие индекса">
  <h2>Как расширять индекс</h2>
  <div class="activity-roadmap">
   <div><span class="pill">первый ряд</span><h3>Перемещение</h3><p>Учтённые поездки. Режим работы и ограничения перевозчиков дают контекст.</p></div>
@@ -61,6 +90,22 @@
 <footer class="foot"><span>Тестовая версия · <a href="functions-test.html">функции и восстановление</a></span><a href="metodika.html#quality">Методика и качество источников</a></footer>
 </main>
 <script>
+const activityParams=new URLSearchParams(location.search||"");
+const activityPresentation=activityParams.get("view")==="show",activityEmbedded=activityPresentation&&activityParams.get("embed")==="1";
+document.body.setAttribute("data-presentation",String(activityPresentation));
+document.body.setAttribute("data-embedded",String(activityEmbedded));
+document.getElementById("activity-show-actions").hidden=!activityPresentation;
+const fullscreenButton=document.getElementById("activity-fullscreen");
+fullscreenButton.hidden=!(document.fullscreenEnabled&&document.documentElement?.requestFullscreen);
+fullscreenButton.addEventListener("click",()=>{
+ try{const action=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();if(action?.catch)action.catch(()=>{document.getElementById("activity-show-status").textContent="Браузер не включил полный экран. Режим показа остаётся открыт.";});}
+ catch{document.getElementById("activity-show-status").textContent="Полный экран недоступен; режим показа остаётся открыт.";}
+});
+document.addEventListener("fullscreenchange",()=>{fullscreenButton.textContent=document.fullscreenElement?"Вернуться к окну":"На весь экран";});
+if(activityEmbedded&&typeof ResizeObserver!=="undefined"){
+ const stage=document.getElementById("activity-stage");
+ new ResizeObserver(()=>{const height=Math.ceil(stage.getBoundingClientRect().height);if(Number.isFinite(height))window.parent.postMessage({type:"strike-atlas:activity-height",height},location.origin);}).observe(stage);
+}
 function boot(DATA){
 "use strict";
 if(!DATA||DATA.schema_version!==1||!DATA.as_of)throw new Error("Неподдерживаемый снимок");
@@ -86,6 +131,8 @@ host("activity-banner").textContent="[официально] Последний �
 if(activity.last_attempt?.ok===false)host("activity-banner").textContent+=" Последняя попытка обновления не удалась; показан ранее проверенный ряд.";
 host("activity-limits").textContent=activity.limits;
 host("activity-source").innerHTML='<p>'+link(activity.resource_url,"Портал открытых данных Киева")+'</p><p>'+esc(activity.scope)+'</p><p>В сохранённом файле: '+esc(num(activity.coverage.days))+' дней, '+esc(date(activity.coverage.start))+' — '+esc(date(activity.coverage.end))+'. Пропущенных дат: '+esc(num(activity.coverage.missing_dates))+'.</p><p>Получено '+esc(time(activity.fetched_at))+' по Киеву. Паспорт набора указывает ежемесячное обновление.</p><p>Система считает поездки по учёту оплаты проезда. Человек с несколькими поездками учитывается несколько раз; поездки вне этой системы не измерены.</p>';
+host("activity-show-source").hidden=!activityPresentation;
+host("activity-show-source").innerHTML='<p>[официально] Источник: '+link(activity.resource_url,"Портал открытых данных Киева")+' · учёт проезда АСОП · Киев.</p><p>Измеряются зарегистрированные поездки, не уникальные люди. Их изменение само по себе не доказывает эффект ударов и не определяет работоспособность всего города.</p>';
 function selectDay(value){day=value;host("activity-day").value=day;render();}
 function render(){
  const v=getView();if(!Array.isArray(v.points)||!v.points.length)throw new Error("Пустой ряд индекса");
@@ -95,7 +142,7 @@ function render(){
  host("activity-kpis").innerHTML='<div class="activity-kpi primary"><div class="eyebrow">ИНДЕКС ЗА 7 ДНЕЙ ДО '+esc(short(day))+'</div><strong>'+esc(num(p.week_index))+'</strong><p>'+(p.week_index==null?"Нужны 7 полных дней и сопоставимая база.":"100 — объём поездок по выбранной базе. Это индекс поездок, не процент работоспособности города.")+'</p></div><div class="activity-kpi"><div class="eyebrow">ЗАРЕГИСТРИРОВАНО ЗА '+esc(short(day))+'</div><strong>'+esc(num(p.total))+'</strong><p>Платные: '+esc(num(p.paid))+' · льготные: '+esc(num(p.benefit))+'.</p></div><div class="activity-kpi"><div class="eyebrow">ИНДЕКС ОДНОГО ДНЯ</div><strong>'+esc(num(p.index))+'</strong><p>'+esc(label)+'. База этого дня недели: '+esc(num(p.expected))+' поездок.</p></div>';
  const alternate=activity.views.find(x=>x.id!==viewId)?.points.find(x=>x.date===day);
  host("activity-baseline").textContent="База: "+date(v.baseline.start)+" — "+date(v.baseline.end)+", "+weeks(v.baseline.weeks)+" до показанного периода. Понедельники сравниваются с понедельниками, воскресенья — с воскресеньями. База фиксирована для всей линии. "+(alternate?.week_index!=null?"При другой длине базы недельный индекс на эту дату: "+num(alternate.week_index)+". ":"")+"База военного периода, не мирная норма.";
- const width=900,height=300,left=48,right=20,top=22,bottom=38,values=v.points.map(p=>p.index).filter(x=>typeof x==="number"&&Number.isFinite(x)),maximum=Math.ceil(Math.max(120,...values)/50)*50;
+ const width=900,height=activityPresentation?220:300,left=48,right=20,top=22,bottom=38,values=v.points.map(p=>p.index).filter(x=>typeof x==="number"&&Number.isFinite(x)),maximum=Math.ceil(Math.max(120,...values)/50)*50;
  const x=i=>left+i*(width-left-right)/Math.max(1,v.points.length-1),y=n=>height-bottom-n/maximum*(height-top-bottom);
  let grid="";for(let tick=0;tick<=maximum;tick+=50)grid+='<line x1="'+left+'" x2="'+(width-right)+'" y1="'+y(tick)+'" y2="'+y(tick)+'" stroke="var(--line)"/><text x="'+(left-10)+'" y="'+(y(tick)+4)+'" text-anchor="end">'+tick+'</text>';
  grid+='<line x1="'+left+'" x2="'+(width-right)+'" y1="'+y(100)+'" y2="'+y(100)+'" stroke="var(--muted)" stroke-dasharray="5 5"/>';
