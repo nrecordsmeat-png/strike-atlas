@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
-const snapshot = JSON.parse(read('city_data.json'));
+const snapshot = JSON.parse(read('tests/fixtures/city_data.json'));
 const decode = value => value.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
 class Element {
   constructor(tag, attrs = {}, text = '') {
@@ -77,6 +77,15 @@ function fixture(page = 'index.html', data = structuredClone(snapshot), options 
 test('all four production pages parse as JavaScript', () => {
   for (const page of ['index.html', 'data.html', 'map.html', 'metodika.html']) {
     for (const script of inlineScripts(read(page))) new vm.Script(script, { filename: page });
+  }
+});
+
+test('currently published snapshot renders on all data pages', () => {
+  const current = JSON.parse(read('city_data.json'));
+  for (const [page, host] of [['index.html', 'topic-grid'], ['data.html', 'rent-cards'], ['metodika.html', 'quality-table']]) {
+    const f = fixture(page, structuredClone(current));
+    assert.ok(f.byId('snapshot-note').textContent);
+    assert.doesNotMatch(f.byId(host).innerHTML, /\bNaN\b|\bInfinity\b|undefined/);
   }
 });
 
