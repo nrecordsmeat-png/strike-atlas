@@ -41,7 +41,7 @@ section{padding:6px 0 10px}
 
 <section id="rent">
  <div class="section-head"><h2>Предложение долгосрочной аренды</h2><span class="minor">DIM.RIA · число объявлений</span></div>
- <p class="note">Гипотеза: удары и обесточивание левого берега → отъезд жильцов → больше свободных квартир, в первую очередь на левом берегу. Смотрим уровень и долю левого берега, отток проявляется с лагом 2–5 дней. В дневной ряд идут только замеры утреннего окна (06–12 UTC); ночные наблюдения показаны справочно. <b>Число объявлений — не отток населения</b>: на него влияют дубли, повторные публикации, фильтры сайта и спрос.</p>
+ <p class="note">Показываем число объявлений и долю левого берега. Сравниваем только замеры с сохранённым временем в дневном окне 06–12 UTC и полными счётчиками. Точки без времени и наблюдения вне окна показаны справочно; они не участвуют в расчёте изменений. <b>Число объявлений — не отток населения</b>: на него влияют дубли, повторные публикации, фильтры сайта и спрос.</p>
  <div class="cards" id="rent-cards"></div>
  <div class="table-wrap" id="rent-table"></div>
  <p class="note" id="rent-note"></p>
@@ -75,7 +75,6 @@ const FOOD=[
  {d:"2026-10-05",s:{novus:{p:641,o:35},metro:{p:514,o:36},silpo:{p:238,o:0}}},
 ];
 const PRICES=[{d:"2026-10-05",ov:9.90,mi:38.39}];
-const BASE={k:7419,l:1295,r:5160}; // фиксированный бейзлайн аренды 04.10 (первый замер; время суток не сохранено)
 const TYPES={enr:["Энергетика","#e8b63a"],brg:["Мосты","#4da3ff"],res:["Жильё","#f1564f"],gov:["Гос и наука","#c792ea"],ind:["Пром, склады, ИТ","#9aa4ae"],oth:["Прочее","#56d364"]};
 
 function boot(DATA){
@@ -112,29 +111,30 @@ function drawPlots(){
 drawPlots();if(typeof ResizeObserver!=="undefined")new ResizeObserver(drawPlots).observe(grid);
 
 // ---- Поезда ----
-const U=(DATA.indicators.uz||[]).filter(x=>x.ok!==false);
-if(U.length){
- const l=U[U.length-1];
+const U=DATA.indicators.uz||[],available=U.filter(x=>x.ok!==false);
+if(available.length){
+ const l=available[available.length-1],latest=U[U.length-1];
  document.getElementById("uz-cards").innerHTML=
   '<div class="card"><div class="v">'+num(l.ukraine_trains,0)+'</div><div class="l">рейсов с задержкой, вся Украина</div><div class="d">'+esc(date(l.at))+'</div></div>'+
   '<div class="card"><div class="v">'+(l.ukraine_delay_min!=null?num(l.ukraine_delay_min/60,0)+' ч':'—')+'</div><div class="l">суммарная задержка, Украина</div><div class="d">'+num(l.ukraine_delay_min,0)+' мин в снимке</div></div>'+
   '<div class="card"><div class="v">'+num(l.kyiv_rows,0)+'</div><div class="l">из них рейсов с Киевом в маршруте</div><div class="d">'+(l.kyiv_delay_min!=null?num(l.kyiv_delay_min,0)+' мин задержки':'—')+'</div></div>';
- document.getElementById("uz-table").innerHTML=table(["Время, Киев","Рейсов (УА)","Σ мин (УА)","Рейсов Киева","Σ мин Киева"],[...U].reverse().map(x=>[esc(date(x.at)),num(x.ukraine_trains,0),num(x.ukraine_delay_min,0),num(x.kyiv_rows,0),num(x.kyiv_delay_min,0)]));
-}else document.getElementById("uz-table").innerHTML='<p class="empty-panel">Табло ещё не наблюдалось.</p>';
+ document.getElementById("uz-table").innerHTML=(latest.ok===false?'<p class="note">Последнее получение табло не удалось · '+esc(date(latest.at))+'. Карточки показывают последний успешный снимок.</p>':"")+table(["Время, Киев","Рейсов (УА)","Σ мин (УА)","Рейсов Киева","Σ мин Киева","Получение"],[...U].reverse().map(x=>[esc(date(x.at)),num(x.ukraine_trains,0),num(x.ukraine_delay_min,0),num(x.kyiv_rows,0),num(x.kyiv_delay_min,0),x.ok===false?"Не удалось":"Получено"]));
+}else document.getElementById("uz-table").innerHTML='<p class="empty-panel">'+(U.length?"Получение табло не удалось. Сведений о задержках нет.":"Табло ещё не наблюдалось.")+'</p>';
 
 // ---- Аренда ----
 const R=DATA.indicators.rent||[];
 if(R.length){
- const series=R.filter(x=>x.in_window);const ser=series.length?series:R;const last=ser[ser.length-1],prev=ser[ser.length-2]||{};
- const share=x=>x.left&&x.total?(x.left/x.total*100).toFixed(1)+"%":"—";
+ const series=R.filter(x=>x.comparable===true&&x.in_window===true&&x.at).sort((a,b)=>new Date(a.at)-new Date(b.at));
+ const last=series[series.length-1]||R[R.length-1],prev=series[series.length-2],base=series[0];
+ const share=x=>x.left!=null&&x.total>0?(x.left/x.total*100).toFixed(1)+"%":"—";
+ const comparison=key=>series.length>1?'Δ к предыдущей сопоставимой точке '+delta(last[key],prev[key])+' · к первой ('+esc(date(base.at))+') '+delta(last[key],base[key]):series.length===1?'Одна сопоставимая точка · сравнение пока недоступно':'Справочная точка · сравнение недоступно';
  document.getElementById("rent-cards").innerHTML=
-  '<div class="card"><div class="v">'+num(last.total,0)+'</div><div class="l">Киев всего · '+esc(shortDay(last.date))+(last.at?" "+esc(date(last.at).slice(-5)):"")+'</div><div class="d">Δ к прошлому замеру '+delta(last.total,prev.total)+' · от бейзлайна 04.10 '+delta(last.total,BASE.k)+'</div></div>'+
-  '<div class="card"><div class="v">'+num(last.left,0)+'</div><div class="l">левый берег</div><div class="d">Δ '+delta(last.left,prev.left)+' · от бейзлайна '+delta(last.left,BASE.l)+'</div></div>'+
-  '<div class="card"><div class="v">'+num(last.right,0)+'</div><div class="l">правый берег</div><div class="d">Δ '+delta(last.right,prev.right)+' · от бейзлайна '+delta(last.right,BASE.r)+'</div></div>'+
-  '<div class="card"><div class="v">'+share(last)+'</div><div class="l">доля левого берега</div><div class="d">бейзлайн 17.5%</div></div>';
- document.getElementById("rent-table").innerHTML=table(["Дата","Время (Киев)","Всего","Левый","Правый","Доля левого","Пригодность"],[...R].reverse().map(x=>[esc(shortDay(x.date)),x.at?esc(date(x.at).slice(-5)):"не сохранено",num(x.total,0),num(x.left,0),num(x.right,0),share(x),x.comparable?"дневное окно":x.in_window?"дневное окно, время не сохранено":'<span class="dl">вне окна</span>']));
- const night=R.filter(x=>!x.in_window).slice(-1)[0];
- document.getElementById("rent-note").innerHTML='Фиксированный бейзлайн 04.10: 7419 / 1295 / 5160 (первый замер; точное время суток не сохранено). Сумма берегов меньше города: часть объявлений без явного берега.'+(night?' Строка '+esc(shortDay(night.date))+' «вне окна» — ночной замер, в сравнении ряда не участвует: ночью витрина всегда тоньше.':'');
+  '<div class="card"><div class="v">'+num(last.total,0)+'</div><div class="l">Киев всего · '+esc(shortDay(last.date))+(last.at?" "+esc(date(last.at).slice(-5)):" · время не сохранено")+'</div><div class="d">'+comparison("total")+'</div></div>'+
+  '<div class="card"><div class="v">'+num(last.left,0)+'</div><div class="l">левый берег</div><div class="d">'+comparison("left")+'</div></div>'+
+  '<div class="card"><div class="v">'+num(last.right,0)+'</div><div class="l">правый берег</div><div class="d">'+comparison("right")+'</div></div>'+
+  '<div class="card"><div class="v">'+share(last)+'</div><div class="l">доля левого берега</div><div class="d">По этому снимку объявлений</div></div>';
+ document.getElementById("rent-table").innerHTML=table(["Дата","Время (Киев)","Всего","Левый","Правый","Доля левого","Пригодность"],[...R].reverse().map(x=>[esc(shortDay(x.date)),x.at?esc(date(x.at).slice(-5)):"не сохранено",num(x.total,0),num(x.left,0),num(x.right,0),share(x),x.comparable?"сопоставимая дневная точка":!x.at?"справочно: время не сохранено":!x.in_window?'<span class="dl">справочно: вне окна</span>':"справочно: неполные данные или время вне окна"]));
+ document.getElementById("rent-note").textContent="Сопоставимых дневных точек: "+series.length+". Для изменений нужны как минимум две такие точки. База — первая сохранённая сопоставимая точка; справочные строки в базу не входят. Сумма берегов может быть меньше города: часть объявлений без явного берега.";
 }else document.getElementById("rent-table").innerHTML='<p class="empty-panel">Замеров нет.</p>';
 
 // ---- Удары ----
