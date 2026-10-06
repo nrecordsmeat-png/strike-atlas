@@ -19,7 +19,7 @@
   <button type="button" data-view="scenarios" aria-controls="view-scenarios" aria-pressed="false">Как читать реестр</button>
   <label class="date-control">Дата просмотра <select id="day-picker" aria-label="Дата просмотра"></select></label>
  </nav>
- <div class="snapshot-note" id="snapshot-note"></div>
+ <div class="snapshot-note" id="snapshot-note" role="status" aria-live="polite"></div>
  <section id="view-overview" aria-label="Обзор города">
   <div class="hero"><div><div class="eyebrow">КИЕВ · НАБЛЮДАЕМЫЕ УСЛУГИ</div><h2 id="hero-title"></h2><p id="hero-note"></p></div><div class="hero-meta" id="hero-meta"></div></div>
   <div class="topic-grid" id="topic-grid"></div>
@@ -44,19 +44,22 @@ function boot(DATA){
 "use strict";
 const services={mobility:"Перемещение",water_heat:"Вода и тепло",power:"Электричество",connectivity:"Связь"};
 const stateNames={announced:"Ограничение объявлено",restricted:"Ограничение сообщено",partial:"Частичная доступность",reserve:"Резервный способ",restored:"Восстановление сообщено",unknown:"Текущее состояние неизвестно"};
+if(!DATA||DATA.schema_version!==1||!DATA.as_of||!DATA.indicators)throw new Error("Неподдерживаемый снимок");
 const dayPicker=document.getElementById("day-picker");
-let day=Object.keys(DATA.history).slice(-1)[0],view="overview",selectedEpisode=null,selectedScenario=DATA.scenarios[0].id;
+const days=Object.keys(DATA.history||{}).sort();
+let day=days.slice(-1)[0]||new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Kyiv"}).format(new Date(DATA.as_of)),view="overview",selectedEpisode=null,selectedScenario=DATA.scenarios?.[0]?.id||null;
+const emptyState={at:DATA.as_of,episodes:[],recovery_reports:[],counts:{total:0,restored:0,unclosed:0,unknown:0,fresh_restrictions:0}};
 const escape=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const formatter=new Intl.DateTimeFormat("ru-RU",{timeZone:"Europe/Kyiv",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
 const date=s=>s?formatter.format(new Date(s)):"Время не сохранено";
 const shortDay=s=>s.split("-").slice(1).reverse().join(".");
 const num=(v,d=1)=>v==null?"—":new Intl.NumberFormat("ru-RU",{maximumFractionDigits:d}).format(v);
-const current=()=>DATA.history[day];
+const current=()=>DATA.history?.[day]||emptyState;
 const cutoff=()=>new Date(current().at).getTime();
-const traffic=()=>DATA.indicators.traffic.filter(x=>new Date(x.at).getTime()<=cutoff());
-const uz=()=>DATA.indicators.uz.filter(x=>new Date(x.at).getTime()<=cutoff());
-const rent=()=>DATA.indicators.rent.filter(x=>x.date<=day&&(!x.at||new Date(x.at).getTime()<=cutoff()));
-const food=()=>DATA.indicators.food.date&&DATA.indicators.food.date<=day?DATA.indicators.food:null;
+const traffic=()=>(DATA.indicators.traffic||[]).filter(x=>new Date(x.at).getTime()<=cutoff());
+const uz=()=>(DATA.indicators.uz||[]).filter(x=>new Date(x.at).getTime()<=cutoff());
+const rent=()=>(DATA.indicators.rent||[]).filter(x=>x.date<=day&&(!x.at||new Date(x.at).getTime()<=cutoff()));
+const food=()=>DATA.indicators.food?.date&&DATA.indicators.food.date<=day?DATA.indicators.food:null;
 function sourceLink(item,label){
  if(!item.source_url)return escape(label||item.source_name||"Учебный источник");
  try{const u=new URL(item.source_url);if(u.protocol!=="https:"||u.username||u.password)return "Источник не указан";}catch{return "Источник не указан";}
@@ -73,7 +76,7 @@ function strikesTopic(){
 }
 function renderOverview(){
  const state=current(),counts=state.counts,t=latestByCorridor(),f=food(),r=rent(),reports=state.recovery_reports;
- document.getElementById("hero-title").textContent=counts.fresh_restrictions?"Есть действующие ограничения городских услуг: "+counts.fresh_restrictions+".":counts.unknown?"Состояние услуг требует уточнения.":"Наблюдений для общей оценки пока недостаточно.";
+ document.getElementById("hero-title").textContent=counts.fresh_restrictions?"Есть свежие сообщения об ограничениях услуг: "+counts.fresh_restrictions+".":counts.unknown?"Состояние услуг требует уточнения.":"Наблюдений для общей оценки пока недостаточно.";
  document.getElementById("hero-note").textContent="Доступность отдельных услуг наблюдается по сообщениям и замерам. Полной картины по всему городу пока нет. Выберите тему, чтобы увидеть основания и пробелы.";
  document.getElementById("hero-meta").innerHTML='<strong>'+num(counts.total,0)+' эпизодов в пилотной выборке</strong><span class="minor">'+num(counts.unknown,0)+' требуют свежих сведений</span><span class="minor">Сообщений о завершении эпизода: '+num(counts.restored,0)+'</span>';
  const water=state.episodes.filter(x=>x.service==="water_heat"),lastRent=r.slice(-1)[0];
@@ -100,23 +103,25 @@ function renderLedger(){
  const e=episodes.find(x=>x.id===selectedEpisode),host=document.getElementById("episode-detail");
  if(!e){host.innerHTML='<h2>'+escape(services[filter]||"Реестр услуг")+'</h2><p class="empty-panel">Нужны датированные сообщения об ограничении и восстановлении.</p>';if(filter==="power")renderRecovery(host);return;}
  const lastState=e.updates.filter(u=>u.kind==="state").slice(-1)[0];
- host.innerHTML='<div class="eyebrow">'+escape(services[e.service])+'</div><h2>'+escape(e.title)+'</h2><p class="detail-summary">'+escape(e.area)+'</p><div class="detail-status">'+badge(e.display_state)+'</div><p class="detail-summary">'+(e.stale&&!e.closed?'Последнее сообщённое состояние: '+escape(stateNames[e.last_reported_state])+'. Свежего подтверждения в выборке нет.':'По сообщению источника: '+escape(lastState.summary))+'</p><div class="detail-facts"><div><span class="minor">Первое сообщение</span><strong>'+date(e.first_reported_at)+'</strong></div><div><span class="minor">Последнее состояние сообщено</span><strong>'+date(e.last_reported_at)+'</strong></div><div><span class="minor">Длительность перебоя</span><strong>'+(e.duration_hours==null?'Не установлена':num(e.duration_hours)+' ч')+'</strong></div><div><span class="minor">Завершение эпизода</span><strong>'+(e.closed?'Сообщено источником':'Не подтверждено')+'</strong></div></div><div class="info-strip">Официальное происхождение сообщения не означает независимого измерения во всех домах. С первого сообщения прошло '+num(e.since_first_report_hours)+' ч; это не установленная длительность перебоя.</div><h3>История сообщений</h3><ol class="timeline">'+e.updates.map(u=>'<li><div class="tiny">'+date(u.reported_at)+' · '+(u.kind==="forecast"?'Условие / обещание':escape(stateNames[u.state]))+'</div><p>'+escape(u.summary)+'</p>'+sourceLink(u)+'<span class="source-tag">'+(u.provenance==="official"?'[официально]':u.provenance==="social"?'[соцсети/слухи]':'[неверифицировано]')+'</span></li>').join("")+'</ol>';
+ host.innerHTML='<div class="eyebrow">'+escape(services[e.service])+'</div><h2>'+escape(e.title)+'</h2><p class="detail-summary">'+escape(e.area)+'</p><div class="detail-status">'+badge(e.display_state)+'</div><p class="detail-summary">'+(e.stale&&!e.closed?'Последнее сообщённое состояние: '+escape(stateNames[e.last_reported_state])+'. Свежего подтверждения в выборке нет.':'По сообщению источника: '+escape(lastState.summary))+'</p><div class="detail-facts"><div><span class="minor">Первое сообщение</span><strong>'+date(e.first_reported_at)+'</strong></div><div><span class="minor">Последнее состояние сообщено</span><strong>'+date(e.last_reported_at)+'</strong></div><div><span class="minor">Длительность перебоя</span><strong>'+(e.duration_hours==null?'Не установлена':num(e.duration_hours)+' ч')+'</strong></div><div><span class="minor">Завершение эпизода</span><strong>'+(e.closed?'Сообщено источником':'Не подтверждено')+'</strong></div></div><div class="info-strip">Официальное происхождение сообщения не означает независимого измерения во всех домах. С первого сообщения прошло '+num(e.since_first_report_hours)+' ч; это не установленная длительность перебоя.</div><h3>История сообщений</h3><ol class="timeline">'+e.updates.map(u=>'<li><div class="tiny">'+date(u.reported_at)+' · '+(u.kind==="forecast"?'Условие / обещание':u.kind==="context"?'Контекст · состояние услуги не обновляет':escape(stateNames[u.state]))+'</div><p>'+escape(u.summary)+'</p>'+sourceLink(u)+'<span class="source-tag">'+(u.provenance==="official"?'[официально]':u.provenance==="social"?'[соцсети/слухи]':'[неверифицировано]')+'</span></li>').join("")+'</ol>';
 }
 function table(headers,records){return '<table><thead><tr>'+headers.map((h,i)=>'<th'+(i?' class="numeric"':'')+'>'+escape(h)+'</th>').join("")+'</tr></thead><tbody>'+records.map(row=>'<tr>'+row.map((cell,i)=>'<td'+(i?' class="numeric"':'')+'>'+escape(cell)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';}
 function renderScenario(){
- const scenario=DATA.scenarios.find(x=>x.id===selectedScenario),e=scenario.episode;
+ const scenario=DATA.scenarios?.find(x=>x.id===selectedScenario);
+ if(!scenario){document.getElementById("scenario-controls").innerHTML="";document.getElementById("scenario-outcome").textContent="Учебные примеры в этом снимке отсутствуют.";return;}
+ const e=scenario.episode;
  document.getElementById("scenario-controls").innerHTML=DATA.scenarios.map(s=>'<button class="plain-button" type="button" data-scenario="'+escape(s.id)+'" aria-pressed="'+(s.id===selectedScenario)+'">'+escape(s.title)+'</button>').join("");
  document.querySelectorAll("[data-scenario]").forEach(b=>b.addEventListener("click",()=>{selectedScenario=b.dataset.scenario;renderScenario();}));
  document.getElementById("scenario-outcome").innerHTML='<div><div class="eyebrow">УЧЕБНЫЙ ЭПИЗОД</div><h2>'+escape(scenario.title)+'</h2><div class="big-state">'+escape(stateNames[e.display_state])+'</div><p>'+escape(scenario.explanation)+'</p></div><div class="scenario-facts"><div class="scenario-fact"><span>Эпизод завершён</span><strong>'+(e.closed?'Да':'Нет')+'</strong></div><div class="scenario-fact"><span>Длительность перебоя</span><strong>'+(e.duration_hours==null?'Не установлена':num(e.duration_hours)+' ч')+'</strong></div><div class="scenario-fact"><span>С первого сообщения</span><strong>'+num(e.since_first_report_hours)+' ч</strong></div><div class="scenario-fact"><span>Сообщений после удаления дублей</span><strong>'+e.updates.length+'</strong></div><div class="scenario-fact"><span>Свежесть сведений</span><strong>'+(e.stale?'Устарели':'В пределах тестового окна')+'</strong></div></div>';
 }
 function render(){document.getElementById("snapshot-note").textContent="Сохранённый снимок · создан "+date(DATA.generated_at)+" по Киеву · просмотр сведений по "+date(current().at)+". Обновление вручную.";renderOverview();renderLedger();renderScenario();}
-dayPicker.innerHTML=Object.keys(DATA.history).map(d=>'<option value="'+d+'">'+d.split("-").reverse().join(".")+'</option>').join("");dayPicker.value=day;dayPicker.addEventListener("change",()=>{day=dayPicker.value;selectedEpisode=null;render();});
+dayPicker.disabled=!days.length;dayPicker.innerHTML=days.map(d=>'<option value="'+d+'">'+d.split("-").reverse().join(".")+'</option>').join("");dayPicker.value=day;dayPicker.addEventListener("change",()=>{day=dayPicker.value;selectedEpisode=null;render();});
 document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.view)));
 document.getElementById("service-filter").addEventListener("change",()=>{selectedEpisode=null;renderLedger();});
 document.getElementById("open-ledger").addEventListener("click",()=>show("services"));
 render();{const h=location.hash.slice(1);if(["overview","services","scenarios"].includes(h))show(h);}
 }
-fetch("city_data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(boot).catch(e=>{document.getElementById("snapshot-note").textContent="Не удалось загрузить данные (city_data.json): "+e.message;});
+fetch("city_data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(boot).catch(e=>{document.getElementById("snapshot-note").textContent="Не удалось загрузить снимок: "+e.message;document.getElementById("hero-title").textContent="Данные сейчас недоступны.";document.getElementById("hero-note").textContent="Состояние города по этому снимку оценить нельзя. Попробуйте обновить страницу позже.";document.getElementById("day-picker").disabled=true;});
 </script>
 </body>
 </html>
