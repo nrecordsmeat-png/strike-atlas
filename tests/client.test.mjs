@@ -238,7 +238,58 @@ test('train fetch failure stays visible beside the last successful snapshot', ()
   assert.match(f.byId('uz-table').textContent, /Последнее получение табло не удалось/);
   assert.match(f.byId('uz-table').textContent, /Не удалось/);
   data.indicators.uz = [data.indicators.uz.at(-1)];
-  assert.match(fixture('data.html', data).byId('uz-table').textContent, /Сведений о задержках нет/);
+  assert.match(fixture('data.html', data).byId('uz-cards').textContent, /Сведений о задержках нет/);
+});
+
+test('train history retains archive methods and unknown quality', () => {
+  const data = structuredClone(snapshot);
+  data.indicators.uz = [
+    {at:'2026-10-05T08:32:00Z',ok:null,method:'legacy_mentions',ukraine_trains:null,kyiv_rows:null},
+    {at:'2026-10-05T15:40:00Z',ok:true,method:'experimental_route',ukraine_trains:4,kyiv_rows:2,kyiv_delay_min:45},
+    {at:'2026-10-06T09:34:00Z',ok:true,method:'route',ukraine_trains:12,kyiv_rows:8,kyiv_delay_min:438},
+  ];
+  const f = fixture('data.html', data);
+  assert.match(f.byId('uz-table').textContent, /Старая схема: качество не отмечено/);
+  assert.match(f.byId('uz-table').textContent, /Экспериментальный разбор/);
+  assert.match(f.byId('uz-table').textContent, /Разбор маршрутов/);
+  assert.match(f.byId('uz-table').textContent, /Не отмечено/);
+  assert.match(f.byId('uz-cards').textContent, /строк с Киевом/);
+  data.indicators.uz = [data.indicators.uz[0]];
+  const legacy = fixture('data.html', data);
+  assert.match(legacy.byId('uz-table').textContent, /Не отмечено/);
+  assert.doesNotMatch(legacy.byId('uz-table').textContent, /Получение табло не удалось/);
+});
+
+test('food history comes only from the snapshot and preserves zero and missing values', () => {
+  const data = structuredClone(snapshot);
+  data.indicators.food_history = [
+    {date:'2026-10-05',at:null,stores:{silpo:{price_marks:10,out_of_stock_marks:0}},silpo_median:{vegetables:11.3,meat:43.11}},
+    {date:'2026-10-06',at:null,stores:{silpo:{price_marks:0,out_of_stock_marks:null},novus:{price_marks:null,out_of_stock_marks:null}},silpo_median:{vegetables:null,meat:40}},
+  ];
+  const f = fixture('data.html', data);
+  assert.match(f.byId('food-cards').textContent, /0 \/ —/);
+  assert.match(f.byId('food-status').textContent, /время не сохранено/);
+  assert.match(f.byId('food-table').textContent, /05\.10/);
+  assert.doesNotMatch(f.byId('food-table').textContent, /04\.10/);
+  assert.match(f.byId('price-table').textContent, /43[.,]11/);
+  for(const id of ['food-cards','food-table','price-cards','price-table']) {
+    assert.doesNotMatch(f.byId(id).innerHTML, /NaN|Infinity|undefined/);
+  }
+  data.indicators.food.updated_at = '2026-10-06T09:34:00Z';
+  assert.doesNotMatch(fixture('data.html', data).byId('food-status').textContent, /время не сохранено/);
+  data.indicators.food_history = [];
+  const empty = fixture('data.html', data);
+  assert.match(empty.byId('food-cards').textContent, /Ряд витрин не сохранён/);
+  assert.doesNotMatch(empty.byId('price-table').textContent, /43[.,]11|04\.10/);
+});
+
+test('HTTP 200 alert diagnostics are displayed as unknown', () => {
+  const data = structuredClone(snapshot);
+  data.indicators.alerts = [{at:'2026-10-06T09:34:00Z',http:200,ok:false,kyiv_active:null,reason:'unparsed_client_map'}];
+  const f = fixture('metodika.html', data);
+  assert.match(f.byId('quality-table').textContent, /Тревоги сейчас.*Неизвестно/);
+  assert.match(f.byId('quality-table').textContent, /HTTP 200/);
+  assert.doesNotMatch(f.byId('quality-table').textContent, /Тревоги нет/);
 });
 
 test('methodology agrees with rent and service status and retains unknown quality', () => {
