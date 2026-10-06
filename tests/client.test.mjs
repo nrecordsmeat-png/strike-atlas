@@ -75,14 +75,14 @@ function fixture(page = 'index.html', data = structuredClone(snapshot), options 
 }
 
 test('all public pages including the experiment parse as JavaScript', () => {
-  for (const page of ['index.html', 'data.html', 'map.html', 'metodika.html', 'functions-test.html']) {
+  for (const page of ['index.html', 'data.html', 'map.html', 'metodika.html', 'functions-test.html', 'activity-test.html']) {
     for (const script of inlineScripts(read(page))) new vm.Script(script, { filename: page });
   }
 });
 
 test('currently published snapshot renders on all data pages', () => {
   const current = JSON.parse(read('city_data.json'));
-  for (const [page, host] of [['index.html', 'topic-grid'], ['data.html', 'rent-cards'], ['metodika.html', 'quality-table'], ['functions-test.html','function-calendar']]) {
+  for (const [page, host] of [['index.html', 'topic-grid'], ['data.html', 'rent-cards'], ['metodika.html', 'quality-table'], ['functions-test.html','function-calendar'], ['activity-test.html','activity-chart']]) {
     const f = fixture(page, structuredClone(current));
     assert.ok(f.byId('snapshot-note').textContent);
     assert.doesNotMatch(f.byId(host).innerHTML, /\bNaN\b|\bInfinity\b|undefined/);
@@ -299,6 +299,78 @@ test('methodology agrees with rent and service status and retains unknown qualit
   assert.match(f.byId('quality-table').textContent, /успешность не отмечена/);
   assert.doesNotMatch(f.byId('quality-table').textContent, /0\/16|действующих ограничений/);
   assert.match(f.byId('source-commits').textContent, /контрольные суммы 6 входных файлов/);
+});
+
+const activityData = () => ({...structuredClone(snapshot),as_of:'2026-10-06T13:40:00Z',activity:JSON.parse(read('tests/fixtures/activity.json'))});
+
+test('activity index shows official delayed trips with an explicit baseline', () => {
+  const f = fixture('activity-test.html', activityData());
+  assert.match(f.byId('activity-banner').textContent, /официально.*27\.09\.2026/);
+  assert.match(f.byId('activity-kpis').textContent, /82,1/);
+  assert.match(f.byId('activity-baseline').textContent, /06\.07\.2026.*30\.08\.2026.*8 недель/);
+  assert.match(f.byId('activity-source').textContent, /788 дней/);
+  assert.doesNotMatch(f.byId('activity-kpis').textContent, /город работает на/);
+});
+
+test('baseline and day controls keep the selected observation and show sensitivity', () => {
+  const f = fixture('activity-test.html', activityData());
+  f.byId('activity-base').value = 'weeks-4'; f.byId('activity-base').fire('change');
+  assert.match(f.byId('activity-kpis').textContent, /87,1/);
+  assert.match(f.byId('activity-baseline').textContent, /03\.08\.2026/);
+  f.byId('activity-day').value = '2026-08-31'; f.byId('activity-day').fire('change');
+  assert.match(f.byId('activity-kpis').textContent, /Нужны 7 полных дней/);
+  f.byId('activity-base').value = 'weeks-8'; f.byId('activity-base').fire('change');
+  assert.equal(f.byId('activity-day').value, '2026-08-31');
+});
+
+test('missing activity splits the graph and preserves zero as an observation', () => {
+  const data = activityData();
+  const points = data.activity.views[0].points;
+  points[10].index = points[10].total = null;
+  points.at(-1).index = points.at(-1).total = points.at(-1).paid = points.at(-1).benefit = 0;
+  points.at(-1).week_index = null;
+  const f = fixture('activity-test.html', data);
+  assert.equal((f.byId('activity-chart').innerHTML.match(/<path /g)||[]).length, 2);
+  assert.match(f.byId('activity-kpis').textContent, /ЗАРЕГИСТРИРОВАНО ЗА 27\.090/);
+  assert.match(f.byId('activity-kpis').textContent, /Нужны 7 полных дней/);
+  assert.doesNotMatch(f.byId('activity-chart').innerHTML, /NaN|Infinity|undefined/);
+});
+
+test('old and invalid activity snapshots explicitly leave index unavailable', () => {
+  const old = fixture('activity-test.html', structuredClone(snapshot));
+  assert.equal(old.byId('activity-content').hidden, true);
+  assert.match(old.byId('activity-banner').textContent, /ещё не получен/);
+  const data = activityData(); data.activity.status = 'invalid'; data.activity.note = 'Происхождение не прошло проверку';
+  const invalid = fixture('activity-test.html', data);
+  assert.match(invalid.byId('activity-banner').textContent, /не прошло проверку/);
+  assert.equal(invalid.byId('activity-content').hidden, true);
+});
+
+test('failed trip refresh keeps labelled history and unsafe source links are not emitted', () => {
+  const data = activityData();
+  data.activity.last_attempt = {ok:false};
+  data.activity.resource_url = 'javascript:alert(1)';
+  data.activity.scope = '<img src=x onerror=alert(1)>';
+  const f = fixture('activity-test.html', data);
+  assert.match(f.byId('activity-banner').textContent, /Последняя попытка обновления не удалась/);
+  assert.doesNotMatch(f.byId('activity-source').innerHTML, /href="javascript:|<img/);
+});
+
+test('verified one-time alert API summary does not claim a live all-clear or computed hours', () => {
+  const data = activityData();
+  data.indicators.alerts_api = {status:'verified_snapshot',fetched_at:'2026-10-06T12:41:46Z',active:false,history_events:5247};
+  const f = fixture('metodika.html', data);
+  assert.match(f.byId('quality-table').textContent, /Состояние и история получены без ключа/);
+  assert.match(f.byId('quality-table').textContent, /5247/);
+  assert.match(f.byId('quality-table').textContent, /Часы тревогНе рассчитаны/);
+  assert.doesNotMatch(f.byId('quality-table').textContent, /Тревоги нет|Исторический API не подключён/);
+});
+
+test('activity fetch failure is visible and hides unsupported figures', async () => {
+  const f = fixture('activity-test.html', activityData(), {fetch:true,failFetch:true});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(f.byId('activity-banner').textContent, /Снимок не загрузился/);
+  assert.equal(f.byId('activity-content').hidden, true);
 });
 
 const functionData = () => ({...structuredClone(snapshot), scenarios:JSON.parse(read('tests/fixtures/function_scenarios.json'))});

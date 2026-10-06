@@ -127,7 +127,7 @@ const date=s=>s?fmt.format(new Date(s)):"Время не сохранено";
 const shortDay=s=>s?s.split("-").slice(1).reverse().join("."):"—";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const days=Object.keys(DATA.history||{}),day=days[days.length-1],cur=day?DATA.history[day]:{episodes:[],counts:{}};
-const t=DATA.indicators.traffic||[],lastTraffic=t[t.length-1],uz=DATA.indicators.uz||[],train=uz[uz.length-1],r=DATA.indicators.rent||[],f=DATA.indicators.food,collection=DATA.indicators.collection||{},alerts=DATA.indicators.alerts||[],alert=alerts[alerts.length-1];
+const t=DATA.indicators.traffic||[],lastTraffic=t[t.length-1],uz=DATA.indicators.uz||[],train=uz[uz.length-1],r=DATA.indicators.rent||[],f=DATA.indicators.food,collection=DATA.indicators.collection||{},alerts=DATA.indicators.alerts||[],alert=alerts[alerts.length-1],api=DATA.indicators.alerts_api,activity=DATA.activity;
 document.getElementById("snapshot-note").textContent="Срез на "+date(DATA.as_of)+" по Киеву.";
 const rows=[
  ["Перемещение",lastTraffic?date(lastTraffic.at):"Нет замера","Три коридора","Схема задержек менялась; старые нули не принимаются за отсутствие пробок. Причина изменения времени поездки не установлена"],
@@ -136,8 +136,9 @@ const rows=[
  ["Аренда",r.length&&r[r.length-1].at?date(r[r.length-1].at):r.length?"Дата есть, времени нет":"Нет замера",r.filter(x=>x.comparable).length>=2?"Есть точки для сравнения":r.some(x=>x.comparable)?"Одна сопоставимая точка":r.length?"Только справочные точки":"Нет наблюдений","Объявления не измеряют отъезд населения"],
  ["Услуги",cur.episodes&&cur.episodes.length?date(cur.episodes[0].last_reported_at):"Нет сообщений","Ручная пилотная выборка · "+(cur.counts.fresh_restrictions||0)+" свежих сообщений об ограничениях, "+(cur.counts.unknown||0)+" с устаревшими сведениями","Молчание не закрывает эпизод; старые сведения становятся неизвестными"],
  ["Связь","Нет замера","Источник не подключён","Покрытие Киева требуется проверить"],
- ["Тревоги сейчас",alert?date(alert.at):"Нет замера",alert&&alert.ok===true?"Состояние разобрано":"Неизвестно","HTTP 200 и статический HTML не подтверждают наличие или отсутствие тревоги"],
- ["Часы тревог","Не рассчитаны","Исторический API не подключён","Счётчик слов не измеряет длительность тревог"]
+ api&&api.status==="verified_snapshot"?["Тревоги: снимок API",date(api.fetched_at),"Состояние и история получены без ключа","Одноразовый сбор; состояние относится к моменту получения, не к текущей безопасности"]:["Тревоги сейчас",alert?date(alert.at):"Нет замера",alert&&alert.ok===true?"Состояние разобрано":"Неизвестно","HTTP 200 и статический HTML не подтверждают наличие или отсутствие тревоги"],
+ ["Часы тревог","Не рассчитаны",api&&api.status==="verified_snapshot"?"Сохранено событий: "+api.history_events:"История API ещё не получена","Часовой пояс и полнота истории требуют проверки"],
+ ["Индекс поездок",activity&&activity.latest_date?shortDay(activity.latest_date):"Нет ряда",activity&&activity.status==="ok"?"Официальный ряд АСОП · эксперимент":"Не рассчитан","Поездки, не люди или процент работоспособности города; база по дням недели, данные публикуются с задержкой"]
 ];
 document.getElementById("quality-table").innerHTML='<table><thead><tr><th>Тема</th><th>Последние сведения</th><th>Состояние данных</th><th>Граница вывода</th></tr></thead><tbody>'+rows.map(x=>'<tr>'+x.map(c=>'<td>'+esc(c)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
 document.getElementById("freshness-method").textContent=DATA.method.freshness_note;

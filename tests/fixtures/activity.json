@@ -1,0 +1,652 @@
+{
+  "schema_version": 1,
+  "status": "ok",
+  "overall_city_index": null,
+  "label": "Зарегистрированные поездки в общественном транспорте",
+  "scope": "Записи системы учёта оплаты проезда (АСОП), Киев. Поездки, не уникальные люди.",
+  "source_url": "https://data.kyivcity.gov.ua/dataset/40bfc9ec-9aee-4a19-b72b-f9d56029a48b/resource/66f929ed-3cb3-4e99-aef6-1ffa3cb68ae7/download/ridestotal.json",
+  "resource_url": "https://data.kyivcity.gov.ua/dataset/dani-pro-pilhovyi-proizd-u-hromadskomu-transporti-aparat/resource/66f929ed-3cb3-4e99-aef6-1ffa3cb68ae7",
+  "fetched_at": "2026-10-06T13:28:46.514046Z",
+  "latest_date": "2026-09-27",
+  "lag_days": 9,
+  "coverage": {
+    "start": "2024-08-01",
+    "end": "2026-09-27",
+    "days": 788,
+    "missing_dates": 0,
+    "duplicate_rows": 0
+  },
+  "last_attempt": {
+    "at": "2026-10-06T13:28:46.514046Z",
+    "ok": true,
+    "reason": "ok"
+  },
+  "method": "100 = база учтённых поездок выбранного периода. Для каждого дня недели берётся медиана всех таких дней в предыдущих 4 или 8 неделях. База фиксирована до начала показанного периода; каждый день базы обязателен. Недельный индекс — сумма 7 полных дней / сумма их базовых значений × 100.",
+  "limits": "Это один слой использования транспорта, не процент работоспособности Киева. База военного периода не является мирной нормой. Изменение поездок не доказывает эффект удара: влияют календарь, сезон, тарифы, погода и режим работы транспорта.",
+  "views": [
+    {
+      "id": "weeks-8",
+      "baseline": {
+        "start": "2026-07-06",
+        "end": "2026-08-30",
+        "weeks": 8,
+        "weekday_samples": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "weekday_expected": [
+          1095759.5,
+          1161272.5,
+          1181214.5,
+          1166863.5,
+          1107227.0,
+          704851.0,
+          629042.5
+        ]
+      },
+      "period": {
+        "start": "2026-08-31",
+        "end": "2026-09-27"
+      },
+      "points": [
+        {
+          "date": "2026-08-31",
+          "paid": 748457,
+          "benefit": 286025,
+          "total": 1034482,
+          "expected": 1095759.5,
+          "index": 94.4,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-01",
+          "paid": 713685,
+          "benefit": 334983,
+          "total": 1048668,
+          "expected": 1161272.5,
+          "index": 90.3,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-02",
+          "paid": 665014,
+          "benefit": 313261,
+          "total": 978275,
+          "expected": 1181214.5,
+          "index": 82.8,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-03",
+          "paid": 610275,
+          "benefit": 294325,
+          "total": 904600,
+          "expected": 1166863.5,
+          "index": 77.5,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-04",
+          "paid": 722456,
+          "benefit": 326396,
+          "total": 1048852,
+          "expected": 1107227.0,
+          "index": 94.7,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-05",
+          "paid": 442847,
+          "benefit": 196951,
+          "total": 639798,
+          "expected": 704851.0,
+          "index": 90.8,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-06",
+          "paid": 446853,
+          "benefit": 193003,
+          "total": 639856,
+          "expected": 629042.5,
+          "index": 101.7,
+          "week_index": 89.3,
+          "week_total": 6294531
+        },
+        {
+          "date": "2026-09-07",
+          "paid": 731732,
+          "benefit": 351867,
+          "total": 1083599,
+          "expected": 1095759.5,
+          "index": 98.9,
+          "week_index": 90.0,
+          "week_total": 6343648
+        },
+        {
+          "date": "2026-09-08",
+          "paid": 512453,
+          "benefit": 276756,
+          "total": 789209,
+          "expected": 1161272.5,
+          "index": 68.0,
+          "week_index": 86.3,
+          "week_total": 6084189
+        },
+        {
+          "date": "2026-09-09",
+          "paid": 660196,
+          "benefit": 323077,
+          "total": 983273,
+          "expected": 1181214.5,
+          "index": 83.2,
+          "week_index": 86.4,
+          "week_total": 6089187
+        },
+        {
+          "date": "2026-09-10",
+          "paid": 708156,
+          "benefit": 336052,
+          "total": 1044208,
+          "expected": 1166863.5,
+          "index": 89.5,
+          "week_index": 88.4,
+          "week_total": 6228795
+        },
+        {
+          "date": "2026-09-11",
+          "paid": 735460,
+          "benefit": 333021,
+          "total": 1068481,
+          "expected": 1107227.0,
+          "index": 96.5,
+          "week_index": 88.7,
+          "week_total": 6248424
+        },
+        {
+          "date": "2026-09-12",
+          "paid": 395724,
+          "benefit": 152966,
+          "total": 548690,
+          "expected": 704851.0,
+          "index": 77.8,
+          "week_index": 87.4,
+          "week_total": 6157316
+        },
+        {
+          "date": "2026-09-13",
+          "paid": 453919,
+          "benefit": 202684,
+          "total": 656603,
+          "expected": 629042.5,
+          "index": 104.4,
+          "week_index": 87.6,
+          "week_total": 6174063
+        },
+        {
+          "date": "2026-09-14",
+          "paid": 767779,
+          "benefit": 350718,
+          "total": 1118497,
+          "expected": 1095759.5,
+          "index": 102.1,
+          "week_index": 88.1,
+          "week_total": 6208961
+        },
+        {
+          "date": "2026-09-15",
+          "paid": 642848,
+          "benefit": 350655,
+          "total": 993503,
+          "expected": 1161272.5,
+          "index": 85.6,
+          "week_index": 91.0,
+          "week_total": 6413255
+        },
+        {
+          "date": "2026-09-16",
+          "paid": 673215,
+          "benefit": 367066,
+          "total": 1040281,
+          "expected": 1181214.5,
+          "index": 88.1,
+          "week_index": 91.8,
+          "week_total": 6470263
+        },
+        {
+          "date": "2026-09-17",
+          "paid": 677883,
+          "benefit": 355705,
+          "total": 1033588,
+          "expected": 1166863.5,
+          "index": 88.6,
+          "week_index": 91.7,
+          "week_total": 6459643
+        },
+        {
+          "date": "2026-09-18",
+          "paid": 698693,
+          "benefit": 361749,
+          "total": 1060442,
+          "expected": 1107227.0,
+          "index": 95.8,
+          "week_index": 91.6,
+          "week_total": 6451604
+        },
+        {
+          "date": "2026-09-19",
+          "paid": 443077,
+          "benefit": 218965,
+          "total": 662042,
+          "expected": 704851.0,
+          "index": 93.9,
+          "week_index": 93.2,
+          "week_total": 6564956
+        },
+        {
+          "date": "2026-09-20",
+          "paid": 341928,
+          "benefit": 189566,
+          "total": 531494,
+          "expected": 629042.5,
+          "index": 84.5,
+          "week_index": 91.4,
+          "week_total": 6439847
+        },
+        {
+          "date": "2026-09-21",
+          "paid": 647461,
+          "benefit": 324954,
+          "total": 972415,
+          "expected": 1095759.5,
+          "index": 88.7,
+          "week_index": 89.3,
+          "week_total": 6293765
+        },
+        {
+          "date": "2026-09-22",
+          "paid": 649296,
+          "benefit": 344562,
+          "total": 993858,
+          "expected": 1161272.5,
+          "index": 85.6,
+          "week_index": 89.3,
+          "week_total": 6294120
+        },
+        {
+          "date": "2026-09-23",
+          "paid": 624399,
+          "benefit": 342091,
+          "total": 966490,
+          "expected": 1181214.5,
+          "index": 81.8,
+          "week_index": 88.3,
+          "week_total": 6220329
+        },
+        {
+          "date": "2026-09-24",
+          "paid": 544428,
+          "benefit": 285969,
+          "total": 830397,
+          "expected": 1166863.5,
+          "index": 71.2,
+          "week_index": 85.4,
+          "week_total": 6017138
+        },
+        {
+          "date": "2026-09-25",
+          "paid": 631940,
+          "benefit": 345468,
+          "total": 977408,
+          "expected": 1107227.0,
+          "index": 88.3,
+          "week_index": 84.2,
+          "week_total": 5934104
+        },
+        {
+          "date": "2026-09-26",
+          "paid": 383001,
+          "benefit": 211969,
+          "total": 594970,
+          "expected": 704851.0,
+          "index": 84.4,
+          "week_index": 83.3,
+          "week_total": 5867032
+        },
+        {
+          "date": "2026-09-27",
+          "paid": 279823,
+          "benefit": 169959,
+          "total": 449782,
+          "expected": 629042.5,
+          "index": 71.5,
+          "week_index": 82.1,
+          "week_total": 5785320
+        }
+      ]
+    },
+    {
+      "id": "weeks-4",
+      "baseline": {
+        "start": "2026-08-03",
+        "end": "2026-08-30",
+        "weeks": 4,
+        "weekday_samples": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "weekday_expected": [
+          1094685.0,
+          1089762.5,
+          1125856.5,
+          964322.5,
+          1081016.5,
+          656844.5,
+          629042.5
+        ]
+      },
+      "period": {
+        "start": "2026-08-31",
+        "end": "2026-09-27"
+      },
+      "points": [
+        {
+          "date": "2026-08-31",
+          "paid": 748457,
+          "benefit": 286025,
+          "total": 1034482,
+          "expected": 1094685.0,
+          "index": 94.5,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-01",
+          "paid": 713685,
+          "benefit": 334983,
+          "total": 1048668,
+          "expected": 1089762.5,
+          "index": 96.2,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-02",
+          "paid": 665014,
+          "benefit": 313261,
+          "total": 978275,
+          "expected": 1125856.5,
+          "index": 86.9,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-03",
+          "paid": 610275,
+          "benefit": 294325,
+          "total": 904600,
+          "expected": 964322.5,
+          "index": 93.8,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-04",
+          "paid": 722456,
+          "benefit": 326396,
+          "total": 1048852,
+          "expected": 1081016.5,
+          "index": 97.0,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-05",
+          "paid": 442847,
+          "benefit": 196951,
+          "total": 639798,
+          "expected": 656844.5,
+          "index": 97.4,
+          "week_index": null,
+          "week_total": null
+        },
+        {
+          "date": "2026-09-06",
+          "paid": 446853,
+          "benefit": 193003,
+          "total": 639856,
+          "expected": 629042.5,
+          "index": 101.7,
+          "week_index": 94.8,
+          "week_total": 6294531
+        },
+        {
+          "date": "2026-09-07",
+          "paid": 731732,
+          "benefit": 351867,
+          "total": 1083599,
+          "expected": 1094685.0,
+          "index": 99.0,
+          "week_index": 95.5,
+          "week_total": 6343648
+        },
+        {
+          "date": "2026-09-08",
+          "paid": 512453,
+          "benefit": 276756,
+          "total": 789209,
+          "expected": 1089762.5,
+          "index": 72.4,
+          "week_index": 91.6,
+          "week_total": 6084189
+        },
+        {
+          "date": "2026-09-09",
+          "paid": 660196,
+          "benefit": 323077,
+          "total": 983273,
+          "expected": 1125856.5,
+          "index": 87.3,
+          "week_index": 91.7,
+          "week_total": 6089187
+        },
+        {
+          "date": "2026-09-10",
+          "paid": 708156,
+          "benefit": 336052,
+          "total": 1044208,
+          "expected": 964322.5,
+          "index": 108.3,
+          "week_index": 93.8,
+          "week_total": 6228795
+        },
+        {
+          "date": "2026-09-11",
+          "paid": 735460,
+          "benefit": 333021,
+          "total": 1068481,
+          "expected": 1081016.5,
+          "index": 98.8,
+          "week_index": 94.1,
+          "week_total": 6248424
+        },
+        {
+          "date": "2026-09-12",
+          "paid": 395724,
+          "benefit": 152966,
+          "total": 548690,
+          "expected": 656844.5,
+          "index": 83.5,
+          "week_index": 92.7,
+          "week_total": 6157316
+        },
+        {
+          "date": "2026-09-13",
+          "paid": 453919,
+          "benefit": 202684,
+          "total": 656603,
+          "expected": 629042.5,
+          "index": 104.4,
+          "week_index": 93.0,
+          "week_total": 6174063
+        },
+        {
+          "date": "2026-09-14",
+          "paid": 767779,
+          "benefit": 350718,
+          "total": 1118497,
+          "expected": 1094685.0,
+          "index": 102.2,
+          "week_index": 93.5,
+          "week_total": 6208961
+        },
+        {
+          "date": "2026-09-15",
+          "paid": 642848,
+          "benefit": 350655,
+          "total": 993503,
+          "expected": 1089762.5,
+          "index": 91.2,
+          "week_index": 96.6,
+          "week_total": 6413255
+        },
+        {
+          "date": "2026-09-16",
+          "paid": 673215,
+          "benefit": 367066,
+          "total": 1040281,
+          "expected": 1125856.5,
+          "index": 92.4,
+          "week_index": 97.4,
+          "week_total": 6470263
+        },
+        {
+          "date": "2026-09-17",
+          "paid": 677883,
+          "benefit": 355705,
+          "total": 1033588,
+          "expected": 964322.5,
+          "index": 107.2,
+          "week_index": 97.3,
+          "week_total": 6459643
+        },
+        {
+          "date": "2026-09-18",
+          "paid": 698693,
+          "benefit": 361749,
+          "total": 1060442,
+          "expected": 1081016.5,
+          "index": 98.1,
+          "week_index": 97.1,
+          "week_total": 6451604
+        },
+        {
+          "date": "2026-09-19",
+          "paid": 443077,
+          "benefit": 218965,
+          "total": 662042,
+          "expected": 656844.5,
+          "index": 100.8,
+          "week_index": 98.8,
+          "week_total": 6564956
+        },
+        {
+          "date": "2026-09-20",
+          "paid": 341928,
+          "benefit": 189566,
+          "total": 531494,
+          "expected": 629042.5,
+          "index": 84.5,
+          "week_index": 97.0,
+          "week_total": 6439847
+        },
+        {
+          "date": "2026-09-21",
+          "paid": 647461,
+          "benefit": 324954,
+          "total": 972415,
+          "expected": 1094685.0,
+          "index": 88.8,
+          "week_index": 94.8,
+          "week_total": 6293765
+        },
+        {
+          "date": "2026-09-22",
+          "paid": 649296,
+          "benefit": 344562,
+          "total": 993858,
+          "expected": 1089762.5,
+          "index": 91.2,
+          "week_index": 94.8,
+          "week_total": 6294120
+        },
+        {
+          "date": "2026-09-23",
+          "paid": 624399,
+          "benefit": 342091,
+          "total": 966490,
+          "expected": 1125856.5,
+          "index": 85.8,
+          "week_index": 93.7,
+          "week_total": 6220329
+        },
+        {
+          "date": "2026-09-24",
+          "paid": 544428,
+          "benefit": 285969,
+          "total": 830397,
+          "expected": 964322.5,
+          "index": 86.1,
+          "week_index": 90.6,
+          "week_total": 6017138
+        },
+        {
+          "date": "2026-09-25",
+          "paid": 631940,
+          "benefit": 345468,
+          "total": 977408,
+          "expected": 1081016.5,
+          "index": 90.4,
+          "week_index": 89.3,
+          "week_total": 5934104
+        },
+        {
+          "date": "2026-09-26",
+          "paid": 383001,
+          "benefit": 211969,
+          "total": 594970,
+          "expected": 656844.5,
+          "index": 90.6,
+          "week_index": 88.3,
+          "week_total": 5867032
+        },
+        {
+          "date": "2026-09-27",
+          "paid": 279823,
+          "benefit": 169959,
+          "total": 449782,
+          "expected": 629042.5,
+          "index": 71.5,
+          "week_index": 87.1,
+          "week_total": 5785320
+        }
+      ]
+    }
+  ]
+}

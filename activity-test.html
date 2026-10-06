@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Индекс активности · тест — Киев</title>
+<link rel="stylesheet" href="site.css">
+<style>
+.activity-hero{padding:30px 0 24px;max-width:820px}.activity-hero h2{font-size:38px;line-height:1.12;letter-spacing:-.035em;margin:10px 0 14px}.activity-hero p{font-size:16px;color:var(--muted)}.activity-banner{padding:14px 17px;background:var(--amber-bg);border-left:3px solid var(--amber);border-radius:6px;font-size:13px;margin-bottom:12px}.activity-panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:21px;margin:20px 0;min-width:0}.activity-controls{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap}.activity-controls label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}.activity-controls select{min-height:44px;max-width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:7px;color:var(--ink);background:var(--paper);font-size:14px}.activity-controls h2{font-size:22px;margin:0 0 5px}.activity-kpis{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin:18px 0}.activity-kpi{padding:20px;border:1px solid var(--line);border-radius:10px;background:var(--soft);min-width:0}.activity-kpi.primary{border-left:4px solid var(--blue)}.activity-kpi strong{font-size:38px;line-height:1.15;letter-spacing:-.025em;display:block;margin:10px 0}.activity-kpi p{font-size:12px;color:var(--muted);line-height:1.5}.activity-kpi .eyebrow{font-size:10px;letter-spacing:.08em}.activity-kpi.primary strong{color:var(--blue);font-size:48px}.activity-chart{overflow-x:auto;margin-top:14px}.activity-chart svg{display:block;width:100%;min-width:660px;height:auto}.activity-chart text{font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:var(--muted)}.activity-chart [role=button]{cursor:pointer}.activity-chart [role=button]:focus{outline:none;stroke:var(--ink);stroke-width:4}.activity-note{font-size:12px;color:var(--muted);margin-top:10px}.activity-baseline{padding:14px 16px;border-radius:7px;background:var(--soft);font-size:13px;margin-top:16px;line-height:1.6}.activity-split{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}.activity-split .activity-panel{margin:0}.activity-context{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.activity-context h3{font-size:15px;margin-bottom:9px}.activity-context p{font-size:13px;color:var(--muted)}.activity-context strong{display:block;margin:9px 0;font-size:18px}.activity-context a,.activity-source a{overflow-wrap:anywhere}.activity-source{font-size:13px;color:var(--muted);line-height:1.6}.activity-source p+p{margin-top:9px}.activity-details{margin:22px 0}.activity-details summary{cursor:pointer;padding:14px 0;font-size:14px}.activity-table-scroll{overflow-x:auto;margin:12px 0}.activity-table-scroll table{min-width:620px;width:100%;font-size:12px}.activity-table-scroll td,.activity-table-scroll th{padding:9px 12px;text-align:right}.activity-table-scroll td:first-child,.activity-table-scroll th:first-child{text-align:left}.activity-roadmap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.activity-roadmap h3{font-size:15px;margin:8px 0}.activity-roadmap p{font-size:12px;color:var(--muted)}.activity-roadmap .pill{font-size:10px}
+@media(max-width:850px){.activity-split{grid-template-columns:1fr}.activity-roadmap{grid-template-columns:1fr 1fr}.activity-kpis{grid-template-columns:1fr 1fr}.activity-kpi.primary{grid-column:1/-1}.activity-context{grid-template-columns:1fr}.activity-context>div+div{border-top:1px solid var(--line);padding-top:14px}}
+@media(max-width:540px){.activity-hero{padding-top:20px}.activity-hero h2{font-size:30px}.activity-panel{padding:16px}.activity-kpi{padding:15px}.activity-kpi strong{font-size:29px}.activity-controls label{width:100%}.activity-controls select{width:100%}.activity-roadmap{grid-template-columns:1fr}.activity-kpis{gap:10px}.activity-kpi.primary strong{font-size:44px}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top">
+ <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">тест</span></h1><div class="minor">Атлас ударов · доступность · нагрузка · восстановление</div></div></div>
+ <nav class="sitenav" aria-label="Разделы сайта"><a href="./" class="cur">Обзор</a><a href="map.html">Карта</a><a href="data.html">Данные</a><a href="metodika.html">Методика</a></nav>
+</header>
+<section class="activity-hero">
+ <div class="eyebrow">ЭКСПЕРИМЕНТ · ИНДЕКС АКТИВНОСТИ</div>
+ <h2>Начинаем с реальных поездок</h2>
+ <p>Сколько поездок зарегистрировано в общественном транспорте Киева — относительно выбранной базы. Это первый измеряемый слой использования городских услуг.</p>
+</section>
+<div id="activity-banner" class="activity-banner" role="status" aria-live="polite">Загрузка проверенного ряда…</div>
+<p id="snapshot-note" class="snapshot-note"></p>
+<div id="activity-content" hidden>
+ <section class="activity-panel" aria-label="Индекс зарегистрированных поездок">
+  <div class="activity-controls">
+   <div><h2>Индекс поездок</h2><p class="minor">100 = база выбранного периода · отдельного балла Киева нет</p></div>
+   <label>База сравнения<select id="activity-base" aria-label="База сравнения"></select></label>
+   <label>День наблюдения<select id="activity-day" aria-label="День наблюдения"></select></label>
+  </div>
+  <div class="activity-kpis" id="activity-kpis" aria-live="polite"></div>
+  <div class="activity-chart" id="activity-chart" tabindex="0" aria-label="График индекса поездок, прокрутка по горизонтали"></div>
+  <p class="activity-note">Линия — индекс каждого дня; пунктир — база 100. Выберите точку или день, чтобы увидеть исходное число поездок. Пробелы в данных разрывают линию.</p>
+  <div class="activity-baseline" id="activity-baseline"></div>
+ </section>
+ <div class="activity-split">
+  <section class="activity-panel"><h2>Что означает изменение</h2><p class="activity-source" id="activity-limits"></p><p class="activity-note">Изменение режима метро, сезон, погода, тарифы и переход на другой способ передвижения могут менять число поездок. Данные об использовании, ограничениях и восстановлении нужны вместе.</p></section>
+  <section class="activity-panel"><h2>Источник и охват</h2><div class="activity-source" id="activity-source"></div></section>
+ </div>
+ <details class="activity-details"><summary>Проверить базу и все измерения</summary><div id="activity-evidence"></div></details>
+</div>
+<section class="activity-panel" aria-label="Другие слои мониторинга">
+ <div class="section-head"><div><h2>Доступность и дополнительная нагрузка</h2><p class="minor">Отдельные наблюдения с собственными датами и охватом.</p></div></div>
+ <div id="activity-context" class="activity-context"></div>
+</section>
+<section class="activity-panel" aria-label="Развитие индекса">
+ <h2>Как расширять индекс</h2>
+ <div class="activity-roadmap">
+  <div><span class="pill">первый ряд</span><h3>Перемещение</h3><p>Учтённые поездки. Режим работы и ограничения перевозчиков дают контекст.</p></div>
+  <div><span class="pill">нужен ряд</span><h3>Торговля</h3><p>Покупки или выполненные доставки за одинаковый период и для известной группы.</p></div>
+  <div><span class="pill">нужен ряд</span><h3>Работа и учёба</h3><p>Фактическое посещение или использование услуг с подтверждённым охватом.</p></div>
+  <div><span class="pill">нужен ряд</span><h3>Вода и энергия</h3><p>Публичные агрегаты потребления и доступности; резервные режимы учитываются отдельно.</p></div>
+ </div>
+ <p class="activity-note">Общий городской индекс потребует проверенных рядов, знаменателей и обоснованного способа объединения. Текущий показатель сохраняет смысл числа зарегистрированных поездок.</p>
+</section>
+<footer class="foot"><span>Тестовая версия · <a href="functions-test.html">функции и восстановление</a></span><a href="metodika.html#quality">Методика и качество источников</a></footer>
+</main>
+<script>
+function boot(DATA){
+"use strict";
+if(!DATA||DATA.schema_version!==1||!DATA.as_of)throw new Error("Неподдерживаемый снимок");
+const host=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num=x=>typeof x==="number"&&Number.isFinite(x)?new Intl.NumberFormat("ru-RU",{maximumFractionDigits:1}).format(x):"—";
+const date=s=>new Intl.DateTimeFormat("ru-RU",{timeZone:"Europe/Kyiv",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(s+"T12:00:00Z"));
+const time=s=>s?new Intl.DateTimeFormat("ru-RU",{timeZone:"Europe/Kyiv",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(s)):"время неизвестно";
+const short=s=>s.slice(5).split("-").reverse().join(".");
+function link(url,label){try{const u=new URL(url);if(u.protocol!=="https:"||u.username||u.password)return esc(label);}catch{return esc(label);}return '<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+' ↗</a>';}
+host("snapshot-note").textContent="Снимок создан "+time(DATA.as_of)+" по Киеву. Дата измерения каждого ряда указана отдельно.";
+const history=Object.values(DATA.history||{}),slice=history[history.length-1],counts=slice?.counts;
+const traffic=(DATA.indicators?.traffic||[]).filter(r=>r.corridor==="center"),last=traffic[traffic.length-1],alert=DATA.indicators?.alerts_api;
+host("activity-context").innerHTML='<div><h3>Доступность услуг</h3><strong>'+esc(counts?num(counts.total)+" эпизодов в выборке":"Нет реестра")+'</strong><p>'+esc(counts?num(counts.unknown)+" требуют свежих сведений. Срез "+time(slice.at)+" по Киеву.":"Полный охват города не установлен.")+'</p><p><a href="functions-test.html">Ограничения и восстановление →</a></p></div><div><h3>Время перемещения</h3><strong>'+esc(last?num(last.travel_min)+" мин":"Нет замера")+'</strong><p>'+esc(last?"Центральный коридор · "+time(last.at)+" по Киеву.":"Измерения коридоров пока нет.")+'</p><p>Время проезда — отдельное измерение нагрузки.</p><p><a href="data.html#traffic">Ряд замеров →</a></p></div><div><h3>Воздушные тревоги</h3><strong>'+esc(alert?.status==="verified_snapshot"?"История получена":"Источник требует проверки")+'</strong><p>'+esc(alert?.status==="verified_snapshot"?num(alert.history_events)+" событий · API проверен "+time(alert.fetched_at)+" по Киеву. Одноразовый сбор.":"Длительность по HTML-карте не определяется.")+'</p><p>Часы ещё не рассчитаны: часовой пояс и полнота истории требуют проверки.</p><p><a href="metodika.html#quality">Качество данных →</a></p></div>';
+const activity=DATA.activity;
+if(!activity||activity.status!=="ok"||!Array.isArray(activity.views)||!activity.views.length){host("activity-banner").textContent=activity?.note||"В этом снимке ряд поездок ещё не получен. Общий индекс города не рассчитан.";return;}
+let viewId=activity.views[0].id,day=activity.latest_date;
+const getView=()=>activity.views.find(v=>v.id===viewId);
+host("activity-content").hidden=false;
+host("activity-base").innerHTML=activity.views.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.baseline.weeks+" недель до показанного периода")+'</option>').join("");host("activity-base").value=viewId;
+host("activity-banner").textContent="[официально] Последний день источника — "+date(activity.latest_date)+". До даты снимка: "+num(activity.lag_days)+" дн. Более поздние дни ещё не получены.";
+if(activity.last_attempt?.ok===false)host("activity-banner").textContent+=" Последняя попытка обновления не удалась; показан ранее проверенный ряд.";
+host("activity-limits").textContent=activity.limits;
+host("activity-source").innerHTML='<p>'+link(activity.resource_url,"Портал открытых данных Киева")+'</p><p>'+esc(activity.scope)+'</p><p>В сохранённом файле: '+esc(num(activity.coverage.days))+' дней, '+esc(date(activity.coverage.start))+' — '+esc(date(activity.coverage.end))+'. Пропущенных дат: '+esc(num(activity.coverage.missing_dates))+'.</p><p>Получено '+esc(time(activity.fetched_at))+' по Киеву. Паспорт набора указывает ежемесячное обновление.</p><p>Система считает поездки по учёту оплаты проезда. Человек с несколькими поездками учитывается несколько раз; поездки вне этой системы не измерены.</p>';
+function selectDay(value){day=value;host("activity-day").value=day;render();}
+function render(){
+ const v=getView();if(!Array.isArray(v.points)||!v.points.length)throw new Error("Пустой ряд индекса");
+ if(!v.points.some(p=>p.date===day))day=v.points[v.points.length-1].date;
+ host("activity-day").innerHTML=v.points.map(p=>'<option value="'+esc(p.date)+'">'+esc(date(p.date))+'</option>').join("");host("activity-day").value=day;
+ const p=v.points.find(p=>p.date===day),label=date(day);
+ host("activity-kpis").innerHTML='<div class="activity-kpi primary"><div class="eyebrow">ИНДЕКС ЗА 7 ДНЕЙ ДО '+esc(short(day))+'</div><strong>'+esc(num(p.week_index))+'</strong><p>'+(p.week_index==null?"Нужны 7 полных дней и сопоставимая база.":"100 — объём поездок по выбранной базе. Это индекс поездок, не процент работоспособности города.")+'</p></div><div class="activity-kpi"><div class="eyebrow">ЗАРЕГИСТРИРОВАНО ЗА '+esc(short(day))+'</div><strong>'+esc(num(p.total))+'</strong><p>Платные: '+esc(num(p.paid))+' · льготные: '+esc(num(p.benefit))+'.</p></div><div class="activity-kpi"><div class="eyebrow">ИНДЕКС ОДНОГО ДНЯ</div><strong>'+esc(num(p.index))+'</strong><p>'+esc(label)+'. База этого дня недели: '+esc(num(p.expected))+' поездок.</p></div>';
+ const alternate=activity.views.find(x=>x.id!==viewId)?.points.find(x=>x.date===day);
+ host("activity-baseline").textContent="База: "+date(v.baseline.start)+" — "+date(v.baseline.end)+", "+v.baseline.weeks+" недель до показанного периода. Понедельники сравниваются с понедельниками, воскресенья — с воскресеньями. База фиксирована для всей линии. "+(alternate?.week_index!=null?"При другой длине базы недельный индекс на эту дату: "+num(alternate.week_index)+". ":"")+"База военного периода, не мирная норма.";
+ const width=900,height=300,left=48,right=20,top=22,bottom=38,values=v.points.map(p=>p.index).filter(x=>typeof x==="number"&&Number.isFinite(x)),maximum=Math.ceil(Math.max(120,...values)/50)*50;
+ const x=i=>left+i*(width-left-right)/Math.max(1,v.points.length-1),y=n=>height-bottom-n/maximum*(height-top-bottom);
+ let grid="";for(let tick=0;tick<=maximum;tick+=50)grid+='<line x1="'+left+'" x2="'+(width-right)+'" y1="'+y(tick)+'" y2="'+y(tick)+'" stroke="var(--line)"/><text x="'+(left-10)+'" y="'+(y(tick)+4)+'" text-anchor="end">'+tick+'</text>';
+ grid+='<line x1="'+left+'" x2="'+(width-right)+'" y1="'+y(100)+'" y2="'+y(100)+'" stroke="var(--muted)" stroke-dasharray="5 5"/>';
+ const segments=[];let segment=[];v.points.forEach((point,i)=>{if(typeof point.index==="number"&&Number.isFinite(point.index)){segment.push((segment.length?"L":"M")+x(i).toFixed(1)+","+y(point.index).toFixed(1));}else if(segment.length){segments.push(segment.join(" "));segment=[];}});if(segment.length)segments.push(segment.join(" "));
+ const dots=v.points.map((point,i)=>typeof point.index==="number"&&Number.isFinite(point.index)?'<circle data-point="'+esc(point.date)+'" tabindex="0" role="button" aria-label="'+esc(date(point.date)+", индекс "+num(point.index))+'" cx="'+x(i).toFixed(1)+'" cy="'+y(point.index).toFixed(1)+'" r="'+(point.date===day?6:4)+'" fill="'+(point.date===day?"var(--ink)":"var(--blue)")+'"><title>'+esc(date(point.date)+": "+num(point.total)+" поездок, индекс "+num(point.index))+'</title></circle>':"").join("");
+ const labels=[...new Set([0,7,14,21,v.points.length-1])].filter(i=>i<v.points.length).map(i=>'<text x="'+x(i)+'" y="'+(height-9)+'" text-anchor="'+(i===0?"start":i===v.points.length-1?"end":"middle")+'">'+esc(short(v.points[i].date))+'</text>').join("");
+ host("activity-chart").innerHTML='<svg viewBox="0 0 '+width+' '+height+'" role="group" aria-label="Индекс учтённых поездок по дням, база 100"><title>Индекс зарегистрированных поездок, '+esc(date(v.period.start))+" — "+esc(date(v.period.end))+'</title>'+grid+segments.map(d=>'<path d="'+d+'" fill="none" stroke="var(--blue)" stroke-width="2.5"/>').join("")+dots+labels+'</svg>';
+ document.querySelectorAll("[data-point]").forEach(b=>{b.addEventListener("click",()=>selectDay(b.dataset.point));b.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();selectDay(b.dataset.point);}});});
+ const weekdays=["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
+ host("activity-evidence").innerHTML='<h3>Медиана по дням недели</h3><div class="activity-table-scroll"><table><thead><tr><th>День недели</th><th>Дней в базе / нужно</th><th>База, поездок</th></tr></thead><tbody>'+weekdays.map((name,i)=>'<tr><td>'+name+'</td><td>'+esc(num(v.baseline.weekday_samples[i]))+' / '+esc(num(v.baseline.weeks))+'</td><td>'+esc(num(v.baseline.weekday_expected[i]))+'</td></tr>').join("")+'</tbody></table></div><h3>Наблюдения и расчёт</h3><div class="activity-table-scroll"><table><thead><tr><th>Дата</th><th>Поездки</th><th>База</th><th>Индекс дня</th><th>Индекс 7 дней</th></tr></thead><tbody>'+v.points.map(p=>'<tr><td>'+esc(date(p.date))+'</td><td>'+esc(num(p.total))+'</td><td>'+esc(num(p.expected))+'</td><td>'+esc(num(p.index))+'</td><td>'+esc(num(p.week_index))+'</td></tr>').join("")+'</tbody></table></div><p class="activity-note">Индекс дня = поездки / база дня недели × 100. Индекс 7 дней = сумма поездок / сумма базовых значений × 100. При неполных данных число не рассчитывается.</p>';
+}
+host("activity-base").addEventListener("change",()=>{viewId=host("activity-base").value;render();});
+host("activity-day").addEventListener("change",()=>selectDay(host("activity-day").value));
+render();
+}
+fetch("city_data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("snapshot");return r.json();}).then(boot).catch(()=>{document.getElementById("activity-banner").textContent="Снимок не загрузился или имеет несовместимый формат. Индекс не рассчитан.";document.getElementById("activity-content").hidden=true;});
+</script>
+</body>
+</html>
