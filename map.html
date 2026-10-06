@@ -1,112 +1,77 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Атлас ударов — Киев и область, сентябрь–октябрь 2026</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Карта ударов — Городской монитор, Киев</title>
 <meta name="description" content="Интерактивная карта российских ударов по Киеву и Киевской области с 4 сентября 2026. OSINT, вторичные источники, версии сторон приводятся раздельно.">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="site.css">
 <style>
-:root{--bg:#171a17;--panel:#20241e;--ink:#e4e7dd;--muted:#99a190;--line:#3a4034;
---enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--gov:#c792ea;--ind:#9aa4ae;--oth:#56d364;
---ua:#92b5ff;--ua-bg:#1c2a49;--ru:#ff9d86;--ru-bg:#45201a;--os:#abd08d;--os-bg:#273620;--soc:#aab3be;--soc-bg:#2b3037}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
-
-header{background:var(--panel);border-bottom:1px solid var(--line)}
-.bar{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.brand h1{font-size:16px;margin:0;white-space:nowrap}
-.brand .period{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
-.brand .tagline{font-size:11.5px;color:var(--muted);margin-top:1px}
-nav{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
-nav a{color:var(--muted);text-decoration:none;font-size:13px;padding:5px 12px;border-radius:6px;white-space:nowrap}
-nav a:hover{color:var(--ink)}
-nav a.cur{background:var(--line);color:var(--ink)}
-
-.toolbar{border-top:1px solid var(--line);background:var(--panel)}
-.toolbar .bar{padding:8px 16px;gap:18px}
+:root{--enr:#e8b63a;--brg:#4da3ff;--res:#f1564f;--gov:#c792ea;--ind:#9aa4ae;--oth:#56d364}
+html,body{height:100%}
+body{display:flex;flex-direction:column}
+.mapbar{padding:12px 24px;border-bottom:1px solid var(--line);background:var(--paper);display:flex;justify-content:space-between;gap:24px;align-items:center;flex-wrap:wrap}
+.toolbar{background:var(--paper);border-bottom:1px solid var(--line);padding:9px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .datebox{display:flex;align-items:center;gap:10px}
-#dateLabel{font-variant-numeric:tabular-nums;font-weight:700;font-size:14px;white-space:nowrap;min-width:88px}
+#dateLabel{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;white-space:nowrap;min-width:88px}
+.period{font-weight:400;color:var(--muted);font-size:13px;margin-left:8px}
 .sliderwrap{display:flex;flex-direction:column;width:clamp(180px,32vw,340px)}
 .sliderends{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:1px}
-input[type=range]{width:100%;accent-color:var(--enr);margin:0}
-.btn{background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:5px 11px;font-size:12.5px;cursor:pointer;white-space:nowrap}
-.btn.on{background:var(--line)}
+input[type=range]{width:100%;accent-color:var(--blue);margin:0}
+.btn{background:var(--paper);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:6px 11px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn.on{background:var(--selected)}
 .sep{width:1px;align-self:stretch;background:var(--line)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:4px 11px;font-size:12.5px;cursor:pointer;user-select:none;color:var(--ink)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:4px 11px;font-size:12.5px;cursor:pointer;user-select:none;color:var(--ink)}
 .chip:not(.on){opacity:.4}
-.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-
 #map{flex:1;min-height:0;position:relative}
-.maplegend{position:absolute;left:10px;bottom:22px;z-index:900;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:8px 11px;font-size:11.5px;color:var(--muted);line-height:1.7;max-width:230px}
-.maplegend .sym{display:inline-block;width:16px;text-align:center;color:var(--ink)}
-
-.leaflet-popup-content-wrapper{background:var(--panel);color:var(--ink);border-radius:6px;border:1px solid var(--line)}
-.leaflet-popup-tip{background:var(--panel)}
+.maplegend{position:absolute;left:10px;bottom:22px;z-index:900;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:11.5px;color:var(--muted);line-height:1.7;max-width:240px}
+.maplegend .sym{color:var(--ink)}
+.leaflet-popup-content-wrapper{background:var(--paper);color:var(--ink);border-radius:8px;border:1px solid var(--line)}
+.leaflet-popup-tip{background:var(--paper)}
 .pop{font-size:12.5px;line-height:1.5;max-width:270px}
 .pop h3{margin:0 0 3px;font-size:13.5px}
 .pop .d{color:var(--muted);font-size:11.5px;margin-bottom:5px}
 .pop p{margin:4px 0}
 .pop b{color:var(--muted);font-weight:600}
-.pop a{color:var(--brg);text-decoration:none;border-bottom:1px dotted var(--brg)}
-.pop a:hover{border-bottom-style:solid}
-.t{display:inline-block;font-size:10px;padding:2px 5px;border-radius:3px;margin-right:3px}
-.t-ua{color:var(--ua);background:var(--ua-bg)}.t-ru{color:var(--ru);background:var(--ru-bg)}
-.t-os{color:var(--os);background:var(--os-bg)}.t-soc{color:var(--soc);background:var(--soc-bg)}
-.apx{color:var(--enr);font-size:11px}
-@media(max-width:760px){
- .bar{gap:10px}
- nav{margin-left:0;width:100%;order:3}
- .toolbar .bar{flex-direction:column;align-items:stretch;gap:10px}
- .sliderwrap{width:100%}
- .sep{display:none}
- .maplegend{bottom:12px}
-}
+.pop a{color:var(--blue);text-decoration:none;border-bottom:1px dotted var(--blue)}
+.apx{color:var(--amber);font-size:11px}
+@media(max-width:760px){.mapbar{padding:10px 16px}.toolbar{flex-direction:column;align-items:stretch;gap:10px;padding:9px 16px}.sliderwrap{width:100%}.sep{display:none}.maplegend{bottom:12px}}
 </style>
 </head>
 <body>
-<header>
-  <div class="bar">
-    <div class="brand">
-      <h1>Атлас ударов — Киев и область<span class="period" id="period"></span></h1>
-      <div class="tagline">OSINT по вторичным источникам · версии сторон приводятся раздельно и не усредняются</div>
-    </div>
-    <nav>
-      <a href="./">Обзор</a>
-      <a class="cur" href="map.html">Карта</a>
-      <a href="dynamics.html">Данные</a>
-      <a href="food.html">Еда</a>
-      <a href="traffic.html">Пробки</a>
-      <a href="metodika.html">Методика</a>
-    </nav>
-  </div>
-  <div class="toolbar"><div class="bar">
-    <div class="datebox">
-      <span id="dateLabel"></span>
-      <div class="sliderwrap">
-        <input type="range" id="dateSlider" min="0" value="0" step="1">
-        <div class="sliderends"><span id="pStart"></span><span id="pEnd"></span></div>
-      </div>
-      <button class="btn on" id="modeBtn" title="Накопительно: все события по выбранную дату включительно">Накопительно</button>
-    </div>
-    <div class="sep"></div>
-    <div class="chips" id="chips"></div>
-  </div></div>
+<header class="mapbar">
+ <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">пилот</span></h1><div class="minor">карта ударов · OSINT по вторичным источникам · версии сторон раздельно</div></div></div>
+ <nav class="sitenav" aria-label="Разделы сайта"><a href="./">Обзор</a><a href="map.html" class="cur">Карта</a><a href="data.html">Данные</a><a href="metodika.html">Методика</a></nav>
 </header>
-<div id="map">
-  <div class="maplegend">
-    <span class="sym">⬤</span> точка — адрес подтверждён источником<br>
-    <span class="sym">◌</span> пунктирный круг — зона ~2 км, точное место не названо
+<div class="toolbar">
+ <div class="datebox">
+  <span id="dateLabel"></span>
+  <div class="sliderwrap">
+   <input type="range" id="dateSlider" min="0" value="0" step="1" aria-label="Дата">
+   <div class="sliderends"><span id="pStart"></span><span id="pEnd"></span></div>
   </div>
+  <button class="btn on" id="modeBtn" type="button" title="Накопительно: все события по выбранную дату включительно">Накопительно</button>
+  <span class="period" id="period"></span>
+ </div>
+ <div class="sep"></div>
+ <div class="chips" id="chips"></div>
+</div>
+<div id="map">
+ <div class="maplegend">
+  <span class="sym">⬤</span> точка — адрес подтверждён источником<br>
+  <span class="sym">◌</span> пунктирный круг — зона ~2 км, точное место не названо<br>
+  <a href="metodika.html#events">как ставятся метки</a>
+ </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="events.js"></script>
 <script>
 const TYPES={enr:["Энергетика","--enr"],brg:["Мосты","--brg"],res:["Жильё","--res"],gov:["Гос и наука","--gov"],ind:["Пром, склады, ИТ","--ind"],oth:["Прочее","--oth"]};
-const TAGS={UA:["официально-UA","t-ua"],RU:["официально-RU","t-ru"],OSINT:["OSINT","t-os"],SOC:["соцсети","t-soc"]};
+const TAGS={UA:["официально-UA","t-ua"],RU:["официально-RU","t-ru"],OSINT:["OSINT","t-os"],SOC:["соцсети",""]};
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
 // даты периода
@@ -143,13 +108,10 @@ function render(){
  EVENTS.filter(e=>active.has(e.type)&&(cumulative?e.date<=sel:e.date===sel)).forEach(e=>{
   const col=css("--"+e.type),pop=popup(e);
   if(e.approx){
-   L.circle([e.lat,e.lng],{radius:1800,color:col,weight:1.5,dashArray:"5 4",fillColor:col,fillOpacity:.16})
-    .bindPopup(pop,{maxWidth:290}).addTo(layer);
-   L.circleMarker([e.lat,e.lng],{radius:4.5,color:col,weight:1.5,dashArray:"3 3",fillColor:col,fillOpacity:.45})
-    .bindPopup(pop,{maxWidth:290}).addTo(layer);
+   L.circle([e.lat,e.lng],{radius:1800,color:col,weight:1.5,dashArray:"5 4",fillColor:col,fillOpacity:.16}).bindPopup(pop,{maxWidth:290}).addTo(layer);
+   L.circleMarker([e.lat,e.lng],{radius:4.5,color:col,weight:1.5,dashArray:"3 3",fillColor:col,fillOpacity:.45}).bindPopup(pop,{maxWidth:290}).addTo(layer);
   }else{
-   L.circleMarker([e.lat,e.lng],{radius:8,color:col,weight:1.5,fillColor:col,fillOpacity:.8})
-    .bindPopup(pop,{maxWidth:290}).addTo(layer);
+   L.circleMarker([e.lat,e.lng],{radius:8,color:col,weight:1.5,fillColor:col,fillOpacity:.8}).bindPopup(pop,{maxWidth:290}).addTo(layer);
   }
  });
 }

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Данные — Городской монитор, Киев</title>
+<meta name="description" content="Числовые ряды по Киеву: переправа через Днепр, задержки поездов УЗ, предложение долгосрочной аренды, счётчики ударов с карты, доступность и цены продуктов. Агрегаты, без адресов.">
+<link rel="stylesheet" href="site.css">
+<style>
+.lead{font-size:14px;color:var(--muted);max-width:720px;margin:10px 0 0}
+.toc{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px}
+.toc a{font-size:13px;padding:6px 11px;border:1px solid var(--line);border-radius:7px;background:var(--paper);text-decoration:none;color:var(--ink)}
+.toc a:hover{background:var(--soft)}
+section{padding:6px 0 10px}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top">
+ <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">пилот</span></h1><div class="minor">Атлас ударов · доступность · нагрузка · восстановление</div></div></div>
+ <nav class="sitenav" aria-label="Разделы сайта"><a href="./">Обзор</a><a href="map.html">Карта</a><a href="data.html" class="cur">Данные</a><a href="metodika.html">Методика</a></nav>
+</header>
+<div class="snapshot-note" id="snapshot-note"></div>
+<p class="lead">Ряды фиксированным методом: одинаковые запросы, одинаковое время суток. Смысл несут изменения ряда, а не абсолютные числа. Публикуются только агрегаты, без адресов точек замера.</p>
+<nav class="toc" aria-label="Разделы страницы"><a href="#traffic">Переправа</a><a href="#uz">Поезда</a><a href="#rent">Аренда</a><a href="#strikes">Удары</a><a href="#food">Еда</a></nav>
+
+<section id="traffic">
+ <div class="section-head"><h2>Переправа через Днепр: минуты по коридорам</h2><span class="minor">TomTom · три фиксированных коридора</span></div>
+ <p class="note">После ударов по мостам (Южный закрыт с 1.10, Северный повреждён 3.10 — см. <a href="map.html">карту</a>) индикатор меряет цену переправы: время в пути по трём коридорам левый берег → правый (север: Троещина → Оболонь · центр: Дарница → центр · юг: Позняки → Лыбедская), на каждом прогоне монитора. Задержка от пробок (время в пути минус свободный поток) показана <span class="dl">красным</span>; у точек до 05.10 18:40 задержка считалась по старой схеме и не показывается — старые нули не значат «пробок не было». Между замерами состояние неизвестно; длина маршрута может меняться (объезды).</p>
+ <div class="chart-grid" id="chart-grid"></div>
+ <div class="table-wrap" id="traffic-table"></div>
+</section>
+
+<section id="uz">
+ <div class="section-head"><h2>Железная дорога: задержки поездов</h2><span class="minor">официальное табло УЗ</span></div>
+ <p class="note">Табло общенациональное: «рейсов с задержкой / Σ минут» — это <b>вся Украина</b>, контекст давления на сеть. Отдельно выделен <b>Киев</b>: рейсы, у которых начальная или конечная станция — Київ, и сумма их задержек. Городской сигнал — рост киевских строк. Σ минут — сумма задержек рейсов в снимке, а не длительность простоя города.</p>
+ <div class="cards" id="uz-cards"></div>
+ <div class="table-wrap" id="uz-table"></div>
+</section>
+
+<section id="rent">
+ <div class="section-head"><h2>Предложение долгосрочной аренды</h2><span class="minor">DIM.RIA · число объявлений</span></div>
+ <p class="note">Гипотеза: удары и обесточивание левого берега → отъезд жильцов → больше свободных квартир, в первую очередь на левом берегу. Смотрим уровень и долю левого берега, отток проявляется с лагом 2–5 дней. В дневной ряд идут только замеры утреннего окна (06–12 UTC); ночные наблюдения показаны справочно. <b>Число объявлений — не отток населения</b>: на него влияют дубли, повторные публикации, фильтры сайта и спрос.</p>
+ <div class="cards" id="rent-cards"></div>
+ <div class="table-wrap" id="rent-table"></div>
+ <p class="note" id="rent-note"></p>
+</section>
+
+<section id="strikes">
+ <div class="section-head"><h2>Удары по Киеву и области — счётчики с карты</h2><span class="minor">из events.js</span></div>
+ <p class="note">Считается автоматически из данных <a href="map.html">карты</a>: эпизоды с установленной локацией, версии сторон не усредняются — см. <a href="metodika.html">методику</a>.</p>
+ <div class="cards" id="strike-cards"></div>
+ <div class="table-wrap" id="type-table"></div>
+</section>
+
+<section id="food">
+ <div class="section-head"><h2>Еда и снабжение</h2><span class="minor">онлайн-витрины как прокси</span></div>
+ <p class="note">Бот ежедневно обходит 16 страниц категорий трёх витрин — Novus и Metro (одна платформа zakaz.ua) и Сильпо — и снимает счётчики ценовых меток и пометок «немає в наявності». Это <b>прокси онлайн-доступности</b>, не инвентаризация полок; смысл — в отклонении от фона при неизменном методе. Цены — только по Сильпо (платформа zakaz рисует цены скриптом). Ряд ниже переносится вручную; фиксированная корзина товаров в разработке.</p>
+ <p class="minor" id="food-status"></p>
+ <div class="cards" id="food-cards"></div>
+ <div class="table-wrap" id="food-table"></div>
+ <h3 style="margin-top:18px">Цены: медианы категорий, грн (Сильпо)</h3>
+ <div class="cards" id="price-cards"></div>
+ <div class="table-wrap" id="price-table"></div>
+</section>
+
+<footer class="foot"><span>Только агрегаты · без адресов и персональных данных · <a href="https://github.com/nrecordsmeat-png/strike-atlas/commits/main/">журнал правок</a></span><a href="metodika.html">Методика и качество данных</a></footer>
+</main>
+<script src="events.js"></script>
+<script>
+// Доступность витрин (ручной перенос): p — Σ ценовых меток, o — Σ «немає в наявності». Цены — медианы категорий Сильпо, грн.
+const FOOD=[
+ {d:"2026-10-04",s:{novus:{p:641,o:35},metro:{p:514,o:36},silpo:{p:238,o:0}}},
+ {d:"2026-10-05",s:{novus:{p:641,o:35},metro:{p:514,o:36},silpo:{p:238,o:0}}},
+];
+const PRICES=[{d:"2026-10-05",ov:9.90,mi:38.39}];
+const BASE={k:7419,l:1295,r:5160}; // фиксированный бейзлайн аренды 04.10 (первый замер; время суток не сохранено)
+const TYPES={enr:["Энергетика","#e8b63a"],brg:["Мосты","#4da3ff"],res:["Жильё","#f1564f"],gov:["Гос и наука","#c792ea"],ind:["Пром, склады, ИТ","#9aa4ae"],oth:["Прочее","#56d364"]};
+
+function boot(DATA){
+"use strict";
+const fmt=new Intl.DateTimeFormat("ru-RU",{timeZone:"Europe/Kyiv",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const date=s=>s?fmt.format(new Date(s)):"—";
+const shortDay=s=>s?s.split("-").slice(1).reverse().join("."):"—";
+const num=(v,d=1)=>v==null?"—":new Intl.NumberFormat("ru-RU",{maximumFractionDigits:d}).format(v);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const table=(headers,rows)=>'<table><thead><tr>'+headers.map((h,i)=>'<th'+(i?' class="numeric"':'')+'>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map((c,i)=>'<td'+(i?' class="numeric"':'')+'>'+c+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
+const delta=(cur,base)=>{if(cur==null||base==null)return "—";const d=cur-base;return d===0?"±0":'<span class="'+(d>0?"up":"down")+'">'+(d>0?"+":"")+d+'</span>';};
+document.getElementById("snapshot-note").textContent="Данные монитора на "+date(DATA.as_of)+" по Киеву · индикаторы собираются ботом дважды в сутки, на сайт переносятся вручную.";
+
+// ---- Переправа ----
+const T=DATA.indicators.traffic||[];
+const dl=r=>r&&r.delay_method!=="legacy"&&r.delay_min?' <span class="dl">+'+num(r.delay_min)+'</span>':"";
+const keys=[...new Set(T.map(r=>r.at))].sort().reverse();
+document.getElementById("traffic-table").innerHTML=keys.length?table(["Время, Киев","Север, мин","Центр, мин","Юг, мин"],keys.map(at=>[esc(date(at)),...["north","center","south"].map(c=>{const r=T.find(x=>x.at===at&&x.corridor===c);return r&&r.travel_min!=null?num(r.travel_min)+dl(r):"—";})])):'<p class="empty-panel">Замеров нет.</p>';
+const grid=document.getElementById("chart-grid");
+grid.innerHTML=["north","center","south"].map(c=>'<div><div class="plot-title">'+({north:"Северный коридор",center:"Центральный коридор",south:"Южный коридор"}[c])+'</div><div class="plot" data-corridor="'+c+'"></div></div>').join("");
+function drawPlots(){
+ document.querySelectorAll(".plot").forEach(host=>{
+  const points=T.filter(x=>x.corridor===host.dataset.corridor&&x.travel_min!=null),width=Math.max(220,Math.floor(host.getBoundingClientRect().width)),height=190,left=38,right=16,top=22,bottom=40;
+  if(!points.length){host.innerHTML='<p class="empty-panel">Нет замеров</p>';return;}
+  const times=points.map(x=>new Date(x.at).getTime()),start=Math.min(...times),end=Math.max(...times),max=Math.max(10,Math.ceil(Math.max(...points.map(x=>x.travel_min))/10)*10),x=v=>left+(end===start?0.5:(v-start)/(end-start))*(width-left-right),y=v=>height-bottom-v/max*(height-top-bottom);
+  let svg='<svg role="img" aria-label="'+esc({north:"Север",center:"Центр",south:"Юг"}[host.dataset.corridor])+': минуты в пути, '+points.length+' точек" viewBox="0 0 '+width+' '+height+'"><title>Минуты в пути</title><desc>Показаны только сохранённые точки. Между ними состояние неизвестно.</desc>';
+  for(let v=0;v<=max;v+=10)svg+='<line class="grid" x1="'+left+'" x2="'+(width-right)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text x="'+(left-9)+'" y="'+(y(v)+4)+'" text-anchor="end">'+v+'</text>';
+  svg+='<text x="1" y="13">мин</text>';
+  points.forEach((p,i)=>{const px=x(times[i]),py=y(p.travel_min);svg+='<circle class="mark" cx="'+px+'" cy="'+py+'" r="4"><title>'+esc(date(p.at))+': '+num(p.travel_min)+' мин'+(p.delay_method!=="legacy"&&p.delay_min?', пробки +'+num(p.delay_min):'')+'</title></circle>';if(i===points.length-1)svg+='<text class="latest" text-anchor="end" x="'+px+'" y="'+(py-10)+'">'+num(p.travel_min)+'</text>';});
+  svg+='<text x="'+left+'" y="'+(height-12)+'">'+esc(date(points[0].at))+'</text>'+(points.length>1?'<text text-anchor="end" x="'+(width-right)+'" y="'+(height-12)+'">'+esc(date(points[points.length-1].at))+'</text>':'')+'</svg>';
+  host.innerHTML=svg;
+ });
+}
+drawPlots();if(typeof ResizeObserver!=="undefined")new ResizeObserver(drawPlots).observe(grid);
+
+// ---- Поезда ----
+const U=(DATA.indicators.uz||[]).filter(x=>x.ok!==false);
+if(U.length){
+ const l=U[U.length-1];
+ document.getElementById("uz-cards").innerHTML=
+  '<div class="card"><div class="v">'+num(l.ukraine_trains,0)+'</div><div class="l">рейсов с задержкой, вся Украина</div><div class="d">'+esc(date(l.at))+'</div></div>'+
+  '<div class="card"><div class="v">'+(l.ukraine_delay_min!=null?num(l.ukraine_delay_min/60,0)+' ч':'—')+'</div><div class="l">суммарная задержка, Украина</div><div class="d">'+num(l.ukraine_delay_min,0)+' мин в снимке</div></div>'+
+  '<div class="card"><div class="v">'+num(l.kyiv_rows,0)+'</div><div class="l">из них рейсов с Киевом в маршруте</div><div class="d">'+(l.kyiv_delay_min!=null?num(l.kyiv_delay_min,0)+' мин задержки':'—')+'</div></div>';
+ document.getElementById("uz-table").innerHTML=table(["Время, Киев","Рейсов (УА)","Σ мин (УА)","Рейсов Киева","Σ мин Киева"],[...U].reverse().map(x=>[esc(date(x.at)),num(x.ukraine_trains,0),num(x.ukraine_delay_min,0),num(x.kyiv_rows,0),num(x.kyiv_delay_min,0)]));
+}else document.getElementById("uz-table").innerHTML='<p class="empty-panel">Табло ещё не наблюдалось.</p>';
+
+// ---- Аренда ----
+const R=DATA.indicators.rent||[];
+if(R.length){
+ const series=R.filter(x=>x.in_window);const ser=series.length?series:R;const last=ser[ser.length-1],prev=ser[ser.length-2]||{};
+ const share=x=>x.left&&x.total?(x.left/x.total*100).toFixed(1)+"%":"—";
+ document.getElementById("rent-cards").innerHTML=
+  '<div class="card"><div class="v">'+num(last.total,0)+'</div><div class="l">Киев всего · '+esc(shortDay(last.date))+(last.at?" "+esc(date(last.at).slice(-5)):"")+'</div><div class="d">Δ к прошлому замеру '+delta(last.total,prev.total)+' · от бейзлайна 04.10 '+delta(last.total,BASE.k)+'</div></div>'+
+  '<div class="card"><div class="v">'+num(last.left,0)+'</div><div class="l">левый берег</div><div class="d">Δ '+delta(last.left,prev.left)+' · от бейзлайна '+delta(last.left,BASE.l)+'</div></div>'+
+  '<div class="card"><div class="v">'+num(last.right,0)+'</div><div class="l">правый берег</div><div class="d">Δ '+delta(last.right,prev.right)+' · от бейзлайна '+delta(last.right,BASE.r)+'</div></div>'+
+  '<div class="card"><div class="v">'+share(last)+'</div><div class="l">доля левого берега</div><div class="d">бейзлайн 17.5%</div></div>';
+ document.getElementById("rent-table").innerHTML=table(["Дата","Время (Киев)","Всего","Левый","Правый","Доля левого","Пригодность"],[...R].reverse().map(x=>[esc(shortDay(x.date)),x.at?esc(date(x.at).slice(-5)):"не сохранено",num(x.total,0),num(x.left,0),num(x.right,0),share(x),x.comparable?"дневное окно":x.in_window?"дневное окно, время не сохранено":'<span class="dl">вне окна</span>']));
+ const night=R.filter(x=>!x.in_window).slice(-1)[0];
+ document.getElementById("rent-note").innerHTML='Фиксированный бейзлайн 04.10: 7419 / 1295 / 5160 (первый замер; точное время суток не сохранено). Сумма берегов меньше города: часть объявлений без явного берега.'+(night?' Строка '+esc(shortDay(night.date))+' «вне окна» — ночной замер, в сравнении ряда не участвует: ночью витрина всегда тоньше.':'');
+}else document.getElementById("rent-table").innerHTML='<p class="empty-panel">Замеров нет.</p>';
+
+// ---- Удары ----
+if(typeof EVENTS!=="undefined"&&EVENTS.length){
+ const days=new Set(EVENTS.map(e=>e.date)).size,ruOnly=EVENTS.filter(e=>e.tags.includes("RU")&&!e.tags.includes("UA")).length,approx=EVENTS.filter(e=>e.approx).length;
+ const per=typeof PERIOD!=="undefined"?PERIOD:{start:EVENTS[0].date,end:EVENTS[EVENTS.length-1].date};
+ const dd=s=>s.split("-").reverse().slice(0,2).join(".");
+ document.getElementById("strike-cards").innerHTML=
+  '<div class="card"><div class="v">'+EVENTS.length+'</div><div class="l">эпизодов на карте</div><div class="d">'+dd(per.start)+' – '+dd(per.end)+'</div></div>'+
+  '<div class="card"><div class="v">'+days+'</div><div class="l">дней с нанесёнными ударами</div><div class="d">по эпизодам с локацией</div></div>'+
+  '<div class="card"><div class="v">'+ruOnly+'</div><div class="l">только по версии РФ <span class="t t-ru">RU</span></div><div class="d">UA не подтверждала</div></div>'+
+  '<div class="card"><div class="v">'+(EVENTS.length-approx)+'</div><div class="l">с точным адресом</div><div class="d">'+approx+' — зона ~2 км</div></div>';
+ document.getElementById("type-table").innerHTML=table(["Тип цели","Событий"],Object.entries(TYPES).map(([k,[name,col]])=>['<span class="dot" style="background:'+col+'"></span>'+esc(name),EVENTS.filter(e=>e.type===k).length]));
+}else document.getElementById("type-table").innerHTML='<p class="empty-panel">events.js не загружен.</p>';
+
+// ---- Еда ----
+const f=DATA.indicators.food;
+document.getElementById("food-status").textContent=f&&f.date?"Последний обход бота: "+shortDay(f.date)+" · "+f.label+". "+f.note:"";
+const lf=FOOD[FOOD.length-1];
+document.getElementById("food-cards").innerHTML=Object.entries(lf.s).map(([store,v])=>'<div class="card"><div class="v">'+v.p+'<span style="font-size:13px;color:var(--muted)"> / '+v.o+'</span></div><div class="l">'+esc(store)+': ценовых меток / «нет в наличии»</div><div class="d">'+esc(shortDay(lf.d))+'</div></div>').join("");
+document.getElementById("food-table").innerHTML=table(["Дата","Витрина","Ценовых меток, Σ","«Нет в наличии», Σ"],[...FOOD].reverse().flatMap(r=>Object.entries(r.s).map(([store,v])=>[esc(shortDay(r.d)),esc(store),v.p,v.o])));
+const lp=PRICES[PRICES.length-1];
+document.getElementById("price-cards").innerHTML='<div class="card"><div class="v">'+lp.ov.toFixed(2)+'</div><div class="l">овощи, медиана грн</div><div class="d">Сильпо, страница категории · '+esc(shortDay(lp.d))+'</div></div><div class="card"><div class="v">'+lp.mi.toFixed(2)+'</div><div class="l">мясо, медиана грн</div><div class="d">Сильпо, страница категории</div></div>';
+document.getElementById("price-table").innerHTML=table(["Дата","Овощи (Сильпо)","Мясо (Сильпо)"],[...PRICES].reverse().map(r=>[esc(shortDay(r.d)),r.ov.toFixed(2),r.mi.toFixed(2)]));
+}
+fetch("city_data.json",{cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(boot).catch(e=>{document.getElementById("snapshot-note").textContent="Не удалось загрузить данные (city_data.json): "+e.message;});
+</script>
+</body>
+</html>
