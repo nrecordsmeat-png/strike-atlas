@@ -65,7 +65,7 @@ window.addEventListener("hashchange",()=>show(location.hash.slice(1)));
 window.addEventListener("message",event=>{
  const frame=document.getElementById("activity-frame"),data=event.data;
  if(event.origin!==location.origin||event.source!==frame.contentWindow||data?.type!=="strike-atlas:activity-height")return;
- if(typeof data.height!=="number"||!Number.isFinite(data.height)||data.height<100||data.height>4000)return;
+ if(typeof data.height!=="number"||!Number.isFinite(data.height)||data.height<100||data.height>12000)return;
  frame.style.height=Math.max(320,Math.ceil(data.height))+"px";
 });
 if(overviewViews.includes(location.hash.slice(1)))show(location.hash.slice(1));

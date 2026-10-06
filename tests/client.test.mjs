@@ -144,6 +144,8 @@ test('embedded activity resizes only from the expected origin and frame', () => 
   assert.equal(frame.style.height, undefined);
   f.emit('message', trusted);
   assert.equal(frame.style.height, '722px');
+  f.emit('message', { ...trusted, data: { ...trusted.data, height: 4313 } });
+  assert.equal(frame.style.height, '4313px');
 });
 
 test('presentation keeps the description, method, source and limits and fullscreen starts only after a click', () => {
