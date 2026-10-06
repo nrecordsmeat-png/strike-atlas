@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Проверка раскладки · функции города</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:18px;background:#e9eee5;color:#233025;font:14px/1.5 system-ui,sans-serif}header{max-width:1140px;margin:0 auto 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}button,a{font:inherit}button{padding:8px 14px;min-height:44px;border:1px solid #9aa797;border-radius:6px;background:#fff;color:#233025;cursor:pointer}button[aria-pressed=true]{background:#233025;color:#fff}button:focus-visible{outline:3px solid #25658e;outline-offset:2px}main{overflow:auto;padding:2px}iframe{display:block;border:0;outline:1px solid #9aa797;border-radius:9px;margin:auto;width:390px;height:844px;background:white}a{color:#25658e}
+</style>
+</head>
+<body>
+<header><strong>Проверка раскладки тестового экрана</strong><button type="button" data-width="390" aria-pressed="true">390 px · телефон</button><button type="button" data-width="1140" aria-pressed="false">1140 px · компьютер</button><span id="layout-size" role="status">390 × 844 CSS px</span><a href="../functions-test.html">Открыть страницу</a></header>
+<main><iframe id="layout-frame" src="../functions-test.html" title="Тестовый экран городских функций"></iframe></main>
+<script>
+document.querySelectorAll('[data-width]').forEach(button=>button.addEventListener('click',()=>{
+ const width=Number(button.dataset.width);
+ document.getElementById('layout-frame').style.width=width+'px';
+ document.getElementById('layout-size').textContent=width+' × 844 CSS px';
+ document.querySelectorAll('[data-width]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+}));
+</script>
+</body>
+</html>

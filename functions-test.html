@@ -49,7 +49,7 @@
    <div class="eyebrow">УЧЕБНЫЕ ДАННЫЕ · НЕ СВЕДЕНИЯ О КИЕВЕ</div>
    <h2 id="demo-title"></h2><p class="demo-message" id="demo-explanation"></p>
    <div class="demo-plot" id="demo-plot" tabindex="0" aria-label="Учебная шкала времени, прокрутка по горизонтали"></div>
-   <p class="reading-note">Цвет показывает, что было известно в тот момент. Восстановление появляется после публикации; обещание не меняет состояние.</p>
+   <p class="reading-note">Шкала показывает всю учебную историю. Карточка ниже — сведения только на выбранный момент. Восстановление появляется после публикации; обещание не меняет состояние.</p>
    <div class="demo-point-controls" id="demo-points" role="group" aria-label="Момент наблюдения"></div>
    <div class="demo-observation" id="demo-observation" aria-live="polite"></div>
   </article>
@@ -138,7 +138,9 @@ function renderDemo(){
  document.querySelectorAll("[data-function-scenario]").forEach(b=>b.addEventListener("click",()=>{scenarioId=b.dataset.functionScenario;pointIndex=null;renderDemo();}));
  const c=cases.find(x=>x.id===scenarioId);if(!c){host("demo-title").textContent="Учебные примеры отсутствуют";host("demo-explanation").textContent="Примеры не заменяют реальные наблюдения.";host("demo-plot").innerHTML="";host("demo-points").innerHTML="";host("demo-observation").innerHTML="";return;}
  const points=c.timeline||[];if(pointIndex==null||!points[pointIndex])pointIndex=points.length-1;
- host("demo-title").textContent=c.title;host("demo-explanation").textContent=c.explanation;
+ const finalPoint=pointIndex===points.length-1;
+ host("demo-title").textContent=finalPoint?c.title:"Сведения в выбранный момент";
+ host("demo-explanation").textContent=finalPoint?c.explanation:"Учебный срез: ниже показаны только сведения, опубликованные к выбранному моменту. Итог сценария здесь ещё не известен.";
  host("demo-plot").innerHTML=plot(points);
  host("demo-points").innerHTML=points.map((p,i)=>'<button type="button" class="plain-button" data-function-point="'+i+'" aria-pressed="'+String(i===pointIndex)+'">'+esc(date(p.at))+'</button>').join("");
  document.querySelectorAll("[data-function-point]").forEach(b=>b.addEventListener("click",()=>{pointIndex=Number(b.dataset.functionPoint);renderDemo();}));

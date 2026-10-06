@@ -348,6 +348,8 @@ test('demo mode is explicit and point selection never reveals future recovery', 
   f.button('function-point', '0').fire();
   assert.match(f.byId('demo-observation').textContent, /Завершение не подтверждено/);
   assert.doesNotMatch(f.byId('demo-observation').textContent, /8 ч|фактическое время восстановления|17:00/);
+  assert.doesNotMatch(f.byId('demo-explanation').textContent, /8 часов|Эпизод завершён/);
+  assert.match(f.byId('demo-title').textContent, /Сведения в выбранный момент/);
   assert.doesNotMatch(f.byId('demo-plot').innerHTML, /NaN|Infinity|undefined/);
   f.button('mode', 'live').fire();
   assert.equal(f.byId('demo-section').hidden, true);
