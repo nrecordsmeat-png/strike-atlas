@@ -1,0 +1,1664 @@
+{
+  "schema_version": 1,
+  "mode": "test",
+  "generated_at": "2026-10-06T05:08:35Z",
+  "as_of": "2026-10-06T05:08:35Z",
+  "geography": "Киев, город",
+  "coverage_note": "Пилотная ручная выборка официальных сообщений. Не полный перечень перебоев Киева.",
+  "source_commits": {
+    "uk_monitor": "5c3bd0dcfd286da59b75b9add191ff2ce0e9f180",
+    "strike_atlas": "e891b167f8d005b74284e2255f5e2df99e558f48"
+  },
+  "method": {
+    "fresh_hours": 24,
+    "freshness_note": "Пилотное окно свежести 24 часа. Это правило отображения сведений, а не доказательство отсутствия перебоя.",
+    "episodes": "Ручная разметка сообщений; автоматическое извлечение не включено."
+  },
+  "history": {
+    "2026-10-01": {
+      "at": "2026-10-01T20:59:59Z",
+      "episodes": [
+        {
+          "id": "south-bridge-20261001",
+          "service": "mobility",
+          "title": "Движение по Южному мосту",
+          "area": "Южный мост; виды движения указаны в сообщениях",
+          "display_state": "restricted",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-01T19:18:00Z",
+          "first_reported_at": "2026-10-01T09:41:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 1.7,
+          "stale": false,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 11.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7740",
+              "reported_at": "2026-10-01T09:41:00Z",
+              "state": "restricted",
+              "summary": "Сообщено об остановке метро и наземного общественного транспорта по мосту.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7740",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7744",
+              "reported_at": "2026-10-01T19:18:00Z",
+              "state": "restricted",
+              "summary": "Повторно сообщено, что движение метро и наземного общественного транспорта остановлено.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7744",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        }
+      ],
+      "counts": {
+        "total": 1,
+        "restored": 0,
+        "unclosed": 1,
+        "unknown": 0,
+        "fresh_restrictions": 1
+      },
+      "recovery_reports": []
+    },
+    "2026-10-02": {
+      "at": "2026-10-02T20:59:59Z",
+      "episodes": [
+        {
+          "id": "south-bridge-20261001",
+          "service": "mobility",
+          "title": "Движение по Южному мосту",
+          "area": "Южный мост; виды движения указаны в сообщениях",
+          "display_state": "restricted",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T14:50:00Z",
+          "first_reported_at": "2026-10-01T09:41:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 6.2,
+          "stale": false,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 35.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7740",
+              "reported_at": "2026-10-01T09:41:00Z",
+              "state": "restricted",
+              "summary": "Сообщено об остановке метро и наземного общественного транспорта по мосту.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7740",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7744",
+              "reported_at": "2026-10-01T19:18:00Z",
+              "state": "restricted",
+              "summary": "Повторно сообщено, что движение метро и наземного общественного транспорта остановлено.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7744",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7748-south",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "По переданной информации правоохранителей мост полностью перекрыт для транспорта с обеих сторон.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7751",
+              "reported_at": "2026-10-02T11:50:00Z",
+              "kind": "forecast",
+              "summary": "Готовность возобновить метро после экспертного заключения. Это условие будущего восстановления, а не сообщение о его завершении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7751",
+              "provenance": "official"
+            },
+            {
+              "id": "klitschko-7752",
+              "reported_at": "2026-10-02T14:50:00Z",
+              "state": "restricted",
+              "summary": "Сообщено, что мост по-прежнему закрыт для автотранспорта и метро.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7752",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "metro-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Метро",
+          "area": "Одна полоса с левого на правый берег",
+          "display_state": "partial",
+          "last_reported_state": "partial",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 16.1,
+          "stale": false,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 16.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-metro",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "partial",
+              "summary": "Сообщено о частичном ограничении движения одной полосой в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "paton-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Патона",
+          "area": "Направление с правого на левый берег",
+          "display_state": "restricted",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 16.1,
+          "stale": false,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 16.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-paton",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о полном ограничении движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        }
+      ],
+      "counts": {
+        "total": 3,
+        "restored": 0,
+        "unclosed": 3,
+        "unknown": 0,
+        "fresh_restrictions": 3
+      },
+      "recovery_reports": []
+    },
+    "2026-10-03": {
+      "at": "2026-10-03T20:59:59Z",
+      "episodes": [
+        {
+          "id": "north-bridge-20261003",
+          "service": "mobility",
+          "title": "Движение по Северному мосту",
+          "area": "Направление с левого на правый берег",
+          "display_state": "restricted",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-03T04:39:00Z",
+          "first_reported_at": "2026-10-03T04:39:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 16.3,
+          "stale": false,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 16.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7756",
+              "reported_at": "2026-10-03T04:39:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о перекрытии движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7756",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "south-bridge-20261001",
+          "service": "mobility",
+          "title": "Движение по Южному мосту",
+          "area": "Южный мост; виды движения указаны в сообщениях",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T14:50:00Z",
+          "first_reported_at": "2026-10-01T09:41:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 30.2,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 59.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7740",
+              "reported_at": "2026-10-01T09:41:00Z",
+              "state": "restricted",
+              "summary": "Сообщено об остановке метро и наземного общественного транспорта по мосту.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7740",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7744",
+              "reported_at": "2026-10-01T19:18:00Z",
+              "state": "restricted",
+              "summary": "Повторно сообщено, что движение метро и наземного общественного транспорта остановлено.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7744",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7748-south",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "По переданной информации правоохранителей мост полностью перекрыт для транспорта с обеих сторон.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7751",
+              "reported_at": "2026-10-02T11:50:00Z",
+              "kind": "forecast",
+              "summary": "Готовность возобновить метро после экспертного заключения. Это условие будущего восстановления, а не сообщение о его завершении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7751",
+              "provenance": "official"
+            },
+            {
+              "id": "klitschko-7752",
+              "reported_at": "2026-10-02T14:50:00Z",
+              "state": "restricted",
+              "summary": "Сообщено, что мост по-прежнему закрыт для автотранспорта и метро.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7752",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "metro-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Метро",
+          "area": "Одна полоса с левого на правый берег",
+          "display_state": "unknown",
+          "last_reported_state": "partial",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 40.1,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 40.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-metro",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "partial",
+              "summary": "Сообщено о частичном ограничении движения одной полосой в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "paton-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Патона",
+          "area": "Направление с правого на левый берег",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 40.1,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 40.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-paton",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о полном ограничении движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        }
+      ],
+      "counts": {
+        "total": 4,
+        "restored": 0,
+        "unclosed": 4,
+        "unknown": 3,
+        "fresh_restrictions": 1
+      },
+      "recovery_reports": []
+    },
+    "2026-10-04": {
+      "at": "2026-10-04T20:59:59Z",
+      "episodes": [
+        {
+          "id": "desniansky-hot-water-20261004",
+          "service": "water_heat",
+          "title": "Горячая вода в Деснянском районе",
+          "area": "Деснянский район; число затронутых домов не сообщено",
+          "display_state": "announced",
+          "last_reported_state": "announced",
+          "last_reported_at": "2026-10-04T08:02:00Z",
+          "first_reported_at": "2026-10-04T08:02:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 13.0,
+          "stale": false,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 13.0,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7762",
+              "reported_at": "2026-10-04T08:02:00Z",
+              "state": "announced",
+              "summary": "Объявлено временное отсутствие горячей воды из-за повреждения тепломагистрали. Сообщения о завершении ремонта в выборке нет.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7762",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "north-bridge-20261003",
+          "service": "mobility",
+          "title": "Движение по Северному мосту",
+          "area": "Направление с левого на правый берег",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-03T04:39:00Z",
+          "first_reported_at": "2026-10-03T04:39:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 40.3,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 40.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7756",
+              "reported_at": "2026-10-03T04:39:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о перекрытии движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7756",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "south-bridge-20261001",
+          "service": "mobility",
+          "title": "Движение по Южному мосту",
+          "area": "Южный мост; виды движения указаны в сообщениях",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T14:50:00Z",
+          "first_reported_at": "2026-10-01T09:41:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 54.2,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 83.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7740",
+              "reported_at": "2026-10-01T09:41:00Z",
+              "state": "restricted",
+              "summary": "Сообщено об остановке метро и наземного общественного транспорта по мосту.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7740",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7744",
+              "reported_at": "2026-10-01T19:18:00Z",
+              "state": "restricted",
+              "summary": "Повторно сообщено, что движение метро и наземного общественного транспорта остановлено.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7744",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7748-south",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "По переданной информации правоохранителей мост полностью перекрыт для транспорта с обеих сторон.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7751",
+              "reported_at": "2026-10-02T11:50:00Z",
+              "kind": "forecast",
+              "summary": "Готовность возобновить метро после экспертного заключения. Это условие будущего восстановления, а не сообщение о его завершении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7751",
+              "provenance": "official"
+            },
+            {
+              "id": "klitschko-7752",
+              "reported_at": "2026-10-02T14:50:00Z",
+              "state": "restricted",
+              "summary": "Сообщено, что мост по-прежнему закрыт для автотранспорта и метро.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7752",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "metro-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Метро",
+          "area": "Одна полоса с левого на правый берег",
+          "display_state": "unknown",
+          "last_reported_state": "partial",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 64.1,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 64.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-metro",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "partial",
+              "summary": "Сообщено о частичном ограничении движения одной полосой в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "paton-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Патона",
+          "area": "Направление с правого на левый берег",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 64.1,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 64.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-paton",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о полном ограничении движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        }
+      ],
+      "counts": {
+        "total": 5,
+        "restored": 0,
+        "unclosed": 5,
+        "unknown": 4,
+        "fresh_restrictions": 1
+      },
+      "recovery_reports": []
+    },
+    "2026-10-05": {
+      "at": "2026-10-05T20:59:59Z",
+      "episodes": [
+        {
+          "id": "desniansky-hot-water-20261004",
+          "service": "water_heat",
+          "title": "Горячая вода в Деснянском районе",
+          "area": "Деснянский район; число затронутых домов не сообщено",
+          "display_state": "unknown",
+          "last_reported_state": "announced",
+          "last_reported_at": "2026-10-04T08:02:00Z",
+          "first_reported_at": "2026-10-04T08:02:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 37.0,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 37.0,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7762",
+              "reported_at": "2026-10-04T08:02:00Z",
+              "state": "announced",
+              "summary": "Объявлено временное отсутствие горячей воды из-за повреждения тепломагистрали. Сообщения о завершении ремонта в выборке нет.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7762",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "north-bridge-20261003",
+          "service": "mobility",
+          "title": "Движение по Северному мосту",
+          "area": "Направление с левого на правый берег",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-03T04:39:00Z",
+          "first_reported_at": "2026-10-03T04:39:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 64.3,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 64.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7756",
+              "reported_at": "2026-10-03T04:39:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о перекрытии движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7756",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "south-bridge-20261001",
+          "service": "mobility",
+          "title": "Движение по Южному мосту",
+          "area": "Южный мост; виды движения указаны в сообщениях",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T14:50:00Z",
+          "first_reported_at": "2026-10-01T09:41:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 78.2,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 107.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7740",
+              "reported_at": "2026-10-01T09:41:00Z",
+              "state": "restricted",
+              "summary": "Сообщено об остановке метро и наземного общественного транспорта по мосту.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7740",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7744",
+              "reported_at": "2026-10-01T19:18:00Z",
+              "state": "restricted",
+              "summary": "Повторно сообщено, что движение метро и наземного общественного транспорта остановлено.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7744",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7748-south",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "По переданной информации правоохранителей мост полностью перекрыт для транспорта с обеих сторон.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7751",
+              "reported_at": "2026-10-02T11:50:00Z",
+              "kind": "forecast",
+              "summary": "Готовность возобновить метро после экспертного заключения. Это условие будущего восстановления, а не сообщение о его завершении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7751",
+              "provenance": "official"
+            },
+            {
+              "id": "klitschko-7752",
+              "reported_at": "2026-10-02T14:50:00Z",
+              "state": "restricted",
+              "summary": "Сообщено, что мост по-прежнему закрыт для автотранспорта и метро.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7752",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "metro-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Метро",
+          "area": "Одна полоса с левого на правый берег",
+          "display_state": "unknown",
+          "last_reported_state": "partial",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 88.1,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 88.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-metro",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "partial",
+              "summary": "Сообщено о частичном ограничении движения одной полосой в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "paton-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Патона",
+          "area": "Направление с правого на левый берег",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 88.1,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 88.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-paton",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о полном ограничении движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        }
+      ],
+      "counts": {
+        "total": 5,
+        "restored": 0,
+        "unclosed": 5,
+        "unknown": 5,
+        "fresh_restrictions": 0
+      },
+      "recovery_reports": [
+        {
+          "id": "dtek-4565-kyiv",
+          "service": "power",
+          "reported_at": "2026-10-05T10:36:00Z",
+          "area": "Киев, город",
+          "period_label": "За прошлую неделю, по сообщению 5 октября",
+          "value": 300,
+          "unit": "семей",
+          "summary": "ДТЭК сообщил о восстановлении электроснабжения для 300 семей Киева за прошлую неделю. Не определяет время конкретных перебоев или долю всего города.",
+          "source_name": "ДТЭК",
+          "source_url": "https://t.me/dtek_ua/4565",
+          "provenance": "official"
+        }
+      ]
+    },
+    "2026-10-06": {
+      "at": "2026-10-06T05:08:35Z",
+      "episodes": [
+        {
+          "id": "desniansky-hot-water-20261004",
+          "service": "water_heat",
+          "title": "Горячая вода в Деснянском районе",
+          "area": "Деснянский район; число затронутых домов не сообщено",
+          "display_state": "unknown",
+          "last_reported_state": "announced",
+          "last_reported_at": "2026-10-04T08:02:00Z",
+          "first_reported_at": "2026-10-04T08:02:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 45.1,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 45.1,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7762",
+              "reported_at": "2026-10-04T08:02:00Z",
+              "state": "announced",
+              "summary": "Объявлено временное отсутствие горячей воды из-за повреждения тепломагистрали. Сообщения о завершении ремонта в выборке нет.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7762",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "north-bridge-20261003",
+          "service": "mobility",
+          "title": "Движение по Северному мосту",
+          "area": "Направление с левого на правый берег",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-03T04:39:00Z",
+          "first_reported_at": "2026-10-03T04:39:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 72.5,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 72.5,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7756",
+              "reported_at": "2026-10-03T04:39:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о перекрытии движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7756",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "south-bridge-20261001",
+          "service": "mobility",
+          "title": "Движение по Южному мосту",
+          "area": "Южный мост; виды движения указаны в сообщениях",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T14:50:00Z",
+          "first_reported_at": "2026-10-01T09:41:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 86.3,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 115.5,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7740",
+              "reported_at": "2026-10-01T09:41:00Z",
+              "state": "restricted",
+              "summary": "Сообщено об остановке метро и наземного общественного транспорта по мосту.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7740",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7744",
+              "reported_at": "2026-10-01T19:18:00Z",
+              "state": "restricted",
+              "summary": "Повторно сообщено, что движение метро и наземного общественного транспорта остановлено.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7744",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7748-south",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "По переданной информации правоохранителей мост полностью перекрыт для транспорта с обеих сторон.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            },
+            {
+              "id": "klitschko-7751",
+              "reported_at": "2026-10-02T11:50:00Z",
+              "kind": "forecast",
+              "summary": "Готовность возобновить метро после экспертного заключения. Это условие будущего восстановления, а не сообщение о его завершении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7751",
+              "provenance": "official"
+            },
+            {
+              "id": "klitschko-7752",
+              "reported_at": "2026-10-02T14:50:00Z",
+              "state": "restricted",
+              "summary": "Сообщено, что мост по-прежнему закрыт для автотранспорта и метро.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7752",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "metro-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Метро",
+          "area": "Одна полоса с левого на правый берег",
+          "display_state": "unknown",
+          "last_reported_state": "partial",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 96.3,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 96.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-metro",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "partial",
+              "summary": "Сообщено о частичном ограничении движения одной полосой в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        },
+        {
+          "id": "paton-bridge-20261002",
+          "service": "mobility",
+          "title": "Ограничение на мосту Патона",
+          "area": "Направление с правого на левый берег",
+          "display_state": "unknown",
+          "last_reported_state": "restricted",
+          "last_reported_at": "2026-10-02T04:51:00Z",
+          "first_reported_at": "2026-10-02T04:51:00Z",
+          "started_at": null,
+          "restored_at": null,
+          "restoration_reported_at": null,
+          "age_hours": 96.3,
+          "stale": true,
+          "closed": false,
+          "duration_hours": null,
+          "duration_kind": "unknown",
+          "since_first_report_hours": 96.3,
+          "provenance": "official",
+          "updates": [
+            {
+              "id": "klitschko-7748-paton",
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о полном ограничении движения в указанном направлении.",
+              "source_name": "Виталий Кличко",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "provenance": "official",
+              "kind": "state"
+            }
+          ],
+          "fresh_hours": 24
+        }
+      ],
+      "counts": {
+        "total": 5,
+        "restored": 0,
+        "unclosed": 5,
+        "unknown": 5,
+        "fresh_restrictions": 0
+      },
+      "recovery_reports": [
+        {
+          "id": "dtek-4565-kyiv",
+          "service": "power",
+          "reported_at": "2026-10-05T10:36:00Z",
+          "area": "Киев, город",
+          "period_label": "За прошлую неделю, по сообщению 5 октября",
+          "value": 300,
+          "unit": "семей",
+          "summary": "ДТЭК сообщил о восстановлении электроснабжения для 300 семей Киева за прошлую неделю. Не определяет время конкретных перебоев или долю всего города.",
+          "source_name": "ДТЭК",
+          "source_url": "https://t.me/dtek_ua/4565",
+          "provenance": "official"
+        }
+      ]
+    }
+  },
+  "indicators": {
+    "traffic": [
+      {
+        "at": "2026-10-04T14:31:00Z",
+        "corridor": "north",
+        "travel_min": 17.1,
+        "delay_min": 0.0,
+        "km": 10.4,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-04T14:31:00Z",
+        "corridor": "center",
+        "travel_min": 20.5,
+        "delay_min": 0.0,
+        "km": 11.6,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-04T14:31:00Z",
+        "corridor": "south",
+        "travel_min": 13.5,
+        "delay_min": 0.0,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-04T21:14:00Z",
+        "corridor": "north",
+        "travel_min": 14.2,
+        "delay_min": 0.0,
+        "km": 11.4,
+        "route_changed": true,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-04T21:14:00Z",
+        "corridor": "center",
+        "travel_min": 18.2,
+        "delay_min": 0.0,
+        "km": 11.6,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-04T21:14:00Z",
+        "corridor": "south",
+        "travel_min": 11.9,
+        "delay_min": 0.0,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T02:14:00Z",
+        "corridor": "north",
+        "travel_min": 14.5,
+        "delay_min": 0.0,
+        "km": 11.4,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T02:14:00Z",
+        "corridor": "center",
+        "travel_min": 18.5,
+        "delay_min": 0.0,
+        "km": 11.6,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T02:14:00Z",
+        "corridor": "south",
+        "travel_min": 12.1,
+        "delay_min": 0.0,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T03:26:00Z",
+        "corridor": "north",
+        "travel_min": 16.3,
+        "delay_min": 0.0,
+        "km": 11.4,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T03:26:00Z",
+        "corridor": "center",
+        "travel_min": 20.6,
+        "delay_min": 0.0,
+        "km": 11.4,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T03:26:00Z",
+        "corridor": "south",
+        "travel_min": 12.8,
+        "delay_min": 0.0,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T05:16:00Z",
+        "corridor": "north",
+        "travel_min": 22.2,
+        "delay_min": 0.0,
+        "km": 10.4,
+        "route_changed": true,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T05:16:00Z",
+        "corridor": "center",
+        "travel_min": 31.6,
+        "delay_min": 0.0,
+        "km": 11.4,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T05:16:00Z",
+        "corridor": "south",
+        "travel_min": 18.5,
+        "delay_min": 0.0,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T08:32:00Z",
+        "corridor": "north",
+        "travel_min": 16.4,
+        "delay_min": 0.0,
+        "km": 10.4,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T08:32:00Z",
+        "corridor": "center",
+        "travel_min": 21.4,
+        "delay_min": 0.0,
+        "km": 11.4,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T08:32:00Z",
+        "corridor": "south",
+        "travel_min": 13.7,
+        "delay_min": 0.0,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "legacy"
+      },
+      {
+        "at": "2026-10-05T15:40:00Z",
+        "corridor": "north",
+        "travel_min": 18.3,
+        "delay_min": 3.6,
+        "km": 10.4,
+        "route_changed": false,
+        "delay_method": "v3"
+      },
+      {
+        "at": "2026-10-05T15:40:00Z",
+        "corridor": "center",
+        "travel_min": 25.9,
+        "delay_min": 4.1,
+        "km": 14.0,
+        "route_changed": true,
+        "delay_method": "v3"
+      },
+      {
+        "at": "2026-10-05T15:40:00Z",
+        "corridor": "south",
+        "travel_min": 14.1,
+        "delay_min": 2.2,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "v3"
+      },
+      {
+        "at": "2026-10-06T00:15:00Z",
+        "corridor": "north",
+        "travel_min": 14.2,
+        "delay_min": 0.0,
+        "km": 11.4,
+        "route_changed": true,
+        "delay_method": "v3"
+      },
+      {
+        "at": "2026-10-06T00:15:00Z",
+        "corridor": "center",
+        "travel_min": 18.2,
+        "delay_min": 0.0,
+        "km": 11.6,
+        "route_changed": true,
+        "delay_method": "v3"
+      },
+      {
+        "at": "2026-10-06T00:15:00Z",
+        "corridor": "south",
+        "travel_min": 11.9,
+        "delay_min": 0.0,
+        "km": 11.0,
+        "route_changed": false,
+        "delay_method": "v3"
+      }
+    ],
+    "uz": [
+      {
+        "at": "2026-10-05T15:40:00Z",
+        "ok": true,
+        "ukraine_trains": 90,
+        "ukraine_delay_min": 6825,
+        "kyiv_rows": 4,
+        "kyiv_delay_min": 276
+      },
+      {
+        "at": "2026-10-06T00:16:00Z",
+        "ok": true,
+        "ukraine_trains": 397,
+        "ukraine_delay_min": 25979,
+        "kyiv_rows": 9,
+        "kyiv_delay_min": 596
+      }
+    ],
+    "rent": [
+      {
+        "date": "2026-10-04",
+        "at": null,
+        "in_window": true,
+        "comparable": false,
+        "total": 7420,
+        "left": 1296,
+        "right": 5160
+      },
+      {
+        "date": "2026-10-04",
+        "at": null,
+        "in_window": true,
+        "comparable": false,
+        "total": 7425,
+        "left": 1295,
+        "right": 5165
+      },
+      {
+        "date": "2026-10-04",
+        "at": null,
+        "in_window": true,
+        "comparable": false,
+        "total": 7432,
+        "left": 1297,
+        "right": 5170
+      },
+      {
+        "date": "2026-10-05",
+        "at": null,
+        "in_window": false,
+        "comparable": false,
+        "total": 7262,
+        "left": 1254,
+        "right": 5057
+      }
+    ],
+    "food": {
+      "status": "legacy",
+      "label": "Старая схема: успешность не отмечена",
+      "categories": 16,
+      "successful": null,
+      "failed": null,
+      "updated_at": null,
+      "date": "2026-10-05",
+      "note": "Счётчики HTML не измеряют физические полки. Novus и Metro используют одну платформу. Фиксированная корзина ещё не собрана."
+    },
+    "collection": {
+      "at": "2026-10-06T00:15:59.456283+00:00",
+      "channels": 11,
+      "new_posts": 163,
+      "saved_posts": 119
+    }
+  },
+  "scenarios": [
+    {
+      "id": "restored",
+      "title": "Восстановление подтверждено",
+      "explanation": "Эпизод завершён. Длительность 8 часов установлена из точных времён источника.",
+      "episode": {
+        "id": "scenario-water",
+        "service": "water_heat",
+        "title": "Учебный эпизод: вода",
+        "area": "Условная территория",
+        "display_state": "restored",
+        "last_reported_state": "restored",
+        "last_reported_at": "2026-10-01T14:10:00Z",
+        "first_reported_at": "2026-10-01T06:00:00Z",
+        "started_at": "2026-10-01T06:00:00Z",
+        "restored_at": "2026-10-01T14:00:00Z",
+        "restoration_reported_at": "2026-10-01T14:10:00Z",
+        "age_hours": 0.8,
+        "stale": false,
+        "closed": true,
+        "duration_hours": 8.0,
+        "duration_kind": "exact",
+        "since_first_report_hours": 9.0,
+        "provenance": "scenario",
+        "updates": [
+          {
+            "id": "begin",
+            "state": "restricted",
+            "reported_at": "2026-10-01T06:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+            "occurred_at": "2026-10-01T06:00:00Z"
+          },
+          {
+            "id": "end",
+            "state": "restored",
+            "reported_at": "2026-10-01T14:10:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+            "occurred_at": "2026-10-01T14:00:00Z"
+          }
+        ],
+        "fresh_hours": 24
+      },
+      "at": "2026-10-01T15:00:00Z"
+    },
+    {
+      "id": "reserve",
+      "title": "Услуга работает через резерв",
+      "explanation": "Функция доступна через резерв. Обычный режим ещё не подтверждён; эпизод не закрывается.",
+      "episode": {
+        "id": "scenario-water",
+        "service": "water_heat",
+        "title": "Учебный эпизод: вода",
+        "area": "Условная территория",
+        "display_state": "reserve",
+        "last_reported_state": "reserve",
+        "last_reported_at": "2026-10-01T08:00:00Z",
+        "first_reported_at": "2026-10-01T06:00:00Z",
+        "started_at": "2026-10-01T06:00:00Z",
+        "restored_at": null,
+        "restoration_reported_at": null,
+        "age_hours": 2.0,
+        "stale": false,
+        "closed": false,
+        "duration_hours": null,
+        "duration_kind": "unknown",
+        "since_first_report_hours": 4.0,
+        "provenance": "scenario",
+        "updates": [
+          {
+            "id": "begin",
+            "state": "restricted",
+            "reported_at": "2026-10-01T06:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+            "occurred_at": "2026-10-01T06:00:00Z"
+          },
+          {
+            "id": "reserve",
+            "state": "reserve",
+            "reported_at": "2026-10-01T08:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве."
+          }
+        ],
+        "fresh_hours": 24
+      },
+      "at": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "silence",
+      "title": "Источник замолчал",
+      "explanation": "Истории перебоя 48 часов. Текущее состояние неизвестно; длительность самого перебоя не равна 48 часам.",
+      "episode": {
+        "id": "scenario-water",
+        "service": "water_heat",
+        "title": "Учебный эпизод: вода",
+        "area": "Условная территория",
+        "display_state": "unknown",
+        "last_reported_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "first_reported_at": "2026-10-01T06:00:00Z",
+        "started_at": "2026-10-01T06:00:00Z",
+        "restored_at": null,
+        "restoration_reported_at": null,
+        "age_hours": 48.0,
+        "stale": true,
+        "closed": false,
+        "duration_hours": null,
+        "duration_kind": "unknown",
+        "since_first_report_hours": 48.0,
+        "provenance": "scenario",
+        "updates": [
+          {
+            "id": "begin",
+            "state": "restricted",
+            "reported_at": "2026-10-01T06:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+            "occurred_at": "2026-10-01T06:00:00Z"
+          }
+        ],
+        "fresh_hours": 24
+      },
+      "at": "2026-10-03T06:00:00Z"
+    },
+    {
+      "id": "partial",
+      "title": "Восстановлено частично",
+      "explanation": "Частичная доступность не считается полным восстановлением.",
+      "episode": {
+        "id": "scenario-water",
+        "service": "water_heat",
+        "title": "Учебный эпизод: вода",
+        "area": "Условная территория",
+        "display_state": "partial",
+        "last_reported_state": "partial",
+        "last_reported_at": "2026-10-01T10:00:00Z",
+        "first_reported_at": "2026-10-01T06:00:00Z",
+        "started_at": "2026-10-01T06:00:00Z",
+        "restored_at": null,
+        "restoration_reported_at": null,
+        "age_hours": 2.0,
+        "stale": false,
+        "closed": false,
+        "duration_hours": null,
+        "duration_kind": "unknown",
+        "since_first_report_hours": 6.0,
+        "provenance": "scenario",
+        "updates": [
+          {
+            "id": "begin",
+            "state": "restricted",
+            "reported_at": "2026-10-01T06:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+            "occurred_at": "2026-10-01T06:00:00Z"
+          },
+          {
+            "id": "partial",
+            "state": "partial",
+            "reported_at": "2026-10-01T10:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве."
+          }
+        ],
+        "fresh_hours": 24
+      },
+      "at": "2026-10-01T12:00:00Z"
+    },
+    {
+      "id": "promise",
+      "title": "Обещали восстановить",
+      "explanation": "Обещанный срок не меняет состояние услуги и не завершает эпизод.",
+      "episode": {
+        "id": "scenario-water",
+        "service": "water_heat",
+        "title": "Учебный эпизод: вода",
+        "area": "Условная территория",
+        "display_state": "restricted",
+        "last_reported_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "first_reported_at": "2026-10-01T06:00:00Z",
+        "started_at": "2026-10-01T06:00:00Z",
+        "restored_at": null,
+        "restoration_reported_at": null,
+        "age_hours": 8.0,
+        "stale": false,
+        "closed": false,
+        "duration_hours": null,
+        "duration_kind": "unknown",
+        "since_first_report_hours": 8.0,
+        "provenance": "scenario",
+        "updates": [
+          {
+            "id": "begin",
+            "state": "restricted",
+            "reported_at": "2026-10-01T06:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+            "occurred_at": "2026-10-01T06:00:00Z"
+          },
+          {
+            "id": "promise",
+            "state": null,
+            "reported_at": "2026-10-01T10:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "forecast",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве."
+          }
+        ],
+        "fresh_hours": 24
+      },
+      "at": "2026-10-01T14:00:00Z"
+    },
+    {
+      "id": "duplicate",
+      "title": "Повторили одно сообщение",
+      "explanation": "Повтор с тем же идентификатором не создаёт новое событие: в истории остаётся одно сообщение.",
+      "episode": {
+        "id": "scenario-water",
+        "service": "water_heat",
+        "title": "Учебный эпизод: вода",
+        "area": "Условная территория",
+        "display_state": "restricted",
+        "last_reported_state": "restricted",
+        "last_reported_at": "2026-10-01T06:00:00Z",
+        "first_reported_at": "2026-10-01T06:00:00Z",
+        "started_at": "2026-10-01T06:00:00Z",
+        "restored_at": null,
+        "restoration_reported_at": null,
+        "age_hours": 2.0,
+        "stale": false,
+        "closed": false,
+        "duration_hours": null,
+        "duration_kind": "unknown",
+        "since_first_report_hours": 2.0,
+        "provenance": "scenario",
+        "updates": [
+          {
+            "id": "begin",
+            "state": "restricted",
+            "reported_at": "2026-10-01T06:00:00Z",
+            "provenance": "scenario",
+            "source_name": "Учебный источник",
+            "source_url": null,
+            "kind": "state",
+            "summary": "Демонстрационное сообщение — не сведения о Киеве.",
+            "occurred_at": "2026-10-01T06:00:00Z"
+          }
+        ],
+        "fresh_hours": 24
+      },
+      "at": "2026-10-01T08:00:00Z"
+    }
+  ]
+}
