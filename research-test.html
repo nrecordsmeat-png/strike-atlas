@@ -15,11 +15,55 @@
   <nav class="sitenav" aria-label="Разделы сайта"><a href="./">Обзор</a><a href="map.html">Карта</a><a href="data.html">Данные</a><a href="metodika.html">Методика</a></nav>
  </header>
  <section class="research-intro">
-  <div class="eyebrow">РЕЗУЛЬТАТ ИССЛЕДОВАНИЯ · 6 ОКТЯБРЯ 2026</div>
+  <div class="eyebrow">ИССЛЕДОВАНИЕ ГОРОДСКИХ ФУНКЦИЙ · ТЕСТ · 7 ОКТЯБРЯ 2026</div>
   <h2>Как атаки меняют жизнь города</h2>
-  <p>Сопоставляем учтённые поездки, наблюдения связи и официально описанные нарушения услуг. Важно увидеть не только падение активности, но и то, какие функции потеряны, что заменено резервом и что удалось восстановить.</p>
-  <p class="minor">Это разбор трёх выбранных эпизодов. Общая доля ущерба городу и причинный эффект на пассажиропоток пока не оценены. Сохранённый срез источников: <span id="research-asof">загрузка…</span>.</p>
+  <p>Смотрим, что город теряет из-за атак: тепло и воду, медицинские и учебные услуги, возможность работать, снабжение и перемещения. Для каждой функции различаем доступность, фактически полученные услуги и ресурсы, потраченные на их сохранение.</p>
+  <p><strong>Возврат к уровню предыдущих военных недель не означает, что ущерб исчез.</strong> Этот уровень сам может быть снижен прежними ударами. Поэтому повторные потери, накопленные повреждения и работу через резерв показываем отдельно.</p>
+  <p class="minor">Исторические наблюдения с разными датами и охватом. Общая доля ущерба городской жизни пока не оценена. Транспортный разбор сохранён ниже: срез <span id="research-asof">загрузка…</span>.</p>
  </section>
+ <nav class="research-jump" aria-label="Содержание исследования"><a href="#city-functions">Что уже измерено</a><a href="#heat-impact">Тепло и вода</a><a href="#medicine-use">Получение лекарств</a><a href="#education-impact">Образование</a><a href="#effect-method">Как оценивать эффект</a><a href="#transport-episodes">Транспортные эпизоды</a></nav>
+ <div id="city-functions-error" class="info-strip" role="alert" hidden></div>
+ <article id="city-functions-content" hidden>
+  <section id="city-functions" class="research-panel">
+   <div class="section-head"><div><h2>Что уже видно помимо транспорта</h2><p class="minor">Срез исследования: <span id="city-functions-asof"></span>. Это последствия и использование конкретных функций, не процент «жизни города».</p></div></div>
+   <div id="city-function-results" class="research-metrics"></div>
+   <div id="city-function-coverage" class="table-wrap"></div>
+  </section>
+  <section id="heat-impact" class="research-panel">
+   <div class="section-head"><div><h2>Отопление: восстановление снова прерывают атаки</h2><p class="minor">Киев · 9–30 января 2026 · число домов без отопления по официальным сообщениям</p></div></div>
+   <p id="heat-conclusion"></p><div id="heat-impact-chart" class="research-plot"></div>
+   <p class="research-legend"><span class="legend-line actual"></span>После 9 января <span class="legend-line" style="border-color:var(--amber)"></span>После 20 января <span class="legend-line" style="border-color:var(--red)"></span>После 24 января</p>
+   <p class="minor">Точки — отдельные сообщения. Линию между ними не строим: непрерывного наблюдения домов нет. ≈ означает приблизительное число, &gt; и &lt; — границу, названную источником. Красные отметки — даты трёх атак. Для 19 января известна только дата сведения, опубликованного 20 января.</p>
+   <div id="water-impact-facts" class="research-functions"></div>
+   <h3>Цена восстановления и сохранения услуг</h3><div id="recovery-resources" class="research-functions"></div>
+   <p class="minor">Выплаченная сумма — один компонент расходов. Отдельно нужны топливо, материалы, часы работы, затраты жителей и предприятий. Дополнительная стоимость именно атак пока не отделена от остальных расходов.</p>
+   <p class="info-strip">Повторные отключения могут затрагивать те же дома. Их нельзя сложить в число уникальных пострадавших. Дома не равны людям; разница между сообщениями не даёт домо-часы без отопления. Это исторический разбор, состояние сегодня неизвестно.</p>
+   <details><summary>Все 20 сообщений о домах без отопления и источники</summary><div id="heat-impact-table" class="table-wrap"></div></details>
+  </section>
+  <section id="medicine-use" class="research-panel">
+   <div class="section-head"><div><h2>Получение лекарств: фактическое использование услуги</h2><p class="minor">НСЗУ [официально] · погашенные рецепты программы «Доступні ліки» в аптеках города Киева · область исключена</p></div></div>
+   <p id="medicine-observed-change"></p>
+   <div class="medicine-controls"><label>Год <select id="medicine-year" class="filter-select"></select></label><label>Группа лекарств <select id="medicine-group" class="filter-select"></select></label></div>
+   <div id="medicine-use-chart" class="research-plot"></div><p id="medicine-use-note" class="minor"></p>
+   <div id="medicine-use-table" class="table-wrap"></div>
+   <div id="medicine-use-limits" class="research-method"></div>
+   <h3>Услуга может продолжаться ценой резерва</h3><div id="medicine-reserve-facts" class="research-functions"></div>
+   <p class="minor">Число котельных и центров приёма показывает способ поддержания функции. Потраченные деньги, топливо, дополнительные поездки и объём отменённой помощи пока неизвестны.</p>
+  </section>
+  <section id="education-impact" class="research-panel">
+   <div class="section-head"><div><h2>Образование: повреждения, формат и приспособление</h2><p class="minor">Сведения КМДА и департамента образования [официально]. Каждый показатель относится к своему периоду.</p></div></div>
+   <div id="education-impact-facts" class="research-functions"></div>
+   <p>Рост очного формата связан в сообщении с переоборудованием укрытий. Занятия в укрытии и дистанционное обучение могут сохранять функцию при изменившихся условиях. Для оценки потери обучения нужны проведённые и отменённые ученико-часы и качество занятий.</p>
+   <p class="info-strip">310 повреждавшихся заведений — накопленный факт повреждений, а не 310 закрытых учреждений. 85 за май–июль входят в более широкий период: числа не складываются. 51% очного обучения не означает 51% сохранённой образовательной функции.</p>
+  </section>
+  <section id="effect-method" class="research-panel">
+   <div class="section-head"><h2>Как от этих данных перейти к эффекту бомбардировок</h2></div>
+   <div id="city-effect-method" class="research-method"></div>
+   <div id="city-source-audit" class="table-wrap"></div>
+   <p class="research-links"><a href="https://github.com/nrecordsmeat-png/uk-monitor/blob/main/docs/city_functions_research.md">Полный протокол, проверка источников и воспроизведение расчётов ↗</a></p>
+  </section>
+ </article>
+ <section id="transport-episodes" class="research-intro"><h2>Транспорт и связь: три отдельных эпизода</h2><p>Расчёт поездок — один компонент исследования. Прогноз недавней военной активности не заменяет оценку общей потери функций, накопленного ущерба и стоимости адаптации.</p></section>
  <nav id="research-picker" class="research-picker" aria-label="Выбор эпизода"></nav>
  <div id="research-error" class="info-strip" role="alert" hidden></div>
  <article id="research-content" hidden>
@@ -81,5 +125,6 @@
  <footer class="foot"><span>Экспериментальный разбор · данные не обновляются в реальном времени</span><a href="./#activity">К обзору активности</a></footer>
 </main>
 <script type="module" src="research.js"></script>
+<script type="module" src="city-functions.js"></script>
 </body>
 </html>
