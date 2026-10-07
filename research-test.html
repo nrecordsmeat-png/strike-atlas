@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Как атаки меняют жизнь Киева · разбор эпизодов</title>
+<link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="research.css">
+</head>
+<body>
+<main class="shell">
+ <header class="top">
+  <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">исследование · тест</span></h1><div class="minor">Последствия атак · использование · ограничения · адаптация</div></div></div>
+  <nav class="sitenav" aria-label="Разделы сайта"><a href="./">Обзор</a><a href="map.html">Карта</a><a href="data.html">Данные</a><a href="metodika.html">Методика</a></nav>
+ </header>
+ <section class="research-intro">
+  <div class="eyebrow">РЕЗУЛЬТАТ ИССЛЕДОВАНИЯ · 6 ОКТЯБРЯ 2026</div>
+  <h2>Как атаки меняют жизнь города</h2>
+  <p>Сопоставляем учтённые поездки, наблюдения связи и официально описанные нарушения услуг. Важно увидеть не только падение активности, но и то, какие функции потеряны, что заменено резервом и что удалось восстановить.</p>
+  <p class="minor">Это разбор трёх выбранных эпизодов. Общая доля ущерба городу и причинный эффект на пассажиропоток пока не оценены. Сохранённый срез источников: <span id="research-asof">загрузка…</span>.</p>
+ </section>
+ <nav id="research-picker" class="research-picker" aria-label="Выбор эпизода"></nav>
+ <div id="research-error" class="info-strip" role="alert" hidden></div>
+ <article id="research-content" hidden>
+  <section class="research-result" aria-live="polite">
+   <div class="eyebrow" id="episode-period"></div><h2 id="episode-title"></h2>
+   <p id="episode-conclusion"></p><p class="minor" id="episode-limits"></p>
+  </section>
+  <div id="research-metrics" class="research-metrics"></div>
+  <section class="research-panel">
+   <div class="section-head"><div><h2>Что произошло с поездками</h2><p class="minor" id="rides-note"></p></div></div>
+   <div id="rides-chart" class="research-plot"></div>
+   <p class="research-legend"><span class="legend-line actual"></span>Учтённые поездки <span class="legend-line predicted"></span>Прогноз по данным до эпизода</p>
+   <p id="rides-reading" class="minor"></p>
+   <div id="period-table" class="table-wrap"></div>
+  </section>
+  <section class="research-panel">
+   <div class="section-head"><div><h2>Какие функции были нарушены</h2><p class="minor">Официальные сообщения [официально]. Хронология конкретных услуг и резервных способов.</p></div></div>
+   <div id="function-cards" class="research-functions"></div>
+   <p class="info-strip">Время ниже — время публикации сообщения. Разница между публикациями не равна длительности перебоя. Точное начало, длительность, число затронутых жителей и затраты неизвестны. Отсутствие нового сообщения не подтверждает восстановление или продолжающийся сбой сегодня.</p>
+  </section>
+  <section class="research-panel">
+   <div class="section-head"><div><h2>Что видно в наблюдениях связи</h2><p class="minor">IODA · географическая группа «Kiev City», код 4377 · область не включена в эту группу.</p></div><label class="minor">База <select id="network-base" class="filter-select"><option value="4">4 недели до эпизода</option><option value="8">8 недель до эпизода</option></select></label></div>
+   <div class="research-network-plots"><div><h3>Активные ответы наблюдаемых сетей</h3><div id="ping-chart" class="research-plot"></div></div><div><h3>Видимость сетевых маршрутов BGP</h3><div id="bgp-chart" class="research-plot"></div></div></div>
+   <p class="minor">100 — медиана для того же дня недели и времени суток в выбранной базе. Индекс относится к измеряемому сигналу. Например, 95 не означает, что интернет есть у 95% жителей. BGP и активные пробы — разные сигналы одной измерительной системы; изменение не устанавливает его причину.</p>
+  </section>
+  <section class="research-panel">
+   <div class="section-head"><div><h2>Время тревог в сохранённой истории</h2><p class="minor">Контекст ограничений · одноразовый архив Kyiv Digital</p></div></div>
+   <div id="alert-chart" class="research-plot"></div>
+   <p class="minor" id="alert-clock-note"></p>
+   <p class="minor">Тревога может быть частью механизма влияния атаки на поездки. В прогнозе мы не «вычитаем» её как посторонний фактор.</p>
+  </section>
+  <section class="research-panel" id="comparison-method">
+   <div class="section-head"><h2>Как проверено сравнение</h2></div>
+   <div class="research-method">
+    <p><strong>Отклонение = (фактические поездки / прогноз − 1) × 100%.</strong> Для периода делим сумму поездок на сумму прогнозных значений. Пропуск остаётся пропуском; неполная неделя не получает недельный результат.</p>
+    <p>Сравниваем шесть способов: медиану 4 и 8 недель, день недели с текущим трендом за 56 дней, сезонный ряд за 365 дней и варианты этих моделей с погодой. Каждый способ проверяем на 12 предыдущих неделях: перед каждым окном используем только более ранние поездки. Выбираем способ с наименьшей средней абсолютной ошибкой недельного прогноза до эпизода. Таблица показывает все варианты.</p>
+    <p>Для дневного или четырёхдневного результата показываем ошибку прогноза такой же длины в предыдущих окнах. Средняя ошибка и диапазон прошлых ошибок — ориентир масштаба обычного разброса, а не доверительный интервал причинного эффекта.</p>
+    <p>Расчёт выполнен ретроспективно 6 октября. Погодные варианты используют фактическую погоду из ERA5, модельного погодного архива. Правила выбраны в ходе исследования, не зарегистрированы заранее. Во всех базах есть военный период и другие атаки; это прогноз недавней наблюдаемой активности, а не доказанная траектория без бомбардировок.</p>
+   </div>
+   <div id="model-table" class="table-wrap"></div>
+  </section>
+ </article>
+ <section class="research-panel">
+  <div class="section-head"><h2>Как это связано с историческим исследованием</h2></div>
+  <div class="research-method">
+   <p>В разборе RAF по Ковентри измеряли провал работы предприятий и время восстановления. Послевоенный British Bombing Survey Unit сравнивал выпуск в сильно бомбившихся и преимущественно нетронутых городах. Поэтому рост активности сам по себе не доказывает отсутствие потерь.</p>
+   <p>Для Киева переносим исследовательские вопросы: <strong>какая функция утрачена, насколько изменилось её использование, каким резервом её заменили и когда она вернулась</strong>. Готовую историческую формулу не переносим: воспроизводимых весов для наших данных в прочитанном источнике нет.</p>
+   <p>Здесь уже видны связанные с атаками нарушения конкретных услуг. Для причинной оценки общей активности нужны сопоставимые территории или группы с проверкой их прежней динамики, полная история воздействий и правила учёта повторных атак. Украинский ряд IODA включает Киев и другие атакуемые города; американский служит проверкой измерительной системы. Контрольной группой для города они не являются.</p>
+   <p>Возвращение поездок не гарантирует возвращения всех услуг: семейные врачи могут принимать в других центрах, пока специалисты и дневной стационар недоступны. Объём поездок, доступность и дополнительные расходы следует измерять отдельно.</p>
+  </div>
+  <p class="minor"><a href="https://www.raf.mod.uk/what-we-do/our-history/air-historical-branch/second-world-war-campaign-narratives/the-raf-in-the-bombing-offensive-against-germany-vol-vii-the-planning-of-the-bomber-offensive-and-its-contribution-to-german-collapse/">RAF, Vol. VII, с. 53–54</a> · <a href="https://warwick.ac.uk/fac/soc/economics/staff/mharrison/public/harrison_economic_warfare_september_2023.pdf">Mark Harrison, с. 11 PDF</a></p>
+ </section>
+ <section class="research-panel">
+  <div class="section-head"><h2>Источники и охват</h2></div>
+  <div id="source-table" class="table-wrap"></div>
+  <p class="minor">Автодорожные снимки TomTom начинаются после октябрьских ограничений: базы до них нет. Цены, объявления и число публикаций не измеряют продажи, посещаемость или доступность услуг. Они не добавлены в общий балл.</p>
+  <p class="research-links"><a href="research_data.json" download>Скачать агрегаты расчёта</a> · <a href="https://github.com/nrecordsmeat-png/uk-monitor/blob/main/docs/bombing_effects_phase2.md">Исследовательский отчёт и воспроизведение</a> · <a href="activity-test.html?view=show">Индекс поездок и его полное описание</a></p>
+ </section>
+ <footer class="foot"><span>Экспериментальный разбор · данные не обновляются в реальном времени</span><a href="./#activity">К обзору активности</a></footer>
+</main>
+<script type="module" src="research.js"></script>
+</body>
+</html>
