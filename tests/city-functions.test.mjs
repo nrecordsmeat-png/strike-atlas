@@ -53,6 +53,11 @@ test('heat uses isolated reports and qualifiers, without invented interpolation'
   assert.equal([...graph.matchAll(/class="event"/g)].length,3);
   assert.doesNotMatch(graph,/<polyline|NaN|undefined/);
   assert.match(graph,/&gt;|&lt;/);
+  const markers=[...graph.matchAll(/<line class="event" x1="([^"]+)"/g)].map(m=>Number(m[1]));
+  const points=[...graph.matchAll(/<circle cx="([^"]+)"/g)].map(m=>Number(m[1]));
+  data.heat.observations.forEach((r,i)=>assert.ok(points[i]>=markers[r.phase-1],`Report from phase ${r.phase} must follow the attack date`));
+  const previousEvening=data.heat.observations.findIndex(r=>r.observed_date==='2026-01-19');
+  assert.ok(points[previousEvening]<markers[1], 'Previous-evening observation must remain before the next attack day');
 });
 
 test('public source text and links are escaped',()=>{

@@ -4,7 +4,7 @@ const num = (x,digits=0) => finite(x) ? new Intl.NumberFormat('ru-RU',{maximumFr
 const safeURL = value => {try {const u=new URL(value);return u.protocol==='https:'?esc(u.href):'#';}catch{return '#';}};
 const date = value => new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Kyiv',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value));
 const qualifier = {exact:'',approximately:'≈ ',greater_than:'> ',less_than:'< '};
-const factValue = f => f.value === null ? '' : f.unit==='UAH' ? num(f.value/1000000)+' млн грн' : `${qualifier[f.qualifier] || ''}${num(f.value)}`;
+const factValue = f => f.value === null ? '' : f.unit==='UAH' ? num(f.value/1000000)+' млн грн' : `${qualifier[f.qualifier] || ''}${num(f.value)}${f.unit==='percent_of_school_students'?'%':''}`;
 
 export function checkCityFunctions(data) {
   if (data?.schema_version!==1 || data.method_version!=='city-functions-1' || data.overall_city_index!==null || data.causal_effect!==null || !data.as_of ||
@@ -30,16 +30,16 @@ function factCard(f, title=null) {
 
 export function heatPlot(rows, attacks) {
   const width=940,height=300,left=62,right=15,top=35,bottom=42;
-  const start=Date.parse('2026-01-08T00:00:00Z'),end=Date.parse('2026-01-31T00:00:00Z');
-  const x=day=>left+(Date.parse(day+'T12:00:00Z')-start)/(end-start)*(width-left-right);
+  const start=Date.parse('2026-01-08T00:00:00+02:00'),end=Date.parse('2026-01-31T00:00:00+02:00');
+  const position=stamp=>left+(stamp-start)/(end-start)*(width-left-right);
+  const x=day=>position(Date.parse(day+'T12:00:00+02:00'));
   const y=v=>top+(6500-v)/6500*(height-top-bottom);
   let out=`<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Число домов без отопления по сообщениям, январь 2026"><title>20 отдельных сообщений. Приближённые числа и границы обозначены. Между сообщениями наблюдений нет.</title>`;
   for(let v=0;v<=6000;v+=1500)out+=`<line class="grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text x="${left-8}" y="${y(v)+4}" text-anchor="end">${num(v)}</text>`;
-  attacks.forEach(a=>{out+=`<line class="event" x1="${x(a)}" x2="${x(a)}" y1="${top}" y2="${height-bottom}"/><text x="${x(a)+4}" y="${top-12}">Атака ${a.slice(8)}.01</text>`;});
+  attacks.forEach(a=>{const xx=position(Date.parse(a+'T00:00:00+02:00'));out+=`<line class="event" x1="${xx}" x2="${xx}" y1="${top}" y2="${height-bottom}"/><text x="${xx+4}" y="${top-12}">Атака ${a.slice(8)}.01</text>`;});
   rows.forEach(r=>{
     // Внутридневное положение соответствует времени публикации, а не времени отключения.
-    const fraction=r.observation_time_precision==='date_only'?0:(Number(r.reported_at.slice(11,13))+Number(r.reported_at.slice(14,16))/60-12)/24;
-    const xx=x(r.observed_date)+fraction*(width-left-right)/23,yy=y(r.value);
+    const xx=r.observation_time_precision==='date_only'?x(r.observed_date):position(Date.parse(r.reported_at)),yy=y(r.value);
     const color=['var(--blue)','var(--amber)','var(--red)'][r.phase-1];
     out+=`<circle cx="${xx}" cy="${yy}" r="4.5" fill="${r.qualifier==='exact'?color:'var(--paper)'}" stroke="${color}" stroke-width="2"><title>${esc(r.observed_date)}: ${esc(factValue(r))} домов без тепла. Фаза ${r.phase}; сведения источника.</title></circle>`;
     if(r.qualifier==='greater_than'||r.qualifier==='less_than')out+=`<text x="${xx+7}" y="${yy+3}">${r.qualifier==='greater_than'?'&gt;':'&lt;'}</text>`;
