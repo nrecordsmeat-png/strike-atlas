@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "source_commit": "931ac86af7f22b312eb351eb84b82e36be8504e7",
+  "collection_mode": "one_time_research_probes",
+  "as_of": "2026-10-06T18:12:04Z",
+  "sources": [
+    {
+      "label": "ioda-bgp-2026-06-01",
+      "entity_type": "region",
+      "entity_code": "4377",
+      "datasource": "bgp",
+      "start_local": "2026-06-01",
+      "end_local_exclusive": "2026-08-01",
+      "source_url": "https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/region/4377?from=1780261200&until=1785531600&datasource=bgp&maxPoints=20000",
+      "http_status": 200,
+      "sha256": "1e3be847b742fbd33d56809cd5e2d09f7826deaf667c86fdb6202dca6891c8e7",
+      "bytes": 106069,
+      "fetched_at_utc": "2026-10-06T18:11:57.230322+00:00",
+      "raw_file": "data/research/expanded/raw/1e3be847b742fbd33d56809cd5e2d09f7826deaf667c86fdb6202dca6891c8e7.json"
+    },
+    {
+      "label": "ioda-bgp-2026-08-01",
+      "entity_type": "region",
+      "entity_code": "4377",
+      "datasource": "bgp",
+      "start_local": "2026-08-01",
+      "end_local_exclusive": "2026-10-06",
+      "source_url": "https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/region/4377?from=1785531600&until=1791234000&datasource=bgp&maxPoints=20000",
+      "http_status": 200,
+      "sha256": "feb6689d0af5b207a161a4585b8743d51e6470e5c551ca6ec647a278acc60bca",
+      "bytes": 114709,
+      "fetched_at_utc": "2026-10-06T18:11:57.248166+00:00",
+      "raw_file": "data/research/expanded/raw/feb6689d0af5b207a161a4585b8743d51e6470e5c551ca6ec647a278acc60bca.json"
+    },
+    {
+      "label": "ioda-country-UA",
+      "entity_type": "country",
+      "entity_code": "UA",
+      "datasource": "ping-slash24",
+      "start_local": "2026-09-01",
+      "end_local_exclusive": "2026-10-06",
+      "source_url": "https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/country/UA?from=1788210000&until=1791234000&datasource=ping-slash24&maxPoints=10000",
+      "http_status": 200,
+      "sha256": "4bc9f56314e429779c79e651d97c6f8dbb17e4945a2eb5dc763073801a76a1f7",
+      "bytes": 30920,
+      "fetched_at_utc": "2026-10-06T18:12:03.583459+00:00",
+      "raw_file": "data/research/expanded/raw/4bc9f56314e429779c79e651d97c6f8dbb17e4945a2eb5dc763073801a76a1f7.json"
+    },
+    {
+      "label": "ioda-country-US",
+      "entity_type": "country",
+      "entity_code": "US",
+      "datasource": "ping-slash24",
+      "start_local": "2026-09-01",
+      "end_local_exclusive": "2026-10-06",
+      "source_url": "https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/country/US?from=1788210000&until=1791234000&datasource=ping-slash24&maxPoints=10000",
+      "http_status": 200,
+      "sha256": "7016da3989a0557ac3cab80a213c6a745c300aa168f19fd35c4b1160f8d9bb00",
+      "bytes": 35965,
+      "fetched_at_utc": "2026-10-06T18:12:03.516795+00:00",
+      "raw_file": "data/research/expanded/raw/7016da3989a0557ac3cab80a213c6a745c300aa168f19fd35c4b1160f8d9bb00.json"
+    },
+    {
+      "label": "ioda-ping-slash24-2026-06-01",
+      "entity_type": "region",
+      "entity_code": "4377",
+      "datasource": "ping-slash24",
+      "start_local": "2026-06-01",
+      "end_local_exclusive": "2026-08-01",
+      "source_url": "https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/region/4377?from=1780261200&until=1785531600&datasource=ping-slash24&maxPoints=20000",
+      "http_status": 200,
+      "sha256": "22e28a67df5a8af0fe840117f3a605942bc399dc1cd31e9a39881688db588869",
+      "bytes": 44606,
+      "fetched_at_utc": "2026-10-06T18:11:57.284688+00:00",
+      "raw_file": "data/research/expanded/raw/22e28a67df5a8af0fe840117f3a605942bc399dc1cd31e9a39881688db588869.json"
+    },
+    {
+      "label": "ioda-ping-slash24-2026-08-01",
+      "entity_type": "region",
+      "entity_code": "4377",
+      "datasource": "ping-slash24",
+      "start_local": "2026-08-01",
+      "end_local_exclusive": "2026-10-06",
+      "source_url": "https://api.ioda.inetintel.cc.gatech.edu/v2/signals/raw/region/4377?from=1785531600&until=1791234000&datasource=ping-slash24&maxPoints=20000",
+      "http_status": 200,
+      "sha256": "96587c920984f0d9e011ca3192de3b09a8188245e182a7e0251eb973b7a817d7",
+      "bytes": 48207,
+      "fetched_at_utc": "2026-10-06T18:11:57.205498+00:00",
+      "raw_file": "data/research/expanded/raw/96587c920984f0d9e011ca3192de3b09a8188245e182a7e0251eb973b7a817d7.json"
+    },
+    {
+      "label": "rides",
+      "source_url": "https://data.kyivcity.gov.ua/dataset/40bfc9ec-9aee-4a19-b72b-f9d56029a48b/resource/66f929ed-3cb3-4e99-aef6-1ffa3cb68ae7/download/ridestotal.json",
+      "http_status": 200,
+      "sha256": "e72306d1e6fce4dd8e7b2012b06075bd3b9c1f4d533ff2b1d09f46a1845d8e60",
+      "bytes": 62654,
+      "fetched_at_utc": "2026-10-06T18:08:11.405086+00:00",
+      "raw_file": "data/activity/raw/e72306d1e6fce4dd8e7b2012b06075bd3b9c1f4d533ff2b1d09f46a1845d8e60.json"
+    },
+    {
+      "label": "weather",
+      "source_url": "https://archive-api.open-meteo.com/v1/archive?latitude=50.45&longitude=30.52&start_date=2024-08-01&end_date=2026-10-01&daily=temperature_2m_mean%2Cprecipitation_sum%2Cwind_speed_10m_max&timezone=Europe%2FKyiv&models=era5&wind_speed_unit=ms",
+      "http_status": 200,
+      "sha256": "e66b30df5f3f4023fa2fc0c802bac3a864d04a935e3b540f016cdc9c1a60299c",
+      "bytes": 22341,
+      "fetched_at_utc": "2026-10-06T18:08:05.499973+00:00",
+      "raw_file": "data/research/expanded/raw/e66b30df5f3f4023fa2fc0c802bac3a864d04a935e3b540f016cdc9c1a60299c.json"
+    }
+  ]
+}

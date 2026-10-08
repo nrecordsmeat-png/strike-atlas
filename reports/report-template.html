@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>$pagetitle$ · Городской монитор</title>
+<link rel="stylesheet" href="../site.css">
+<link rel="stylesheet" href="../research.css?v=20261007-2">
+<link rel="stylesheet" href="report.css">
+</head>
+<body>
+<main class="shell report-shell">
+<header class="top">
+ <div class="brand"><span class="eyebrow">Киев</span><div><h1><a href="../">Городской монитор</a> <span class="pill">полный отчёт</span></h1><div class="sub">Результаты, источники и методика исследования</div></div></div>
+ <nav class="sitenav" aria-label="Разделы сайта"><a href="../">Обзор</a><a href="../research-test.html">Исследование</a><a href="../activity-test.html?view=show">Индекс поездок</a></nav>
+</header>
+<nav class="research-jump" aria-label="Полные отчёты"><a href="city_functions_research.html">Городские функции · 7 октября</a><a href="bombing_effects_phase2.html">Три эпизода · 6 октября</a><a href="bombing_effects_research.html">Источники RAF/BBSU и первый разбор</a><a href="activity_index.html">Формула индекса поездок</a></nav>
+<p class="info-strip">$report-status$ <a href="../research-test.html">Открыть текущий срез исследования с графиками.</a></p>
+$if(table-of-contents)$
+<details class="report-toc" open><summary>Содержание отчёта</summary><nav aria-label="Содержание отчёта">$table-of-contents$</nav></details>
+$endif$
+<article class="research-panel report-body prose">
+$body$
+</article>
+<section class="research-panel prose" aria-label="Доступ к расчётам"><h2>Данные и повторение расчётов</h2><p>Публичные агрегаты доступны без входа: <a href="../city_functions_data.json" download>городские функции и лекарства</a>, <a href="../research_data.json" download>транспортные эпизоды и связь</a>, <a href="data/expanded/results.json" download>подробные расчёты и проверочные окна</a>, <a href="data/expanded/protocol.json" download>протокол сравнения</a>, <a href="data/expanded/manifest.json" download>источники и хеши</a>.</p><p>Команды в отчёте относятся к исследовательскому backend. Полная пересборка требует его кода и принятого архива входных данных. Здесь опубликованы тексты отчётов и агрегаты; точные исходные ответы хранятся отдельно. <a href="provenance.json">Версии опубликованных материалов</a> · <a href="$source-file$" download>Скачать исходный текст отчёта</a>.</p></section>
+<footer class="foot"><span>Исследовательский срез · даты наблюдений указаны в отчёте</span><a href="../research-test.html">К исследованию с графиками</a></footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "published_date": "2026-10-08",
+  "source_repository": "nrecordsmeat-png/uk-monitor",
+  "reports": [
+    {
+      "path": "reports/city_functions_research.md",
+      "backend_path": "docs/city_functions_research.md",
+      "backend_blob": "a3b03a0f27d8c459c548624cc387d6e45923677b"
+    },
+    {
+      "path": "reports/bombing_effects_phase2.md",
+      "backend_path": "docs/bombing_effects_phase2.md",
+      "backend_blob": "3de635b93ad43a4e81ddfed4b6b18bf098fe364b"
+    },
+    {
+      "path": "reports/bombing_effects_research.md",
+      "backend_path": "docs/bombing_effects_research.md",
+      "backend_blob": "a203b6dcefd63dbbf0717fa407dfd460bf1de504"
+    },
+    {
+      "path": "reports/activity_index.md",
+      "backend_path": "docs/activity_index.md",
+      "backend_blob": "f93c9dc2b290dd447a141779d5647ba4d0866559"
+    }
+  ],
+  "aggregates": [
+    {
+      "path": "reports/data/expanded/results.json",
+      "backend_path": "data/research/expanded/results.json",
+      "backend_blob": "2816caf6110b90d7beaa08d26420a6f8fa9ae323"
+    },
+    {
+      "path": "reports/data/expanded/protocol.json",
+      "backend_path": "data/research/expanded/protocol.json",
+      "backend_blob": "061e9b0b518ec7745b6f1139124fb8b4bb1c3c41"
+    },
+    {
+      "path": "reports/data/expanded/manifest.json",
+      "backend_path": "data/research/expanded/manifest.json",
+      "backend_blob": "afae43f5d4fab37df31d56f248de5787bc5be0f4"
+    }
+  ],
+  "note": "Only research reports, methods, aggregate calculations, protocol and source hashes are published. Original source responses remain in the research archive."
+}

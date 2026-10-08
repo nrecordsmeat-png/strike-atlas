@@ -1,0 +1,546 @@
+{
+  "schema_version": 1,
+  "created_date": "2026-10-06",
+  "selection": "Two officially documented September episodes plus the October bridge/hot-water series; selected cases, not all attacks.",
+  "causal_effect": null,
+  "overall_city_index": null,
+  "prediction": {
+    "candidate_models": [
+      "median4",
+      "median8",
+      "trend56",
+      "trend_weather56",
+      "season365",
+      "season_weather365"
+    ],
+    "validation_weeks": 12,
+    "selection_metric": "mean_absolute_week_error_percent",
+    "training_cutoff": "strictly before each validation origin and episode date",
+    "ridge_penalty": 0.05,
+    "note": "Exploratory retrospective analysis, not preregistered; realized weather used for the conditional weather models."
+  },
+  "alerts": {
+    "raw_file": "data/research/expanded/raw/ccaac88f2e7eb4fcad63421e3ff775620568fc0d6e954287a82ff0257cbb743f.json",
+    "sha256": "ccaac88f2e7eb4fcad63421e3ff775620568fc0d6e954287a82ff0257cbb743f",
+    "source_url": "https://kyiv.digital/open-api/air-alert/history",
+    "published_clock_window": [
+      "2026-09-01",
+      "2026-10-05"
+    ],
+    "interpretation": "Europe/Kyiv summer offset +03:00, empirically checked on selected official records; all-history timezone and coverage remain unverified.",
+    "max_anchor_difference_seconds": 90,
+    "anchors": [
+      {
+        "local_label": "2026-09-24 03:28:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-24 12:27:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-24 13:04:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-24 13:21:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-24 13:46:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-24 13:55:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-24 20:13:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-24 20:21:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 07:58:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 08:26:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 09:26:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 09:44:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 10:21:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 10:55:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 13:34:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 14:28:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 14:51:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 18:05:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 18:11:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 18:37:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 21:53:00",
+        "state": 0,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      },
+      {
+        "local_label": "2026-09-25 23:59:00",
+        "state": 1,
+        "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/"
+      }
+    ]
+  },
+  "episodes": [
+    {
+      "id": "kyiv-20260908",
+      "date": "2026-09-08",
+      "end_date": "2026-09-08",
+      "title": "8 сентября: транспорт после атаки",
+      "scope": "Киев, город; использование АСОП и наблюдаемые сети",
+      "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_8_veresnya_informatsiya_onovlyuyetsya/",
+      "interpretation": "Резкий дневной провал поездок; недельный результат требует сравнения с ошибкой прогноза.",
+      "limits": [
+        "С 10 сентября изменились часы работы транспорта.",
+        "Последующие окна не являются измерением восстановления всех маршрутов."
+      ],
+      "functions": [
+        {
+          "id": "rail-ring-0908",
+          "name": "Городская электричка",
+          "scope": "Движение по кольцу",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-08T08:08:00Z",
+              "state": "restricted",
+              "summary": "Сообщена остановка движения из-за повышенной угрозы.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_8_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-09-08T08:43:00Z",
+              "state": "restored",
+              "summary": "Сообщено о продолжении движения.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_8_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "bus119-0908",
+          "name": "Автобус № 119",
+          "scope": "Один маршрут",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-08T05:02:00Z",
+              "state": "reserve",
+              "summary": "Маршрут изменён из-за перекрытия движения.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_8_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-09-08T16:06:00Z",
+              "state": "restored",
+              "summary": "Сообщено о возобновлении движения.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_8_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "tram25-0908",
+          "name": "Трамвай № 25",
+          "scope": "Один маршрут",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-08T04:24:00Z",
+              "state": "restricted",
+              "summary": "Движение временно приостановлено вследствие атаки; сообщения о восстановлении в этой подборке нет.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_8_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kyiv-20260924",
+      "date": "2026-09-24",
+      "end_date": "2026-09-25",
+      "title": "24–25 сентября: транспорт и медицина",
+      "scope": "Киев, город; серия событий и конкретные услуги",
+      "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/",
+      "interpretation": "Есть нарушения транспорта и отдельных медицинских услуг. Данные поездок покрывают лишь четыре дня с 24 сентября.",
+      "limits": [
+        "Атаки и повторные ограничения перекрываются: эффект одного удара не выделен.",
+        "После 27 сентября поездок пока нет; полного периода восстановления нет."
+      ],
+      "functions": [
+        {
+          "id": "tram14-15-0924",
+          "name": "Трамваи № 14 и 15",
+          "scope": "Два маршрута",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-24T04:47:00Z",
+              "state": "restricted",
+              "summary": "Сообщена временная остановка вследствие атаки.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-09-24T08:43:00Z",
+              "state": "reserve",
+              "summary": "Движение заменяет автобус № 14-ТК.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-09-24T09:54:00Z",
+              "state": "restored",
+              "summary": "Сообщено о восстановлении трамваев; временный автобус отменён.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_24_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "trolley-0925-first",
+          "name": "Троллейбусы: утреннее ограничение",
+          "scope": "Маршруты № 22-К, 27, 30, 42",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-25T03:49:00Z",
+              "state": "reserve",
+              "summary": "Сообщены изменения маршрутов из-за перекрытия после атаки.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-09-25T07:10:00Z",
+              "state": "restored",
+              "summary": "Сообщено о восстановлении движения.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "trolley-0925-second",
+          "name": "Троллейбусы: повторное ограничение",
+          "scope": "Те же четыре маршрута, новый эпизод",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-25T12:30:00Z",
+              "state": "reserve",
+              "summary": "Вновь сообщены изменения маршрутов после перекрытия.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-09-25T15:14:00Z",
+              "state": "partial",
+              "summary": "Движение по обычным схемам возобновлено, сохраняются отклонения от графика.",
+              "source_url": "https://kyivcity.gov.ua/news/vorozha_ataka_na_stolitsyu_25_veresnya_informatsiya_onovlyuyetsya/",
+              "source_name": "КМДА",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "clinic-primary-0924",
+          "name": "Семейные врачи",
+          "scope": "Пациенты Подильского КДЦ, две принимающие филиальные площадки",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-24T10:00:00Z",
+              "state": "reserve",
+              "summary": "Первичная помощь продолжена в двух других центрах.",
+              "source_url": "https://health.kyivcity.gov.ua/news/pislia-rosiiskoi-ataky-poshkodzhenyi-podilskyi-kdts-patsiientiv-pryimaiut-u-dvokh-tsentrakh-pervynky",
+              "source_name": "Департамент здравоохранения Киева",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "clinic-specialists-0924",
+          "name": "Специалисты и дневной стационар",
+          "scope": "Подильский КДЦ, отдельные подразделения",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-09-24T10:00:00Z",
+              "state": "restricted",
+              "summary": "Приёмы узких специалистов и дневной стационар приостановлены; восстановление обещано, но не подтверждено.",
+              "source_url": "https://health.kyivcity.gov.ua/news/pislia-rosiiskoi-ataky-poshkodzhenyi-podilskyi-kdts-patsiientiv-pryimaiut-u-dvokh-tsentrakh-pervynky",
+              "source_name": "Департамент здравоохранения Киева",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kyiv-20261001",
+      "date": "2026-10-01",
+      "end_date": "2026-10-04",
+      "title": "1–4 октября: мосты и горячая вода",
+      "scope": "Киев; объекты и район, названные в официальных сообщениях",
+      "source_url": "https://t.me/vitaliy_klitschko/7740",
+      "interpretation": "Ограничения услуг подтверждены сообщениями. Поездок октября нет, поэтому изменение городского использования транспорта не рассчитано.",
+      "limits": [
+        "История TomTom началась после первых атак на мосты: базы до них нет.",
+        "Точные длительности, число затронутых жителей и стоимость обходов не установлены."
+      ],
+      "functions": [
+        {
+          "id": "south-bridge-20261001",
+          "name": "Движение по Южному мосту",
+          "scope": "Южный мост; виды движения указаны в сообщениях",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-10-01T09:41:00Z",
+              "state": "restricted",
+              "summary": "Сообщено об остановке метро и наземного общественного транспорта по мосту.",
+              "source_url": "https://t.me/vitaliy_klitschko/7740",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-10-01T19:18:00Z",
+              "state": "restricted",
+              "summary": "Повторно сообщено, что движение метро и наземного общественного транспорта остановлено.",
+              "source_url": "https://t.me/vitaliy_klitschko/7744",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "По переданной информации правоохранителей мост полностью перекрыт для транспорта с обеих сторон.",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            },
+            {
+              "reported_at": "2026-10-02T14:50:00Z",
+              "state": "restricted",
+              "summary": "Сообщено, что мост по-прежнему закрыт для автотранспорта и метро.",
+              "source_url": "https://t.me/vitaliy_klitschko/7752",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "metro-bridge-20261002",
+          "name": "Ограничение на мосту Метро",
+          "scope": "Одна полоса с левого на правый берег",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "partial",
+              "summary": "Сообщено о частичном ограничении движения одной полосой в указанном направлении.",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "paton-bridge-20261002",
+          "name": "Ограничение на мосту Патона",
+          "scope": "Направление с правого на левый берег",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-10-02T04:51:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о полном ограничении движения в указанном направлении.",
+              "source_url": "https://t.me/vitaliy_klitschko/7748",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "north-bridge-20261003",
+          "name": "Движение по Северному мосту",
+          "scope": "Направление с левого на правый берег",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-10-03T04:39:00Z",
+              "state": "restricted",
+              "summary": "Сообщено о перекрытии движения в указанном направлении.",
+              "source_url": "https://t.me/vitaliy_klitschko/7756",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        },
+        {
+          "id": "desniansky-hot-water-20261004",
+          "name": "Горячая вода в Деснянском районе",
+          "scope": "Деснянский район; число затронутых домов не сообщено",
+          "started_at": null,
+          "restored_at": null,
+          "duration_hours": null,
+          "affected_people": null,
+          "extra_cost": null,
+          "updates": [
+            {
+              "reported_at": "2026-10-04T08:02:00Z",
+              "state": "announced",
+              "summary": "Объявлено временное отсутствие горячей воды из-за повреждения тепломагистрали. Сообщения о завершении ремонта в выборке нет.",
+              "source_url": "https://t.me/vitaliy_klitschko/7762",
+              "source_name": "Виталий Кличко",
+              "provenance": "official",
+              "occurred_at": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
