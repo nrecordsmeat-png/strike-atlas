@@ -191,6 +191,20 @@ test('service filters preserve weekly recovery and source context', () => {
   assert.doesNotMatch(f.byId('episode-detail').textContent, /undefined/);
 });
 
+test('a recent power observation supersedes the weekly report on the overview', () => {
+  const input=structuredClone(snapshot),state=input.history[Object.keys(input.history).sort().at(-1)];
+  const episode=structuredClone(state.episodes[0]);
+  Object.assign(episode,{id:'power-review',service:'power',title:'Проверка электроснабжения',last_reported_at:'2026-10-06T05:00:00Z',last_reported_state:'restricted',display_state:'restricted',stale:false,closed:false});
+  episode.updates=[{id:'review',kind:'state',state:'restricted',reported_at:episode.last_reported_at,summary:'Экстренные отключения',source_name:'ДТЭК',source_url:'https://t.me/dtek_ua/4581',provenance:'official'}];
+  state.episodes.push(episode);
+  const f=fixture('index.html',input),power=f.button('topic','power');
+  assert.match(power.textContent,/Ограничение сообщено/);
+  assert.doesNotMatch(power.textContent,/Недельный отчёт/);
+  power.fire();
+  assert.equal(f.byId('service-filter').value,'power');
+  assert.match(f.byId('episode-detail').textContent,/Экстренные отключения/);
+});
+
 test('topic buttons reach matching data, quality and map pages', () => {
   const f = fixture();
   for (const [topic, target] of [['mobility', 'data.html#traffic'], ['rent', 'data.html#rent'],

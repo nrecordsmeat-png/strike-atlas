@@ -138,14 +138,16 @@ if(R.length){
 
 // ---- Удары ----
 if(typeof EVENTS!=="undefined"&&EVENTS.length){
- const days=new Set(EVENTS.map(e=>e.date)).size,ruOnly=EVENTS.filter(e=>e.tags.includes("RU")&&!e.tags.includes("UA")).length,approx=EVENTS.filter(e=>e.approx).length;
+ const located=EVENTS.filter(hasEventLocation),unlocated=EVENTS.length-located.length;
+ const days=new Set(EVENTS.map(e=>e.date)).size,ruOnly=EVENTS.filter(e=>e.tags.includes("RU")&&!e.tags.includes("UA")).length,approx=located.filter(e=>e.approx).length;
  const per=typeof PERIOD!=="undefined"?PERIOD:{start:EVENTS[0].date,end:EVENTS[EVENTS.length-1].date};
  const dd=s=>s.split("-").reverse().slice(0,2).join(".");
  document.getElementById("strike-cards").innerHTML=
-  '<div class="card"><div class="v">'+EVENTS.length+'</div><div class="l">эпизодов на карте</div><div class="d">'+dd(per.start)+' – '+dd(per.end)+'</div></div>'+
-  '<div class="card"><div class="v">'+days+'</div><div class="l">дней с нанесёнными ударами</div><div class="d">по эпизодам с локацией</div></div>'+
+  '<div class="card"><div class="v">'+EVENTS.length+'</div><div class="l">записей в реестре ударов</div><div class="d">'+dd(per.start)+' – '+dd(per.end)+'</div></div>'+
+  '<div class="card"><div class="v">'+days+'</div><div class="l">дней с сообщениями об ударах</div><div class="d">запись может объединять несколько мест</div></div>'+
   '<div class="card"><div class="v">'+ruOnly+'</div><div class="l">только по версии РФ <span class="t t-ru">RU</span></div><div class="d">UA не подтверждала</div></div>'+
-  '<div class="card"><div class="v">'+(EVENTS.length-approx)+'</div><div class="l">с точным адресом</div><div class="d">'+approx+' — зона ~2 км</div></div>';
+  '<div class="card"><div class="v">'+(located.length-approx)+'</div><div class="l">с точным адресом</div><div class="d">'+approx+' — зона ~2 км</div></div>'+
+  '<div class="card"><div class="v">'+unlocated+'</div><div class="l">без точной привязки</div><div class="d"><a href="map.html">сообщения сохранены в списке</a></div></div>';
  document.getElementById("type-table").innerHTML=table(["Тип цели","Событий"],Object.entries(TYPES).map(([k,[name,col]])=>['<span class="dot" style="background:'+col+'"></span>'+esc(name),EVENTS.filter(e=>e.type===k).length]));
 }else document.getElementById("type-table").innerHTML='<p class="empty-panel">events.js не загружен.</p>';
 

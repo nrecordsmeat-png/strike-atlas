@@ -100,18 +100,18 @@ function topic(key,title,value,note,label,kind,action){return '<button type="but
 function strikesTopic(){
  if(typeof EVENTS==="undefined"||!EVENTS.length)return topic("strikes","Удары","Карта","События по открытым источникам","Версии сторон раздельно","","map");
  const upto=EVENTS.filter(e=>e.date<=day),last=upto.slice(-1)[0];
- return topic("strikes","Удары",upto.length+" эпизодов",last?"Последний на карте · "+last.date.split("-").reverse().join(".")+" · "+last.title:"До выбранной даты событий нет",upto.length?"Версии сторон раздельно":"Нет данных",upto.length?"":"empty","map");
+ return topic("strikes","Удары",upto.length+" записей",last?"Последнее в реестре · "+last.date.split("-").reverse().join(".")+" · "+last.title:"До выбранной даты событий нет",upto.length?"Версии сторон раздельно":"Нет данных",upto.length?"":"empty","map");
 }
 function renderOverview(){
  const state=current(),counts=state.counts,t=latestByCorridor(),f=food(),r=rent(),reports=state.recovery_reports;
  document.getElementById("hero-title").textContent=counts.fresh_restrictions?"Есть свежие сообщения об ограничениях услуг: "+counts.fresh_restrictions+".":counts.unknown?"Состояние услуг требует уточнения.":"Наблюдений для общей оценки пока недостаточно.";
  document.getElementById("hero-note").textContent="Доступность отдельных услуг наблюдается по сообщениям и замерам. Полной картины по всему городу пока нет. Выберите тему, чтобы увидеть основания и пробелы.";
  document.getElementById("hero-meta").innerHTML='<strong>'+num(counts.total,0)+' эпизодов в пилотной выборке</strong><span class="minor">'+num(counts.unknown,0)+' требуют свежих сведений</span><span class="minor">Сообщений о завершении эпизода: '+num(counts.restored,0)+'</span>';
- const water=state.episodes.filter(x=>x.service==="water_heat"),lastRent=r.slice(-1)[0];
+ const water=state.episodes.filter(x=>x.service==="water_heat").sort((a,b)=>b.last_reported_at.localeCompare(a.last_reported_at)),power=state.episodes.filter(x=>x.service==="power").sort((a,b)=>b.last_reported_at.localeCompare(a.last_reported_at))[0],lastRent=r.slice(-1)[0];
  document.getElementById("topic-grid").innerHTML=
   topic("mobility","Перемещение",t.center?num(t.center.travel_min)+" мин":"Нет замера",t.center?"Центральный коридор · "+date(t.center.at):"Три коридора между берегами",t.center?"Базы обычного дня пока нет":"Нет данных",t.center?"":"empty","dynamics")+
   topic("water_heat","Вода и тепло",water.length?"Требует уточнения":"Нет сведений",water.length?"Последнее сообщение · "+date(water[0].last_reported_at):"Полного ряда доступности нет",water.length?"Охват указан в источнике":"Нет данных","empty","services")+
-  topic("power","Электричество",reports.length?"Есть отчёт о восстановлении":"Нет ряда доступности",reports.length?"Недельный отчёт · "+date(reports[reports.length-1].reported_at):"Сообщения и фактическая доступность различаются","Текущая доступность не измерена","empty","recovery")+
+  topic("power","Электричество",power?stateNames[power.display_state]:reports.length?"Есть отчёт о восстановлении":"Нет ряда доступности",power?"Последнее состояние сообщено · "+date(power.last_reported_at):reports.length?"Недельный отчёт · "+date(reports[reports.length-1].reported_at):"Сообщения и фактическая доступность различаются",power?"По сообщению источника":"Текущая доступность не измерена",power&&!power.stale?"caution":"empty",power?"services":"recovery")+
   topic("connectivity","Связь","Нет измерений","Независимый источник ещё не подключён","Покрытие не проверено","empty","quality")+
   topic("food","Снабжение",f?num(f.categories,0)+" категорий":"Нет наблюдений",f?"Снимок витрин · "+shortDay(f.date):"Витрины пока не наблюдались",f?"Экспериментальный показатель":"Нет данных",f?"caution":"empty","quality")+
   topic("rent","Предложение аренды",lastRent?num(lastRent.total,0):"Нет наблюдений",lastRent?"Объявления · "+shortDay(lastRent.date)+(lastRent.in_window?"":" · вне дневного окна"):"Дневной ряд ожидает точек",lastRent&&!lastRent.comparable?"Справочная точка":"Нужна сопоставимая база",lastRent?"caution":"empty","dynamics")+strikesTopic();

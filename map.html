@@ -26,7 +26,14 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:4px 11px;font-size:12.5px;cursor:pointer;user-select:none;color:var(--ink)}
 .chip:not(.on){opacity:.4}
-#map{flex:1;min-height:0;position:relative}
+.map-workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+#map{min-height:0;position:relative}
+.pending-list{overflow:auto;padding:16px;border-left:1px solid var(--line);background:var(--paper)}
+.pending-list h2{font-size:17px;margin:0 0 8px}
+.pending-list .note{font-size:12px;margin:0 0 14px;color:var(--muted)}
+.pending-list article{padding:12px 0;border-top:1px solid var(--line)}
+.pending-list .pop{max-width:none}
+#map-counts{font-size:12px;color:var(--muted)}
 .maplegend{position:absolute;left:10px;bottom:22px;z-index:900;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:11.5px;color:var(--muted);line-height:1.7;max-width:240px}
 .maplegend .sym{color:var(--ink)}
 .leaflet-popup-content-wrapper{background:var(--paper);color:var(--ink);border-radius:8px;border:1px solid var(--line)}
@@ -39,11 +46,12 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:0}
 .pop a{color:var(--blue);text-decoration:none;border-bottom:1px dotted var(--blue)}
 .apx{color:var(--amber);font-size:11px}
 @media(max-width:760px){.mapbar{padding:10px 16px}.toolbar{flex-direction:column;align-items:stretch;gap:10px;padding:9px 16px}.sliderwrap{width:100%}.sep{display:none}.maplegend{bottom:12px}}
+@media(max-width:760px){.map-workspace{display:block;overflow:auto}#map{height:50vh;min-height:300px}.pending-list{overflow:visible;border-left:0;border-top:1px solid var(--line)}}
 </style>
 </head>
 <body>
 <header class="mapbar">
- <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">пилот</span></h1><div class="minor">карта ударов · OSINT по вторичным источникам · версии сторон раздельно</div></div></div>
+ <div class="brand"><div class="monogram" aria-hidden="true">КИЕВ</div><div><h1><a href="./">Городской монитор</a> <span class="pill">пилот</span></h1><div class="minor">карта ударов · официальные сообщения и OSINT · версии сторон раздельно</div></div></div>
  <nav class="sitenav" aria-label="Разделы сайта"><a href="./">Обзор</a><a href="map.html" class="cur">Карта</a><a href="data.html">Данные</a><a href="metodika.html">Методика</a></nav>
 </header>
 <div class="toolbar">
@@ -58,13 +66,21 @@ input[type=range]{width:100%;accent-color:var(--blue);margin:0}
  </div>
  <div class="sep"></div>
  <div class="chips" id="chips"></div>
+ <div id="map-counts" aria-live="polite"></div>
 </div>
+<div class="map-workspace">
 <div id="map">
  <div class="maplegend">
   <span class="sym">⬤</span> точка — адрес подтверждён источником<br>
   <span class="sym">◌</span> пунктирный круг — зона ~2 км, точное место не названо<br>
   <a href="metodika.html#events">как ставятся метки</a>
  </div>
+</div>
+<aside class="pending-list" aria-labelledby="pending-title">
+ <h2 id="pending-title">Без точной привязки <span class="pill" id="pending-count"></span></h2>
+ <p class="note">Источник назвал район, но точный адрес не установлен. Эти наблюдения сохранены в реестре и не нанесены на карту. Запись по району и дате может включать несколько мест.</p>
+ <div id="pending-events"></div>
+</aside>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -91,7 +107,7 @@ const layer=L.layerGroup().addTo(map);
 
 function badge(t){const x=TAGS[t];return x?`<span class="t ${x[1]}">${x[0]}</span>`:""}
 function popup(e){
- let h=`<div class="pop"><h3>${e.title}</h3><div class="d">${e.date.split("-").reverse().join(".")}${e.approx?' · <span class="apx">зона ~2 км, точное место не названо</span>':""}</div>`;
+ let h=`<div class="pop"><h3>${e.title}</h3><div class="d">${e.date.split("-").reverse().join(".")}${!hasEventLocation(e)?' · <span class="apx">без точной привязки</span>':e.approx?' · <span class="apx">зона ~2 км, точное место не названо</span>':""}</div>`;
  if(e.means)h+=`<p><b>Средства:</b> ${e.means}</p>`;
  if(e.ua)h+=`<p><b>Версия UA:</b> ${e.ua}</p>`;
  if(e.ru)h+=`<p><b>Версия РФ:</b> ${e.ru}</p>`;
@@ -105,7 +121,12 @@ function render(){
  const idx=+slider.value,sel=DATES[idx];
  document.getElementById("dateLabel").textContent=sel.split("-").reverse().join(".");
  layer.clearLayers();
- EVENTS.filter(e=>active.has(e.type)&&(cumulative?e.date<=sel:e.date===sel)).forEach(e=>{
+ const visible=EVENTS.filter(e=>active.has(e.type)&&(cumulative?e.date<=sel:e.date===sel));
+ const located=visible.filter(hasEventLocation),pending=visible.filter(e=>!hasEventLocation(e));
+ document.getElementById("map-counts").textContent=`${located.length} на карте · ${pending.length} без точной привязки`;
+ document.getElementById("pending-count").textContent=pending.length;
+ document.getElementById("pending-events").innerHTML=pending.length?pending.slice().reverse().map(e=>`<article>${popup(e)}</article>`).join(""):'<p class="note">По выбранной дате и типам таких наблюдений нет.</p>';
+ located.forEach(e=>{
   const col=css("--"+e.type),pop=popup(e);
   if(e.approx){
    L.circle([e.lat,e.lng],{radius:1800,color:col,weight:1.5,dashArray:"5 4",fillColor:col,fillOpacity:.16}).bindPopup(pop,{maxWidth:290}).addTo(layer);
