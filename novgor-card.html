@@ -1,4 +1,4 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0"><title>Карточка жителя НовГора</title>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Карточка жителя НовГора</title></head><body style="margin:0">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Современный функциональный интерфейс: нейтральные поверхности, цвет различает состояния. */
@@ -1381,7 +1381,7 @@ const РЕНДЕР = {
       if (/Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние/.test(т)) р.add("тело");
       if (/Заём|Вещь|Пользуется|Возврат|Пропажа/.test(т)) р.add("вещи");
       if (/Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход/.test(т)) р.add("работы");
-      if (СОЦИАЛЬНЫЕ.includes(e.тип)) р.add("люди");
+      if (СОЦИАЛЬНЫЕ.includes(e.тип) || new Set([...(e.кто||[]), ...(e.кому||[]), ...(e.участники||[])]).size >= 2) р.add("люди");
       return р;
     };
     let список = досье(УИ.кто);
