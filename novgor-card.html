@@ -104,6 +104,9 @@ details.раск>summary{cursor:pointer;color:var(--текст2);font-size:12.5p
 .dev-дерево summary{cursor:pointer}
 .фильтр-ввод{background:var(--панель);color:var(--текст);border:1px solid var(--кромка2);border-radius:7px;padding:5px 9px;width:min(340px,100%);font-family:var(--м);font-size:12.5px}
 .скрыт{display:none}
+.б3-параметр{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 12px 4px 0}
+.б3-параметр select{width:auto;max-width:100%}
+blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромка2);color:var(--текст2)}
 @media (max-width:860px){.раскладка{flex-direction:column}.карточка{width:100%}.люди{flex-basis:auto;width:100%;display:flex;flex-wrap:wrap;gap:2px}.люди h2{width:100%}.чел{width:auto}.тело-вкл{max-height:none}}
 </style></head><body>
 
@@ -113,6 +116,7 @@ details.раск>summary{cursor:pointer;color:var(--текст2);font-size:12.5p
 <div class="служ" role="group" aria-label="Служебная панель прототипа">
   <span class="метка">Ситуация</span>
   <span class="снимки-выбор" id="снимки-выбор"></span>
+  <button class="кн" id="б3-сцена" type="button" aria-pressed="false">Сцена Б3</button>
   <span class="метка">режим</span>
   <button class="кн" id="кн-игрок" type="button" aria-pressed="true">Игрок</button>
   <button class="кн" id="кн-дев" type="button" aria-pressed="false">Разработчик</button>
@@ -124,6 +128,7 @@ details.раск>summary{cursor:pointer;color:var(--текст2);font-size:12.5p
     <button class="кн" id="исходные-данные" type="button">Исходный род</button>
     <p class="мелко" id="статус-генерации" role="status" aria-live="polite">Исходный род. Генерация создаёт варианты этих трёх тестовых ситуаций.</p>
   </details>
+  <details class="сноска" id="б3-параметры" hidden></details>
   <details class="сноска" id="границы" hidden><summary>Источники и границы прототипа</summary><div id="сноска-снимка"></div></details>
 </div>
 
@@ -137,6 +142,653 @@ details.раск>summary{cursor:pointer;color:var(--текст2);font-size:12.5p
 </div>
 <p class="подзаг" style="margin-top:10px">Клавиши: 1–8 вкладки (9 — Диагностика в режиме разработчика), Esc — назад. Всё, что есть в подсказках, открывается и щелчком.</p>
 
+<!-- B3:GENERATED:BEGIN -->
+<script data-b3-generated="Б3-ядро.js">
+// Исполняемая часть личной сцены Б3: один код для Node и карточки.
+// Измерительные сценарии и переборы остаются в файлах *-модель.js.
+// Начальные условия и такты — прежняя проверочная фикстура, не игровой баланс.
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  else root.NovgorB3 = api;
+})(globalThis, function () {
+"use strict";
+
+const copy = value => JSON.parse(JSON.stringify(value));
+const QUESTION = "future-spouse-origin";
+const RULE = "calendar-origin-reading";
+const ORIGINS = ["local", "newcomer"];
+
+// Проверки входов не зависят от Node. Утверждения о результате — в стендах.
+function invariant(condition, message = "Недопустимые входные данные Б3") {
+  if (!condition) throw new Error(message);
+}
+function equalData(a, b) {
+  if (Object.is(a, b)) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const keys = Object.keys(a), other = Object.keys(b);
+  return keys.length === other.length && keys.every(k => Object.hasOwn(b, k) && equalData(a[k], b[k]));
+}
+invariant.equal = (a, b) => invariant(Object.is(a, b));
+invariant.deepEqual = (a, b) => invariant(equalData(a, b));
+
+function interpretKnownRite(person, records, delivered) {
+  // Только уже доставленные наблюдения/рассказы об одном случае. Мира,
+  // генератора знака, скрытой связи и общей памяти сюда не передают.
+  if (delivered.length === 0) return { reading: null, expectation: null };
+  const first = delivered[0];
+  for (const e of delivered) {
+    invariant(["observation", "report"].includes(e.kind));
+    invariant.equal(e.readingId, first.readingId);
+    invariant.equal(e.riteId, first.riteId);
+    invariant.equal(e.topic, first.topic);
+    invariant.deepEqual(e.question, first.question);
+    invariant(e.personId && typeof e.mark === "string");
+    if (e.kind === "observation") invariant.equal(e.personId, person.id);
+  }
+  const observations = delivered.filter(e => e.kind === "observation");
+  const reports = delivered.filter(e => e.kind === "report");
+  // В стенде один наблюдаемый знак на случай, а не несколько разных обрядов.
+  invariant(observations.every(e => e.mark === observations[0].mark));
+  const selected = observations[0] ?? reports[0];
+  const conflictingReports = !observations.length && reports.some(e => e.mark !== selected.mark);
+  const reading = {
+    id: first.readingId, riteId: first.riteId, topic: first.topic,
+    question: copy(first.question), evidence: copy(delivered),
+    mark: conflictingReports ? null : selected.mark,
+    evidenceSource: conflictingReports ? null : { kind: selected.kind, personId: selected.personId },
+    discrepancies: observations.length ? reports.filter(e => e.mark !== selected.mark)
+      .map(e => ({ personId: e.personId, reportedMark: e.mark, observedMark: selected.mark })) : [],
+    rule: null, meaning: null, status: "unknown-rule",
+  };
+  if (conflictingReports) {
+    reading.status = "conflicting-reports";
+    return { reading, expectation: null };
+  }
+  const rules = records.filter(r => person.knows[r.id] === true
+    && r.riteId === reading.riteId && r.topic === reading.topic);
+  // Две конкурирующие общие записи и выбор авторитета пока не проектируются.
+  invariant(rules.length <= 1, "стенд ожидает одно известное правило этого обряда и вопроса");
+  if (!rules.length) return { reading, expectation: null };
+  const rule = rules[0], correction = person.corrections[rule.id];
+  invariant(!correction || ["version", "doubt"].includes(correction.kind));
+  const personal = correction?.kind === "version";
+  const meanings = personal ? correction.meanings : rule.meanings;
+  reading.rule = { recordId: rule.id, source: rule.source, version: personal ? "personal" : "common" };
+  reading.meaning = Object.hasOwn(meanings, reading.mark) ? meanings[reading.mark] : null;
+  if (reading.meaning === null) {
+    reading.status = "unknown-mark";
+    return { reading, expectation: null };
+  }
+  if (correction?.kind === "doubt") {
+    reading.status = "doubted";
+    return { reading, expectation: null };
+  }
+  reading.status = "expected";
+  return { reading, expectation: {
+    sourceId: reading.id, rule: copy(reading.rule), evidenceSource: copy(reading.evidenceSource),
+    topic: reading.topic, question: copy(reading.question), meaning: reading.meaning,
+  } };
+}
+
+function rememberKnownRite(person, records, delivered) {
+  if (!delivered.length) return { reading: null, expectation: null };
+  const index = person.readings.findIndex(r => r.id === delivered[0].readingId);
+  const previous = index >= 0 ? person.readings[index].evidence : [];
+  const evidence = [...previous, ...delivered];
+  const resolved = interpretKnownRite(person, records, evidence);
+  if (index >= 0) person.readings[index] = resolved.reading;
+  else person.readings.push(resolved.reading);
+  return resolved;
+}
+
+function fixture() {
+  return {
+    day: "условный-день-обычая",
+    time: 0,
+    culturalRecords: [{ id: RULE, riteId: "calendar-lots", topic: QUESTION,
+      meanings: { A: "local", B: "newcomer" }, source: "от рода" }],
+    actor: {
+      id: "girl", position: 0, knownRites: ["calendar-lots"],
+      canSee: true, knows: { [RULE]: true }, corrections: {},
+      expectation: null, readings: [], observations: [], heldLots: [],
+      spent: { ritual: 0, travel: 0, wait: 0, encounter: 0 },
+      offers: [
+        { id: "offer-local", personId: "local-person", origin: "local",
+          known: true, available: true, acceptable: true, ordinaryRank: 0,
+          position: -2, startsAt: 6, duration: 2, proposedBy: "player" },
+        { id: "offer-newcomer", personId: "newcomer-person", origin: "newcomer",
+          known: true, available: true, acceptable: true, ordinaryRank: 1,
+          position: 2, startsAt: 6, duration: 2, proposedBy: "self" },
+      ],
+    },
+    rite: {
+      id: "calendar-lots", day: "условный-день-обычая", position: 0, duration: 2,
+      question: QUESTION,
+      lots: [{ id: "lot-a", mark: "A" }, { id: "lot-b", mark: "B" }],
+    },
+    people: {
+      "local-person": { position: -2, present: true, trueOrigin: "local", observations: [] },
+      "newcomer-person": { position: 2, present: true, trueOrigin: "newcomer", observations: [] },
+    },
+    // Полный след стенда предназначен для проверки, не задаёт сведения игрока.
+    events: [], encounters: [],
+  };
+}
+
+function spend(scene, kind, ticks) {
+  invariant(Number.isInteger(ticks) && ticks >= 0);
+  scene.actor.spent[kind] += ticks;
+  scene.time += ticks;
+}
+
+function receiveReading(scene, delivered) {
+  const resolved = rememberKnownRite(scene.actor, scene.culturalRecords, delivered);
+  if (resolved.reading) {
+    if (resolved.expectation) {
+      scene.actor.expectation = { ...resolved.expectation,
+        subjectId: resolved.expectation.question.subjectId,
+        question: resolved.expectation.topic, origin: resolved.expectation.meaning };
+    } else if (scene.actor.expectation?.sourceId === resolved.reading.id) {
+      // Чтение без ожидания гасит только ожидание того же случая;
+      // чужой случай без ожидания прежнего ожидания не стирает.
+      scene.actor.expectation = null;
+    }
+  }
+  return resolved;
+}
+
+function performRite(scene, { draw }) {
+  const { actor, rite } = scene;
+  if (scene.day !== rite.day) return { status: "wrong-occasion" };
+  if (!actor.knownRites.includes(rite.id)) return { status: "unknown-rite" };
+  if (actor.position !== rite.position) return { status: "not-at-rite" };
+  if (rite.lots.length === 0) return { status: "missing-lots" };
+  invariant(Number.isInteger(rite.duration) && rite.duration > 0);
+
+  // draw — источник исхода для воспроизводимого прогона; участница им не управляет.
+  const index = draw(rite.lots.length);
+  invariant(Number.isInteger(index) && index >= 0 && index < rite.lots.length);
+  const lot = rite.lots[index];
+
+  const startedAt = scene.time;
+  scene.events.push({ type: "rite-started", at: startedAt, actorId: actor.id });
+  spend(scene, "ritual", rite.duration);
+  rite.lots.splice(index, 1);
+  actor.heldLots.push(copy(lot));
+  const sourceId = `reading:${actor.id}:${startedAt}`;
+  const evidence = [];
+  if (actor.canSee) {
+    evidence.push({ readingId: sourceId, riteId: rite.id, topic: rite.question,
+      question: { subjectId: actor.id }, mark: lot.mark, day: scene.day, at: scene.time,
+      kind: "observation", personId: actor.id });
+    actor.observations.push({ type: "drawn-lot", sourceId, lotId: lot.id, mark: lot.mark });
+  }
+  receiveReading(scene, evidence);
+  scene.events.push({ type: "rite-completed", at: scene.time, actorId: actor.id,
+    sourceId, mark: lot.mark });
+  return { status: "completed", sourceId, startedAt, endedAt: scene.time };
+}
+
+function decisionView(scene) {
+  // Только личные сведения и собственное положение. В этом входе нет people,
+  // истинного происхождения, будущего брака или общего журнала событий.
+  return copy({ actorId: scene.actor.id, now: scene.time,
+    position: scene.actor.position, offers: scene.actor.offers.filter(o => o.known),
+    expectation: scene.actor.expectation });
+}
+
+function chooseIntroduction(view) {
+  const eligible = view.offers.filter(o => o.known && o.available && o.acceptable
+    && view.now + Math.abs(o.position - view.position) <= o.startsAt);
+  const e = view.expectation;
+  const relevant = e && e.subjectId === view.actorId && e.question === QUESTION
+    && ORIGINS.includes(e.origin);
+  const matching = relevant ? eligible.filter(o => o.origin === e.origin) : [];
+  const pool = matching.length ? matching : eligible;
+  pool.sort((a, b) => a.ordinaryRank - b.ordinaryRank
+    || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return {
+    offer: pool[0] ? copy(pool[0]) : null,
+    reason: matching.length ? "prediction" : pool.length ? "ordinary" : "no-eligible-offer",
+    sourceId: matching.length ? e.sourceId : null,
+  };
+}
+
+function executeIntroduction(scene, decision) {
+  if (!decision.offer) return { status: "no-action" };
+  const offer = decision.offer;
+  scene.events.push({ type: "introduction-chosen", at: scene.time, offerId: offer.id,
+    reason: decision.reason, sourceId: decision.sourceId });
+  while (scene.actor.position !== offer.position) {
+    scene.actor.position += Math.sign(offer.position - scene.actor.position);
+    spend(scene, "travel", 1);
+    scene.events.push({ type: "moved", at: scene.time, position: scene.actor.position });
+  }
+  if (scene.time > offer.startsAt) return { status: "late" };
+  spend(scene, "wait", offer.startsAt - scene.time);
+  const other = scene.people[offer.personId];
+  if (!other || !other.present || other.position !== offer.position) {
+    scene.actor.observations.push({ type: "person-absent", personId: offer.personId,
+      position: offer.position, at: scene.time });
+    scene.events.push({ type: "introduction-missed", at: scene.time, offerId: offer.id });
+    return { status: "person-absent" };
+  }
+  const startedAt = scene.time;
+  spend(scene, "encounter", offer.duration);
+  const encounter = { id: `encounter:${scene.encounters.length + 1}`, offerId: offer.id,
+    participants: [scene.actor.id, offer.personId], position: offer.position,
+    startedAt, endedAt: scene.time };
+  scene.encounters.push(encounter);
+  const observation = { type: "met", encounterId: encounter.id,
+    participants: copy(encounter.participants), at: scene.time };
+  scene.actor.observations.push(copy(observation));
+  other.observations.push(copy(observation));
+  scene.events.push({ type: "introduction-completed", at: scene.time, offerId: offer.id,
+    encounterId: encounter.id });
+  return { status: "completed", encounterId: encounter.id };
+}
+
+function run(scene = fixture(), { mark = "B" } = {}) {
+  invariant(["A", "B"].includes(mark));
+  const rite = performRite(scene, {
+    draw: () => scene.rite.lots.findIndex(lot => lot.mark === mark),
+  });
+  const view = decisionView(scene);
+  const decision = chooseIntroduction(view);
+  const execution = executeIntroduction(scene, decision);
+  return { scene, rite, view, decision, execution };
+}
+
+return Object.freeze({ QUESTION, RULE, ORIGINS, interpretKnownRite, rememberKnownRite,
+  fixture, receiveReading, performRite, decisionView, chooseIntroduction, executeIntroduction, run });
+});
+
+</script>
+<script data-b3-generated="b3-card.js">
+// Состояние проверочной сцены и отдельное представление сведений игрока.
+// Это не общий слой убеждений, общения или видимости игры.
+(function (root, factory) {
+  if (typeof module === "object" && module.exports)
+    module.exports = factory(require("../../../sources/свод-рода/Б3-ядро.js"));
+  else root.NovgorB3Card = factory(root.NovgorB3);
+})(globalThis, function (core) {
+"use strict";
+
+const clone = value => JSON.parse(JSON.stringify(value));
+const PEOPLE = Object.freeze({
+  girl: { id: "girl", name: "Милена", role: "жительница", age: 18, sex: "ж" },
+  "local-person": { id: "local-person", name: "Радомир", instrumental: "Радомиром", role: "местный", age: 20, sex: "м" },
+  "newcomer-person": { id: "newcomer-person", name: "Асмунд", instrumental: "Асмундом", role: "пришлый", age: 22, sex: "м" }
+});
+const DEFAULTS = Object.freeze({ stance: "common", mark: "B", disclosure: "spoken", condition: "normal" });
+const ORIGIN = { local: "местный", newcomer: "пришлый" };
+
+function createSession(parameters = {}) {
+  const config = { ...DEFAULTS, ...parameters };
+  if (!["common", "personal", "doubt", "unknown"].includes(config.stance)
+      || !["A", "B"].includes(config.mark)
+      || !["spoken", "sign-only", "private"].includes(config.disclosure)
+      || !["normal", "unacceptable", "unavailable", "unreachable", "unknown-origin", "absent", "none"].includes(config.condition))
+    throw new Error("Неизвестное условие сцены Б3");
+  const scene = core.fixture();
+  if (config.stance === "personal") scene.actor.corrections[core.RULE] = {
+    kind: "version", meanings: { A: "newcomer", B: "local" }
+  };
+  if (config.stance === "doubt") scene.actor.corrections[core.RULE] = { kind: "doubt" };
+  if (config.stance === "unknown") scene.actor.knows = {};
+
+  // Местное знакомство становится известно ей после предложения игрока.
+  // Пришлого она уже знает как доступное знакомство. Истинное происхождение
+  // из scene.people не используется ни для предложения, ни для выбора.
+  scene.actor.offers[0].known = false;
+  scene.actor.offers[0].proposedBy = null;
+  scene.actor.offers[1].proposedBy = "self";
+  const newcomer = scene.actor.offers[1];
+  if (config.condition === "unacceptable") newcomer.acceptable = false;
+  if (config.condition === "unavailable") newcomer.available = false;
+  if (config.condition === "unreachable") newcomer.position = 20;
+  if (config.condition === "unknown-origin") newcomer.origin = null;
+  if (config.condition === "absent") scene.people["newcomer-person"].present = false;
+  if (config.condition === "none") scene.actor.offers.forEach(o => { o.acceptable = false; });
+  core.performRite(scene, { draw: () => scene.rite.lots.findIndex(lot => lot.mark === config.mark) });
+  const session = { config, scene, phase: "proposal", decisionInput: null, decision: null,
+    execution: null, answer: null, disclosures: [], publicEvents: [], proposed: [] };
+  if (config.disclosure !== "private") session.publicEvents.push({
+    id: "b3-rite", participants: ["girl"], kind: "observation", at: scene.time,
+    text: `Милена завершила гадание. На жребии знак ${config.mark === "A" ? "А" : "Б"}.`
+  });
+  if (config.disclosure === "spoken") {
+    const reading = scene.actor.readings[0];
+    const meaning = reading.meaning === null ? null : ORIGIN[reading.meaning];
+    const texts = {
+      common: `«Так учили в роду: знак ${config.mark === "A" ? "А" : "Б"} — ${meaning} жених. Сначала хочу познакомиться с таким».`,
+      personal: `«Я толкую иначе: знак ${config.mark === "A" ? "А" : "Б"} — ${meaning} жених. Сначала хочу познакомиться с таким».`,
+      doubt: "«Толкование я знаю, но ему не доверяю. По знаку знакомство выбирать не буду».",
+      unknown: "«Гадать умею, а что значит этот знак — не знаю»."
+    };
+    session.disclosures.push({ id: "b3-statement", speakerId: "girl", kind: "statement",
+      readingId: reading.id, at: scene.time, text: texts[config.stance],
+      summary: reading.status === "expected"
+        ? `Сначала хочет познакомиться с ${reading.meaning === "newcomer" ? "пришлым" : "местным"}.`
+        : reading.status === "doubted" ? "Знает толкование, но не руководствуется им."
+        : "Знает процедуру гадания; смысла знака не знает.",
+      ruleText: reading.rule ? "В роду: А — местный жених, Б — пришлый." : null,
+      ruleSource: reading.rule?.source ?? null,
+      personalText: reading.rule?.version === "personal" ? "Её версия: А — пришлый, Б — местный." : null,
+      expectedOrigin: scene.actor.expectation?.origin ?? null });
+  }
+  return session;
+}
+
+function propose(session, offerId) {
+  if (session.phase !== "proposal") return false;
+  const offer = session.scene.actor.offers.find(o => o.id === offerId);
+  if (!offer) throw new Error("Неизвестное предложение знакомства");
+  offer.known = true;
+  offer.proposedBy = "player";
+  session.proposed.push(offerId);
+  session.decisionInput = core.decisionView(session.scene);
+  session.decision = core.chooseIntroduction(session.decisionInput);
+  session.phase = "answer";
+  const selected = session.decision.offer;
+  const disclosure = session.disclosures.find(d => d.readingId === session.decision.sourceId);
+  // Объяснение передаётся отдельной репликой в этой фиксированной сцене.
+  // Без раскрытого личного толкования внутренняя причина в ответ не выходит.
+  session.answer = { selectedPersonId: selected?.personId ?? null,
+    text: selected ? `Милена выбрала знакомство: ${PEOPLE[selected.personId].name}.`
+      : "Милена не выбрала ни одного знакомства.",
+    explanation: disclosure && session.decision.reason === "prediction"
+      ? `«Сначала хочу познакомиться с ${disclosure.expectedOrigin === "newcomer" ? "пришлым" : "местным"} — как я истолковала знак».`
+      : null,
+    sourceId: disclosure?.id ?? null };
+  return true;
+}
+
+function continueScene(session) {
+  if (session.phase !== "answer") return false;
+  session.execution = core.executeIntroduction(session.scene, session.decision);
+  session.phase = "completed";
+  const otherId = session.decision.offer?.personId;
+  const name = PEOPLE[otherId]?.name;
+  if (session.execution.status === "completed") session.publicEvents.push({
+    id: "b3-encounter", kind: "observation", participants: ["girl", otherId],
+    at: session.scene.time, text: `Милена пришла к месту встречи. Знакомство с ${PEOPLE[otherId].instrumental} состоялось.`
+  });
+  else if (session.execution.status === "person-absent") session.publicEvents.push({
+    id: "b3-absence", kind: "observation", participants: ["girl", otherId],
+    at: session.scene.time, text: `Милена пришла к месту встречи, но ${name} не явился. Знакомство не состоялось.`
+  });
+  return true;
+}
+
+function project(session, { mode = "player", personId = "girl" } = {}) {
+  if (!Object.hasOwn(PEOPLE, personId)) throw new Error("Неизвестный участник сцены");
+  // Белый список: карточка игрока читает доставленные слова и наблюдаемые
+  // итоги. Ни knows/corrections, ни expectation, ни decision.reason здесь нет.
+  const view = {
+    person: clone(PEOPLE[personId]), people: Object.values(PEOPLE).map(clone),
+    phase: session.phase,
+    knowledge: personId === "girl" ? session.disclosures.map(clone) : [],
+    answer: personId === "girl" && session.answer ? clone(session.answer) : null,
+    offers: personId === "girl" ? [
+      { id: "offer-local", personId: "local-person", text: "Радомир — местный" },
+      { id: "offer-newcomer", personId: "newcomer-person", text: "Асмунд — пришлый" }
+    ] : [],
+    history: session.publicEvents.filter(e => e.participants.includes(personId)).map(clone),
+    location: personId === "girl" ? session.phase === "completed" && session.decision?.offer
+      ? "У места встречи" : "В поселении" : "Местонахождение не уточнено"
+  };
+  if (mode === "developer") view.debug = clone({ config: session.config, scene: session.scene,
+    decisionInput: session.decisionInput, decision: session.decision, execution: session.execution });
+  return view;
+}
+
+return Object.freeze({ DEFAULTS, PEOPLE, createSession, propose, continueScene, project });
+});
+
+</script>
+<script data-b3-generated="b3-interface.js">
+// Отрисовка Б3 читает представление сведений; внутренний решатель здесь не дублируется.
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory(require('./b3-card.js'));
+  else root.NovgorB3Interface = factory(root.NovgorB3Card);
+})(globalThis, function (model) {
+"use strict";
+
+function fitLists(doc) {
+  const panel = doc.getElementById('панель');
+  const budget = Math.max(160, Math.min(doc.defaultView.innerHeight * 0.55,
+    doc.defaultView.innerHeight - panel.getBoundingClientRect().top - 24));
+  for (const list of panel.querySelectorAll('[data-b3-list]')) {
+    const previous = [...list.children].find(e => e.tagName === 'DETAILS');
+    const wasOpen = previous?.open ?? false;
+    if (previous) {
+      for (const row of [...previous.children].filter(e => e.tagName !== 'SUMMARY')) list.appendChild(row);
+      previous.remove();
+    }
+    const rows = [...list.children];
+    let height = 0, keep = rows.length;
+    for (let i = 0; i < rows.length; i++) {
+      height += rows[i].getBoundingClientRect().height + 6;
+      if (i > 0 && height > budget) { keep = i; break; }
+    }
+    if (keep < rows.length) {
+      const more = doc.createElement('details'); more.className = 'раск'; more.open = wasOpen;
+      const summary = doc.createElement('summary'); summary.textContent = `Ещё ${rows.length - keep}`;
+      more.appendChild(summary);
+      rows.slice(keep).forEach(row => more.appendChild(row));
+      list.appendChild(more);
+    }
+  }
+}
+
+function render(doc, options) {
+  const { session, selectedId, mode, tab, highlight, onPerson, onTab, onPropose,
+    onContinue, onReset, onBack, canBack, renderTabs } = options;
+  const view = model.project(session, { personId: selectedId, mode: mode === 'дев' ? 'developer' : 'player' });
+  const el = (tag, text, cls) => {
+    const node = doc.createElement(tag);
+    if (text !== undefined && text !== null) node.textContent = text;
+    if (cls) node.className = cls;
+    return node;
+  };
+  const button = (parent, label, handler, cls = 'ссыл') => {
+    const node = el('button', label, cls); node.type = 'button'; node.addEventListener('click', handler);
+    if (parent.lastChild?.nodeType === 3 && /\S$/.test(parent.lastChild.textContent))
+      parent.appendChild(doc.createTextNode(' '));
+    parent.appendChild(node); return node;
+  };
+  const link = (parent, label, targetTab, id = selectedId, anchor = null) =>
+    button(parent, label, () => id === selectedId ? onTab(targetTab, anchor) : onPerson(id, targetTab, anchor));
+  const panel = doc.getElementById('панель');
+  const title = text => panel.appendChild(el('h3', text));
+  const empty = text => panel.appendChild(el('p', text, 'пусто'));
+  const list = () => {
+    const node = el('div'); node.dataset.b3List = ''; panel.appendChild(node); return node;
+  };
+  const row = (parent, text, id) => {
+    const node = el('div', text, 'стр');
+    if (id) { node.id = id; if (id === highlight) node.classList.add('подсвет'); }
+    parent.appendChild(node); return node;
+  };
+
+  const people = doc.getElementById('люди'); people.replaceChildren();
+  people.appendChild(el('h2', 'Участники сцены'));
+  for (const p of view.people) {
+    const b = button(people, '', () => onPerson(p.id, tab), 'чел');
+    b.setAttribute('aria-current', String(p.id === selectedId));
+    const avatar = el('span', p.name[0], 'аватар'); avatar.style.background = p.sex === 'ж' ? '#d9c6b9' : '#b9c6da';
+    b.appendChild(avatar);
+    const label = el('span', null, 'кто'); label.appendChild(el('span', p.name, 'и'));
+    label.appendChild(el('br')); label.appendChild(el('span', p.role, 'р')); b.appendChild(label);
+  }
+  const header = doc.getElementById('шапка'); header.replaceChildren();
+  if (canBack) button(header, '← назад', onBack, 'кн назад');
+  const avatar = el('span', view.person.name[0], 'аватар большой');
+  avatar.style.background = view.person.sex === 'ж' ? '#d9c6b9' : '#b9c6da'; header.appendChild(avatar);
+  const identity = el('div'); identity.appendChild(el('div', view.person.name, 'имя'));
+  identity.appendChild(el('div', `${view.person.age} ${view.person.age === 22 ? 'года' : 'лет'} · ${view.person.role}`, 'кто-где'));
+  const status = el('div', null, 'статусы');
+  const availability = selectedId === 'girl' ? 'Можно обратиться' : 'Доступность не уточнена';
+  const badge = el('span', `${availability} · ${view.location}`, 'чип'); badge.dataset.b3Availability = '';
+  status.appendChild(badge); identity.appendChild(status); header.appendChild(identity);
+  doc.querySelector('body > .подзаг').textContent = 'Карточка показывает доступные игроку сведения об участниках сцены.';
+  doc.getElementById('день-подпись').textContent = view.phase === 'completed' ? 'Сцена завершена'
+    : view.phase === 'answer' ? 'Ответ получен' : 'Перед знакомствами';
+  doc.getElementById('границы').hidden = true;
+  doc.getElementById('кн-игрок').setAttribute('aria-pressed', String(mode === 'игрок'));
+  doc.getElementById('кн-дев').setAttribute('aria-pressed', String(mode === 'дев'));
+  renderTabs(); panel.replaceChildren();
+
+  const parameters = doc.getElementById('б3-параметры'); parameters.replaceChildren();
+  parameters.hidden = mode !== 'дев';
+  if (mode === 'дев') {
+    parameters.appendChild(el('summary', 'Начальные условия сцены Б3'));
+    parameters.appendChild(el('p', 'Изменение условий начинает отдельный прогон с начала. Это не переубеждение жителя и не повторное гадание в партии.', 'мелко'));
+    const controls = [
+      ['stance', 'Отношение к правилу', [['common', 'Общее правило'], ['personal', 'Своя версия'], ['doubt', 'Сомнение'], ['unknown', 'Толкование незнакомо']]],
+      ['mark', 'Знак', [['B', 'Б'], ['A', 'А']]],
+      ['disclosure', 'Сведения игрока', [['spoken', 'Услышал её толкование'], ['sign-only', 'Видел только знак'], ['private', 'О гадании не знает']]],
+      ['condition', 'Условия знакомства', [['normal', 'Оба приемлемы'], ['unacceptable', 'Пришлый неприемлем'], ['unavailable', 'Пришлый недоступен'], ['unreachable', 'До пришлого не успеть'], ['unknown-origin', 'Ей неизвестно происхождение'], ['absent', 'Пришлый не явится'], ['none', 'Ни один не приемлем']]]
+    ];
+    for (const [key, caption, choices] of controls) {
+      const label = el('label', caption + ' ', 'б3-параметр');
+      const select = el('select', null, 'фильтр-ввод'); select.id = 'b3-' + key;
+      select.setAttribute('aria-label', caption);
+      for (const [value, text] of choices) { const option = el('option', text); option.value = value; select.appendChild(option); }
+      select.value = session.config[key];
+      select.addEventListener('change', () => onReset({ ...session.config, [key]: select.value }));
+      label.appendChild(select); parameters.appendChild(label);
+    }
+    button(parameters, 'Сцена с начала', () => onReset(session.config), 'кн');
+  }
+
+  const historyRows = () => {
+    title('Известные события');
+    if (!view.history.length) { empty('Событий, о которых известно игроку, пока нет.'); return; }
+    const parent = list();
+    for (const event of view.history) {
+      const r = row(parent, event.text, event.id); r.appendChild(el('div', 'Наблюдение', 'мелко'));
+      if (event.id === 'b3-rite' && view.knowledge.length) link(r, 'Её толкование', 'Знания', 'girl', view.knowledge[0].id);
+      if (event.id !== 'b3-rite') {
+        const other = event.participants.find(id => id !== selectedId);
+        if (other) link(r, 'Карточка участника', 'Отношения', other);
+      }
+    }
+  };
+  const showAnswer = () => {
+    if (!view.answer) return false;
+    const r = row(panel, view.answer.text, 'b3-answer');
+    if (view.answer.selectedPersonId) {
+      r.appendChild(el('div'));
+      link(r, 'Открыть его карточку', 'Отношения', view.answer.selectedPersonId);
+    }
+    if (view.answer.explanation) {
+      r.appendChild(el('blockquote', view.answer.explanation));
+      link(r, 'Основание объяснения', 'Знания', 'girl', view.answer.sourceId);
+    } else if (!view.knowledge.length && view.answer.selectedPersonId) {
+      r.appendChild(el('div', 'Причину выбора она не сообщила.', 'мелко'));
+    } else if (view.knowledge.length) link(r, 'Что она говорила до выбора', 'Знания', 'girl', view.knowledge[0].id);
+    return true;
+  };
+  switch (tab) {
+    case 'Обзор':
+      title('Сейчас');
+      if (!showAnswer()) row(panel, selectedId === 'girl' ? 'Можно предложить Милене знакомство.' : 'Доступны сведения о предложении знакомства.');
+      link(panel, selectedId === 'girl' ? 'Открыть предложения' : 'К предложениям Милены', 'Отношения', 'girl');
+      if (view.phase === 'completed') {
+        const latest = view.history.filter(e => e.id !== 'b3-rite').at(-1);
+        if (latest) { row(panel, latest.text); link(panel, 'Событие', 'История', selectedId, latest.id); }
+      }
+      break;
+    case 'Знания': {
+      title('Представления и ожидания');
+      if (!view.knowledge.length) {
+        empty(selectedId === 'girl' ? 'О её представлениях пока нет доступных сведений.' : 'О его представлениях пока нет доступных сведений.');
+        if (view.history.some(e => e.id === 'b3-rite')) link(panel, 'Наблюдение о гадании', 'История', 'girl', 'b3-rite');
+      }
+      const parent = list();
+      for (const knowledge of view.knowledge) {
+        const r = row(parent, 'По её словам: ' + knowledge.summary, knowledge.id);
+        if (knowledge.ruleText) r.appendChild(el('div', knowledge.ruleText, 'мелко'));
+        if (knowledge.personalText) r.appendChild(el('div', knowledge.personalText));
+        if (knowledge.ruleSource) r.appendChild(el('div', 'Источник правила: ' + knowledge.ruleSource, 'мелко'));
+        const basis = el('details', null, 'раск'); basis.appendChild(el('summary', 'Основание: слова Милены перед выбором'));
+        basis.appendChild(el('blockquote', knowledge.text));
+        basis.appendChild(el('p', 'Игрок услышал это до предложения знакомства. Это источник сведений о её толковании.', 'мелко'));
+        r.appendChild(basis); link(r, 'Связанный выбор знакомства', 'Отношения', 'girl', 'b3-answer');
+      }
+      break;
+    }
+    case 'Отношения':
+      if (selectedId === 'girl') {
+        title('Предложения знакомства');
+        const parent = list();
+        for (const offer of view.offers) {
+          const r = row(parent, offer.text);
+          if (view.phase === 'proposal') button(r, 'Предложить: ' + model.PEOPLE[offer.personId].name, () => onPropose(offer.id), 'кн');
+          else link(r, 'Открыть карточку', 'Отношения', offer.personId);
+        }
+        if (showAnswer() && view.phase === 'answer') button(panel,
+          view.answer.selectedPersonId ? 'Дождаться встречи' : 'Завершить сцену', onContinue, 'кн');
+        if (view.phase === 'completed') {
+          const latest = view.history.filter(e => e.id !== 'b3-rite').at(-1);
+          if (latest) { row(panel, latest.text, latest.id); link(panel, 'Известное событие', 'История', selectedId, latest.id); }
+        }
+      } else {
+        title('Связи и знакомства');
+        if (!view.history.length) empty('О близких связях сведений нет.');
+        else historyRows();
+        link(panel, 'К предложению знакомства Милене', 'Отношения', 'girl');
+      }
+      break;
+    case 'История': historyRows(); break;
+    case 'Работа': title('Работа и мастерство'); empty('Сведений о работе и мастерстве нет.'); break;
+    case 'Здоровье': title('Здоровье'); empty('Сведений о здоровье нет.'); break;
+    case 'Характер': title('Характер'); empty('Для суждения о характере недостаточно наблюдений.'); break;
+    case 'Владения': title('Владения'); empty('Сведений о владениях нет.'); break;
+    case 'Диагностика': {
+      title('Скрытое состояние сцены Б3');
+      const input = el('input', null, 'фильтр-ввод'); input.id = 'дев-фильтр'; input.placeholder = 'поиск по имени поля и значению…';
+      panel.appendChild(input);
+      const tree = el('div', null, 'dev-дерево dev');
+      const build = (name, value) => {
+        if (value && typeof value === 'object') {
+          const details = el('details'); details.appendChild(el('summary', name)); const ul = el('ul');
+          for (const key of Object.keys(value)) { const li = el('li'); li.appendChild(build(key, value[key])); ul.appendChild(li); }
+          details.appendChild(ul); return details;
+        }
+        return el('span', name + ': ' + String(value));
+      };
+      tree.appendChild(build('Б3: входы, решение и исполнение', view.debug)); panel.appendChild(tree);
+      input.addEventListener('input', () => {
+        const query = input.value.trim().toLowerCase();
+        tree.querySelectorAll('li').forEach(li => { li.hidden = !!query && !li.textContent.toLowerCase().includes(query)
+          && !li.closest('details')?.querySelector('summary')?.textContent.toLowerCase().includes(query); });
+        tree.querySelectorAll('details').forEach(d => { d.open = !!query; });
+      });
+      break;
+    }
+  }
+  doc.defaultView.requestAnimationFrame(() => {
+    fitLists(doc);
+    const target = highlight ? doc.getElementById(highlight) : null;
+    if (target && panel.contains(target)) {
+      for (let ancestor = target.parentElement; ancestor && ancestor !== panel; ancestor = ancestor.parentElement)
+        if (ancestor.tagName === 'DETAILS') ancestor.open = true;
+      target.scrollIntoView({ block: 'nearest' });
+    }
+  });
+  return view;
+}
+
+return Object.freeze({ render, fitLists });
+});
+
+</script>
+<!-- B3:GENERATED:END -->
 <script>
 // словарь черт из данные.js репо (char-gen-v1)
 const СЛОВАРЬ_ЧЕРТ = {
@@ -880,7 +1532,7 @@ function сгенерироватьРод(сид) {
 "use strict";
 // ================= состояние интерфейса =================
 const УИ = {
-  снимок: 0, кто: "p1", вкладка: "Обзор", режим: "игрок",
+  снимок: 0, кто: "p1", вкладка: "Обзор", режим: "игрок", б3: false,
   стек: [], подсветить: null, фильтрИстории: "все",
   поручения: {} // ид снимка → [{кому, статус, подпись}] — живёт между переходами
 };
@@ -1422,7 +2074,30 @@ function нарисоватьВкладки() {
     н.appendChild(b);
   });
 }
+const Б3_СОСТОЯНИЕ = { session: NovgorB3Card.createSession() };
+function перезапуститьБ3(config) {
+  Б3_СОСТОЯНИЕ.session = NovgorB3Card.createSession(config);
+  УИ.кто = "girl"; УИ.стек = []; УИ.подсветить = null;
+  нарисовать();
+}
+function нарисоватьБ3() {
+  нарисоватьВкладки();
+  NovgorB3Interface.render(document, {
+    session: Б3_СОСТОЯНИЕ.session, selectedId: УИ.кто, mode: УИ.режим,
+    tab: УИ.вкладка, highlight: УИ.подсветить, canBack: УИ.стек.length > 0,
+    onPerson: перейтиК, onTab: вВкладку, onBack: назад,
+    onPropose(id) { NovgorB3Card.propose(Б3_СОСТОЯНИЕ.session, id); УИ.подсветить = "b3-answer"; нарисовать(); },
+    onContinue() { NovgorB3Card.continueScene(Б3_СОСТОЯНИЕ.session); УИ.подсветить = Б3_СОСТОЯНИЕ.session.publicEvents.at(-1)?.id; нарисовать(); },
+    onReset: перезапуститьБ3, renderTabs: нарисоватьВкладки
+  });
+  УИ.подсветить = null;
+}
 function нарисовать() {
+  $("б3-сцена").setAttribute("aria-pressed", String(УИ.б3));
+  $("б3-сцена").classList.toggle("вкл", УИ.б3);
+  if (УИ.б3) { нарисоватьБ3(); return; }
+  $("б3-параметры").hidden = true; $("б3-параметры").replaceChildren();
+  document.querySelector("body > .подзаг").textContent = "Выберите человека. Сведения отражают то, что известно старосте.";
   $("день-подпись").textContent = тек().подпись_дня;
   $("границы").hidden=УИ.режим!=="дев";
   $("сноска-снимка").innerHTML=`<p>${экр(тек().описание)}.</p><p>Данные — согласованные тестовые снимки. Суточное планирование, течение болезни и исполнение осмотра здесь не моделируются. Память пар и её затухание рассчитываются при чтении; численные настройки демонстрационные. Полные игровые правила и баланс этим прототипом не закрыты.</p><p>Словесные ступени мастерства — предложение подачи. Пороги открыты. Наследование внешности и не переданные снимком поля видны в Диагностике.</p>`;
@@ -1443,7 +2118,7 @@ function нарисовать() {
     const b = э("button","кн"+(i===0?" вкл":""), с.название); b.type="button";
     b.setAttribute("aria-pressed",i===0?"true":"false");
     b.addEventListener("click", ()=>{
-      УИ.снимок = i; УИ.стек=[]; УИ.подсветить=null;
+      УИ.б3 = false; УИ.снимок = i; УИ.стек=[]; УИ.подсветить=null;
       if (!тек().пешки[УИ.кто]) УИ.кто = "p1";
       в.querySelectorAll(".кн").forEach((x,j)=>{x.classList.toggle("вкл", j===i);x.setAttribute("aria-pressed",j===i?"true":"false");});
       нарисовать();   // вкладка и режим сохраняются; поручения игрока живут на своём снимке
@@ -1451,6 +2126,12 @@ function нарисовать() {
     в.appendChild(b);
   });
 })();
+$("б3-сцена").addEventListener("click", () => {
+  УИ.б3 = true; УИ.кто = "girl"; УИ.вкладка = "Знания"; УИ.стек = []; УИ.подсветить = null;
+  $("снимки-выбор").querySelectorAll("button").forEach(b => { b.classList.remove("вкл"); b.setAttribute("aria-pressed", "false"); });
+  нарисовать();
+});
+window.addEventListener("resize", () => { if (УИ.б3) NovgorB3Interface.fitLists(document); });
 $("кн-игрок").addEventListener("click", ()=>{ УИ.режим="игрок"; нарисовать(); });
 $("кн-дев").addEventListener("click", ()=>{ УИ.режим="дев"; нарисовать(); });
 document.addEventListener("keydown", e=>{
@@ -1473,6 +2154,10 @@ $("исходные-данные").addEventListener("click",()=>{
   $("сид").value="12345"; $("сид").removeAttribute("aria-invalid");
   $("статус-генерации").textContent="Исходный род."; нарисовать();
 });
+if (location.hash === "#b3") {
+  УИ.б3 = true; УИ.кто = "girl"; УИ.вкладка = "Знания";
+  $("снимки-выбор").querySelectorAll("button").forEach(b => { b.classList.remove("вкл"); b.setAttribute("aria-pressed", "false"); });
+}
 нарисовать();
 </script>
 </body></html>
