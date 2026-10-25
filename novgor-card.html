@@ -135,11 +135,13 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
       <option value="care">Помощь есть</option><option value="absent">Помощница отсутствует</option>
       <option value="scarce">Мало воды</option><option value="hard">Только твёрдая пища</option><option value="noToilet">Нет туалета</option>
     </select>
+    <label style="display:inline-block"><input id="body-closed-stock" type="checkbox"> Ограниченный запас без пополнения</label>
     <button class="кн" id="body-start" type="button">Начать расчёт</button>
     <button class="кн" id="body-day" type="button" disabled>Прожить сутки</button>
     <button class="кн" id="body-week" type="button" disabled>Прожить неделю</button>
     <button class="кн" id="body-stop" type="button" disabled>Вернуться к снимку</button>
     <p class="мелко" id="body-status" role="status" aria-live="polite">Расчёт не запущен.</p>
+    <p class="мелко" id="body-stock">Обычный опыт получает припасы извне каждый день. Добыча и производство пока не рассчитываются.</p>
   </details>
   <details class="сноска" id="б3-параметры" hidden></details>
   <details class="сноска" id="границы" hidden><summary>Источники и границы прототипа</summary><div id="сноска-снимка"></div></details>
@@ -1542,7 +1544,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="8ca12ca6152ddc9f6ec7b4235cceefc6c2a1b062fd79bb8988c26751c98be28d">
+<script data-body-runtime="0f4cc48905048c4e1775af4eb71ec9d2cf87516a2548c6ed58a7be700022acd5">
 /* Runtime телесного слоя. Предварительные параметры — не игровой баланс. */
 (function (root, factory) {
   const api = factory();
@@ -1672,7 +1674,8 @@ function сгенерироватьРод(сид) {
     positive(delivery.water || 0, 'delivery.water', true); h.water = round(h.water + (delivery.water || 0));
     for (const f of delivery.food || []) h.food.push(copy(f));
     validate(probe); s.households = probe.households;
-    event(s, 'Supply', [], delivery.label || 'Поступили припасы');
+    event(s, 'Supply', [], delivery.label || 'Поступили припасы', null,
+      {household:hid,water:delivery.water||0,food:copy(delivery.food||[])});
   }
   function performCare(s, p, task, dayPeople, reasons) {
     const h = s.households[p.household];
@@ -1837,10 +1840,9 @@ function сгенерироватьРод(сид) {
 });
 /* Начальные условия прогонов первого пакета; значения предварительные. */
 (function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) module.exports = api;
-  else root.NovgorBodyScenarios = api;
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./body.js'));
+  else root.NovgorBodyScenarios = factory(root.NovgorBody);
+})(typeof globalThis === 'object' ? globalThis : this, function (body) {
   'use strict';
   const labels = {care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
   function make(kind = 'care', names = {}) {
@@ -1859,7 +1861,42 @@ function сгенерироватьРод(сид) {
         wasteDestination: true, waste: 0, careOrder: ['p2']}}
     };
   }
-  return {labels, make};
+  // Внешний вход опыта, а не добыча или производство в игровом мире.
+  // make() оставляет конечные запасы для проверок самого runtime.
+  function createTrial(kind = 'care', names = {}, options = {}) {
+    const state = body.create(make(kind, names));
+    state.trial = {kind, closedStock: options.closedStock === true,
+      foodTarget: state.households['А'].food.reduce((n,f)=>n+f.amount*f.nutrition,0),
+      waterTarget: state.households['А'].water};
+    return state;
+  }
+  function advanceTrial(state, days = 1) {
+    if (!state.trial || !Object.hasOwn(labels,state.trial.kind)) throw new Error('Нет условий опыта');
+    if(typeof state.trial.closedStock!=='boolean'||![state.trial.foodTarget,state.trial.waterTarget].every(n=>Number.isFinite(n)&&n>=0)) throw new Error('Некорректное снабжение опыта');
+    if (!Number.isInteger(days) || days<1 || days>3660) throw new Error('Некорректное число суток');
+    for(let i=0;i<days;i++) {
+      body.advance(state);
+      if(state.trial.closedStock) continue;
+      const h=state.households['А'];
+      const food=Math.max(0,Math.round((state.trial.foodTarget-h.food.reduce((n,f)=>n+f.amount*f.nutrition,0))*1e12)/1e12);
+      const water=Math.max(0,Math.round((state.trial.waterTarget-h.water)*1e12)/1e12);
+      if(food<=1e-10 && water<=1e-10) continue;
+      const supply={water,label:'Внешнее снабжение — условие опыта',food:[]};
+      if(food>1e-10) supply.food.push({id:'trial-food-'+state.day,name:state.trial.kind==='hard'?'сухари':'похлёбка',
+        amount:food,nutrition:1,quality:1,texture:state.trial.kind==='hard'?3:0});
+      body.deliver(state,'А',supply);
+    }
+    return state;
+  }
+  function stockSummary(state) {
+    const h=state.households['А'];
+    const people=Object.values(state.people).filter(p=>p.household==='А'&&p.present&&p.health>0);
+    const food=h.food.reduce((n,f)=>n+f.amount*f.nutrition,0),water=h.water;
+    const foodDemand=people.reduce((n,p)=>n+p.foodDemand,0),waterDemand=people.reduce((n,p)=>n+p.waterDemand,0);
+    return {food,water,foodDays:foodDemand?food/foodDemand:null,waterDays:waterDemand?water/waterDemand:null,
+      closedStock:state.trial.closedStock,shortage:people.some(p=>p.last&&(p.last.foodReason||p.last.waterReason))};
+  }
+  return {labels, make, createTrial, advanceTrial, stockSummary};
 });
 </script>
 <!-- END GENERATED BODY RUNTIME -->
@@ -1882,6 +1919,7 @@ function остановитьТело() {
   ТЕЛО.state = null; ТЕЛО.snapshot = null; ТЕЛО.base = null; ТЕЛО.kind = null;
   for (const id of ["body-day","body-week","body-stop"]) $(id).disabled = true;
   $("body-status").textContent = "Расчёт не запущен.";
+  $("body-stock").textContent = "Обычный опыт получает припасы извне каждый день. Добыча и производство пока не рассчитываются.";
 }
 function обновитьТело() {
   const b = ТЕЛО.base, s = ТЕЛО.state, out = клонировать(b);
@@ -1918,6 +1956,11 @@ function обновитьТело() {
   }
   ТЕЛО.snapshot = out;
   $("body-status").textContent = "Прошло суток: " + s.day + ". " + NovgorBodyScenarios.labels[ТЕЛО.kind] + ".";
+  const stock=NovgorBodyScenarios.stockSummary(s);
+  const days=n=>n===null?"нет живых участников":(Math.floor(n*10)/10).toLocaleString("ru-RU")+" суток";
+  $("body-stock").textContent=(stock.closedStock?"Запасы не пополняются — опыт истощения. ":"Припасы поступают извне после каждых суток. ")+
+    "Запас еды при полной выдаче: "+days(stock.foodDays)+"; воды: "+days(stock.waterDays)+". "+
+    (stock.shortage?"Есть нехватка еды, воды или помощи — причина показана в здоровье.":"");
 }
 function начатьТело() {
   УИ.б3=false;
@@ -1925,7 +1968,7 @@ function начатьТело() {
   const kind = $("body-scenario").value;
   const names = Object.fromEntries(["p1","p2","p6"].map(id=>[id,base.пешки[id].имя]));
   ТЕЛО.base=base; ТЕЛО.kind=kind;
-  ТЕЛО.state=NovgorBody.create(NovgorBodyScenarios.make(kind,names));
+  ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked});
   обновитьТело();
   for (const id of ["body-day","body-week","body-stop"]) $(id).disabled=false;
   УИ.кто="p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
@@ -2562,8 +2605,8 @@ window.addEventListener("resize", () => { if (УИ.б3) NovgorB3Interface.fitLis
 $("кн-игрок").addEventListener("click", ()=>{ УИ.режим="игрок"; нарисовать(); });
 $("кн-дев").addEventListener("click", ()=>{ УИ.режим="дев"; нарисовать(); });
 $("body-start").addEventListener("click", начатьТело);
-$("body-day").addEventListener("click", ()=>{NovgorBody.advance(ТЕЛО.state);обновитьТело();нарисовать();});
-$("body-week").addEventListener("click", ()=>{NovgorBody.advance(ТЕЛО.state,7);обновитьТело();нарисовать();});
+$("body-day").addEventListener("click", ()=>{NovgorBodyScenarios.advanceTrial(ТЕЛО.state);обновитьТело();нарисовать();});
+$("body-week").addEventListener("click", ()=>{NovgorBodyScenarios.advanceTrial(ТЕЛО.state,7);обновитьТело();нарисовать();});
 $("body-stop").addEventListener("click", ()=>{остановитьТело();нарисовать();});
 document.addEventListener("keydown", e=>{
   if (["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)) return;
