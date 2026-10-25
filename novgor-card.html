@@ -151,7 +151,8 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
     <p class="мелко" id="body-participants">Условия задаются на старте; дальше расходуются запасы и время помощи. Численные настройки предварительные.</p>
     <label for="body-scenario">Условия</label>
     <select class="фильтр-ввод" id="body-scenario" style="width:min(260px,100%)">
-      <option value="wound">Рана: осмотр и лечение</option><option value="woundWrong">Рана: ошибочная версия знахарки</option>
+      <option value="tooth">Зуб: удаление и твёрдая пища</option><option value="toothRinse">Зуб: полоскание вместо удаления</option><option value="toothInfection">Зуб: боль и воспаление</option><option value="ages">Возрастные нормы еды и воды</option>
+      <option value="wound" selected>Рана: осмотр и лечение</option><option value="woundWrong">Рана: ошибочная версия знахарки</option>
       <option value="care">Помощь есть</option><option value="absent">Помощница отсутствует</option>
       <option value="scarce">Мало воды</option><option value="hard">Только твёрдая пища</option><option value="noToilet">Нет туалета</option>
     </select>
@@ -159,6 +160,7 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
     <button class="кн" id="body-start" type="button">Начать расчёт</button>
     <button class="кн" id="body-day" type="button" disabled>Прожить сутки</button>
     <button class="кн" id="body-week" type="button" disabled>Прожить неделю</button>
+    <button class="кн" id="body-soft-food" type="button" disabled>Доставить мягкую пищу</button>
     <button class="кн" id="body-stop" type="button" disabled>Вернуться к снимку</button>
     <p class="мелко" id="body-status" role="status" aria-live="polite">Расчёт не запущен.</p>
     <p class="мелко" id="body-stock">Обычный опыт получает припасы извне каждый день. Добыча и производство пока не рассчитываются.</p>
@@ -1564,7 +1566,148 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="e8c17b94abe1d191ddad3a7d5db571c1ac3511a25834598cba930dbe037788bb">
+<script data-body-runtime="4cc5453f8493a6e6b3ec6449621565a277785e4af241454c949600a5d21dd883">
+/* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory();
+  else root.NovgorLife=factory();
+})(globalThis,function(){
+  'use strict';
+  const DAY=86400000;
+  const DEFAULTS=Object.freeze({
+    childFood:0.5,teenFood:0.8,adultFood:1,
+    childWater:0.5,teenWater:0.8,adultWater:1,
+    teenWork:0.5,childSoftAge:1,childDenseAge:3,
+    illnessWater:1.2,heatWater:1.25,heatThreshold:25,workWater:0.3
+  });
+  function params(input={}){
+    const k={...DEFAULTS,...input};
+    for(const [key,n]of Object.entries(k))if(!Number.isFinite(n)||(key!=='heatThreshold'&&n<0))throw Error('Некорректный возрастной параметр: '+key);
+    for(const key of ['childFood','teenFood','adultFood','childWater','teenWater','adultWater'])if(k[key]<=0)throw Error('Нулевая личная норма');
+    if(k.childSoftAge>=k.childDenseAge||k.childDenseAge>=7||k.teenWork>1)throw Error('Некорректные ступени развития');
+    return k;
+  }
+  function date(text){
+    const d=new Date(text+'T00:00:00.000Z');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(text)||!Number.isFinite(+d)||d.toISOString().slice(0,10)!==text)throw Error('Некорректная дата');
+    return d;
+  }
+  function calendar(s,day=s.day){return new Date(+date(s.calendarStart)+(day-s.calendarDayAtStart)*DAY);}
+  function yearDays(d){const y=d.getUTCFullYear();return y%4===0&&(y%100!==0||y%400===0)?366:365;}
+  function setup(s,p,raw){
+    if(raw.birthDate){date(raw.birthDate);p.birthDate=raw.birthDate;}
+    else if(raw.ageYears!==undefined){
+      if(!Number.isInteger(raw.ageYears)||raw.ageYears<0)throw Error('Возраст задаётся полными годами');
+      const d=calendar(s),month=d.getUTCMonth();d.setUTCFullYear(d.getUTCFullYear()-raw.ageYears);
+      // 29 февраля в невисокосном году рождения — 28 февраля, не будущий 1 марта.
+      if(d.getUTCMonth()!==month)d.setUTCDate(0);
+      p.birthDate=d.toISOString().slice(0,10);
+    }else p.birthDate=null;
+    delete p.ageYears;
+  }
+  function age(s,p,day=s.day){
+    if(!p.birthDate)return null;
+    const born=date(p.birthDate),now=calendar(s,day);let n=now.getUTCFullYear()-born.getUTCFullYear();
+    if(now.getUTCMonth()<born.getUTCMonth()||(now.getUTCMonth()===born.getUTCMonth()&&now.getUTCDate()<born.getUTCDate()))n--;
+    if(n<0)throw Error('Дата рождения позже текущей даты');
+    return n;
+  }
+  function stage(s,p,day=s.day){const n=age(s,p,day);return n===null?null:n<7?'child':n<14?'teen':'adult';}
+  function development(s,p){
+    const n=age(s,p),k=s.lifeParameters;
+    return n===null?null:n<k.childSoftAge?'infant':n<k.childDenseAge?'toddler':n<7?'child':'grown';
+  }
+  function work(s,p){
+    if(p.ageFactor!==null)return p.ageFactor;
+    const st=stage(s,p);return st==='child'?0:st==='teen'?s.lifeParameters.teenWork:1;
+  }
+  function needs(s,p){
+    const k=s.lifeParameters,st=stage(s,p),base=st||'adult',h=s.households[p.household];
+    const ill=p.illnesses.some(i=>i.phase!=='outcome');
+    const worked=p.yesterdayWork??p.last?.time??0;
+    return {age:age(s,p),stage:st,
+      foodDemand:p.foodDemand??k[base+'Food'],
+      waterDemand:p.waterDemand??k[base+'Water']*(ill?k.illnessWater:1)*((h.temperature??0)>k.heatThreshold?k.heatWater:1)*(1+k.workWater*worked)};
+  }
+  function validate(s,p){
+    if(p.birthDate!==null){date(p.birthDate);age(s,p);}
+    if(development(s,p)==='infant')throw Error('Грудное кормление ещё не подключено: младенец не может участвовать в этом расчёте');
+    if(p.yesterdayWork!==undefined&&(!Number.isFinite(p.yesterdayWork)||p.yesterdayWork<0||p.yesterdayWork>1))throw Error('Некорректная вчерашняя занятость');
+  }
+  return {DEFAULTS,params,date,calendar,yearDays,setup,age,stage,development,work,needs,validate};
+});
+/* Зубы: состояние и течение эпизода. Не ведёт отдельного здоровья или боли. */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory(require('./life.js'));
+  else root.NovgorDental=factory(root.NovgorLife);
+})(globalThis,function(life){
+  'use strict';
+  const copy=x=>JSON.parse(JSON.stringify(x));
+  const DEFAULTS=Object.freeze({fullCount:20,denseCount:8,yearsBetween:8,
+    riskAge:30,riskAgeSpan:40,attackDays:3,flareDays:4,flareChance:0.35,
+    extractionTime:0.12,rinseTime:0.04});
+  function params(input={}){
+    const k={...DEFAULTS,...input};
+    for(const [key,n]of Object.entries(k))if(!Number.isFinite(n)||n<0)throw Error('Некорректный зубной параметр: '+key);
+    if(!k.yearsBetween||!k.riskAgeSpan||!Number.isInteger(k.fullCount)||!Number.isInteger(k.denseCount)||k.fullCount<=k.denseCount||k.denseCount<1||k.flareChance>1||k.attackDays<1||k.flareDays<1)throw Error('Некорректные зубные пороги');
+    return k;
+  }
+  function setup(p){p.dental={count:null,origin:'unknown',serial:0,episode:null,reliefDay:null,...copy(p.dental||{})};}
+  function validate(p){
+    const d=p.dental,e=d?.episode;
+    if(!d||d.count!==null&&(!Number.isInteger(d.count)||d.count<0)||!Number.isInteger(d.serial)||d.serial<0)throw Error('Некорректный счёт зубов');
+    if(e&&(!e.id||!['attack','flare','quiet','extracted'].includes(e.phase)||!Number.isInteger(e.startedDay)||!Number.isInteger(e.untilDay)||d.count===null))throw Error('Некорректный зубной эпизод');
+  }
+  function texture(s,p,bed=false){
+    if(bed)return 0;
+    const dev=life.development(s,p);
+    if(dev&&dev!=='grown')return {infant:0,toddler:1,child:2}[dev];
+    const d=p.dental,k=s.dentalParameters;
+    return d.count===null?p.maxTexture:d.count>=k.fullCount?3:d.count>=k.denseCount?2:1;
+  }
+  function pain(p,day){
+    const phase=p.dental.episode?.phase;
+    const level=phase==='flare'?2:phase==='attack'?1:0;
+    return Math.max(0,level-(day!==null&&p.dental.reliefDay===day?1:0));
+  }
+  function effects(p,day){const n=pain(p,day);return n?[{id:'dental:'+p.dental.episode.id,loss:0,mode:'deduct',pain:n,preventsStanding:false}]:[];}
+  function signs(p,inspected=false,quality=1,key='',random){
+    const e=p.dental.episode;
+    if(!e||!['attack','flare'].includes(e.phase))return [];
+    const result=[{id:'tooth-ache',text:p.dental.reliefDay!==null?'боль в зубе уменьшилась после полоскания':e.phase==='flare'?'сильная боль в зубе':'приступ зубной боли',visible:true}];
+    if(inspected&&random(key+'|damaged-tooth')<quality)result.push({id:'damaged-tooth',text:'разрушенный болезненный зуб',visible:false});
+    return result;
+  }
+  function advance(s,p,random){
+    const d=p.dental,k=s.dentalParameters,n=life.age(s,p),changes=[];d.reliefDay=null;
+    if(p.health<=0||d.count===null||d.count===0||n===null||n<7)return changes;
+    const e=d.episode;
+    if(e&&['attack','flare'].includes(e.phase)&&s.day>e.untilDay){
+      if(e.phase==='attack'&&random('tooth-flare|'+s.seed+'|'+p.id+'|'+e.id)<k.flareChance){
+        e.phase='flare';e.untilDay=s.day+k.flareDays-1;
+        changes.push({type:'DentalFlare',text:'зубная боль усилилась',infection:true});
+      }else{e.phase='quiet';changes.push({type:'DentalQuiet',text:'зубная боль отпустила'});return changes;}
+    }
+    if(d.episode&&['attack','flare'].includes(d.episode.phase))return changes;
+    const annual=(1+Math.max(0,n-k.riskAge)/k.riskAgeSpan)/k.yearsBetween;
+    const chance=1-Math.exp(-annual/life.yearDays(life.calendar(s)));
+    if(random('tooth-onset|'+s.seed+'|'+p.id+'|'+s.day)<chance){
+      d.serial++;d.episode={id:p.id+'-tooth-'+d.serial,phase:'attack',startedDay:s.day,untilDay:s.day+k.attackDays-1};
+      changes.push({type:'DentalAttack',text:'начался приступ зубной боли'});
+    }
+    return changes;
+  }
+  function countFinding(s,p,quality,key,random){
+    return life.stage(s,p)!=='child'&&p.dental.count!==null&&random(key+'|tooth-count')<quality?p.dental.count:null;
+  }
+  function knownCount(s,p){
+    const delivered=new Set(s.events.filter(e=>e.observed).map(e=>e.seq));
+    const exams=p.medical.exams.filter(x=>delivered.has(x.seq)&&x.dentalCount!==null&&x.dentalCount!==undefined).map(x=>({count:x.dentalCount,day:x.day,seq:x.seq,source:'осмотр'}));
+    const removals=s.events.filter(e=>e.type==='DentalExtraction'&&e.people[0]===p.id&&e.observed&&e.evidence?.knownCount!==null).map(e=>({count:e.evidence.knownCount,day:e.day,seq:e.seq,source:'осмотр и удаление'}));
+    return [...exams,...removals].sort((a,b)=>a.seq-b.seq).at(-1)||null;
+  }
+  return {DEFAULTS,params,setup,validate,texture,pain,effects,signs,advance,countFinding,knownCount};
+});
 /* Контент первого медицинского случая; все числа — параметры опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -1576,7 +1719,14 @@ function сгенерироватьРод(сид) {
     ['fever',0.55,'жар и озноб',true],['weak',0.75,'резкая слабость',true],
     ['heat',0.25,'края раны горячие на ощупь',false],['discharge',0.45,'выделения из раны',false]
   ];
-  const causes={'wound-infection':{
+  const mouthSigns=[['mouth-swelling',0.1,'припухлость щеки',true],['mouth-fever',0.55,'жар и озноб',true],
+    ['gum-discharge',0.3,'выделения у больного зуба или ранки',false]];
+  const causes={'dental-infection':{
+    label:'воспаление у зуба',healthMode:'block',course:{},
+    signs:{manifest:mouthSigns,crisis:mouthSigns},pain:[[0,1],[0.55,2],[0.85,3]],
+    trigger:{chance:0.3,cleanMultiplier:0.4,incubationMin:2,incubationMax:4,severity:0.15},
+    treatment:{rinse:0,extract:0,clean:0,wormwood:0}
+  },'wound-infection':{
     label:'нагноение раны',healthMode:'block',course:{},
     signs:{manifest:woundSigns,crisis:woundSigns},
     pain:[[0,1],[0.55,2],[0.85,3]],
@@ -1584,16 +1734,18 @@ function сгенерироватьРод(сид) {
     treatment:{clean:1,wormwood:0}
   }};
   const packs={
+    extract:{label:'удаление больного зуба',stock:'dressings',clean:false,dental:true},
+    rinse:{label:'полоскание рта и обряд',stock:'rinseHerbs',clean:false,dental:true},
     clean:{label:'чесночное средство, чистая повязка и обряд',remedy:'чесночное средство',care:'очистка раны и чистая повязка',ritual:'обряд',stock:'garlic',clean:true},
     wormwood:{label:'полынный отвар, тепло и обряд',remedy:'полынный отвар',care:'поддержание тепла',ritual:'обряд',stock:'wormwood',clean:false}
   };
-  return {causes,packs,contexts:{wet:'wound'}};
+  return {causes,packs,contexts:{wet:'wound','tooth-ache':'dental','mouth-swelling':'mouth','mouth-fever':'mouth'}};
 });
 /* Первый медицинский случай. Правила опираются на 07; числа опытные. */
 (function(root,factory){
-  if(typeof module==='object'&&module.exports) module.exports=factory(require('./medical-content.js'));
-  else root.NovgorMedical=factory(root.NovgorMedicalContent);
-})(globalThis,function(content){
+  if(typeof module==='object'&&module.exports) module.exports=factory(require('./medical-content.js'),require('./dental.js'));
+  else root.NovgorMedical=factory(root.NovgorMedicalContent,root.NovgorDental);
+})(globalThis,function(content,dental){
   'use strict';
   const copy=x=>JSON.parse(JSON.stringify(x));
   const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -1612,6 +1764,7 @@ function сгенерироватьРод(сид) {
     return p;
   }
   function setup(person) {
+    dental.setup(person);
     person.illnesses=copy(person.illnesses||[]);
     person.medical={immunity:0.8,baseImmunity:0.8,resistance:{},exams:[],treatments:[],episodes:[],plan:null,treatment:null,
       requested:false,requestSeq:null,...copy(person.medical||{})};
@@ -1622,6 +1775,7 @@ function сгенерироватьРод(сид) {
     }
   }
   function validate(person) {
+    dental.validate(person);
     if(!Array.isArray(person.illnesses)||!person.medical)throw Error('Нет медицинского состояния');
     const ids=new Set();
     for(const i of person.illnesses){
@@ -1637,14 +1791,14 @@ function сгенерироватьРод(сид) {
     return rows.filter(([id,t,text,visible])=>illness.severity>=t&&(visible||(inspected&&unit(key+'|'+id)<quality)))
       .map(([id,t,text,visible])=>({id,text,visible}));
   }
-  function visible(person) {return person.illnesses.flatMap(i=>signs(i));}
-  function effects(person,p=DEFAULTS) {
-    return person.illnesses.filter(i=>i.phase!=='outcome'||i.outcome==='death').map(i=>({
+  function visible(person) {return [...dental.signs(person),...person.illnesses.flatMap(i=>signs(i))];}
+  function effects(person,p=DEFAULTS,day=null) {
+    return [...dental.effects(person,day),...person.illnesses.filter(i=>i.phase!=='outcome'||i.outcome==='death').map(i=>({
       id:'illness:'+i.id,name:CAUSES[i.cause].label,mode:CAUSES[i.cause].healthMode,
       loss:i.outcome==='death'?person.health:(CAUSES[i.cause].course.lossScale??p.lossScale)*i.severity,
       pain:i.phase==='hidden'?0:Math.max(0,...CAUSES[i.cause].pain.filter(([threshold])=>i.severity>=threshold).map(([,pain])=>pain)),
       preventsStanding:false,illnessId:i.id
-    }));
+    }))];
   }
   function context(person,day) {return person.sources.find(x=>x.observed&&(x.untilDay===null||x.untilDay>=day))?.observed.kind||visible(person).map(x=>content.contexts[x.id]).find(Boolean)||null;}
   function fromEvent(person,input,day,seed) {
@@ -1676,9 +1830,10 @@ function сгенерироватьРод(сид) {
     return {hypothesis:belief.hypothesis,method,from:learned?'выученная связка':remembered?'память о прошлом случае':'исходное убеждение'};
   }
   function advance(person,day,input,p=DEFAULTS,seed=0) {
-    const m=person.medical,ratio=input.foodRatio;
+    const m=person.medical;
     const burden=input.hungerStrength+input.thirstStrength;
-    const useful=clamp(input.quality*ratio,0,1);
+    // 12 §3 / 07 §5а: качество фактически съеденного, без второго множителя количества.
+    const useful=clamp(input.quality,0,1);
     const target=clamp(m.baseImmunity-p.burdenWeight*burden+p.nutritionWeight*(useful-p.nutritionReference)+(input.warm?0.02:0)-0.05*person.illnesses.filter(i=>i.phase!=='outcome').length,0.1,1);
     m.immunity=round(clamp(m.immunity+(target-m.immunity)*p.immunityRate,0,1));
     const changes=[];
@@ -1739,12 +1894,13 @@ function сгенерироватьРод(сид) {
 });
 /* Runtime телесного слоя. Предварительные параметры — не игровой баланс. */
 (function (root, factory) {
-  const api = factory(typeof module === 'object' && module.exports ? require('./medical.js') : root.NovgorMedical);
+  const node=typeof module === 'object' && module.exports;
+  const api = factory(node?require('./medical.js'):root.NovgorMedical,node?require('./life.js'):root.NovgorLife,node?require('./dental.js'):root.NovgorDental);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NovgorBody = api;
-})(typeof globalThis === 'object' ? globalThis : this, function (medical) {
+})(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental) {
   'use strict';
-  const VERSION = 2;
+  const VERSION = 3;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -1752,7 +1908,7 @@ function сгенерироватьРод(сид) {
     baseRecovery: 0.025, foodRecovery: 0.015, careRecovery: 0.02, bedThreshold: 0.3,
     needFromFood: 0.55, needFromWater: 0.45, needThreshold: 1,
     careTime: {drink: 0.05, feed: 0.05, warmth: 0.05, turn: 0.05, hygiene: 0.05},
-    hungerWorkPenalty: 0.2, thirstWorkPenalty: 0.2, workFloor: 0.2
+    hungerWorkPenalty: 0.2, thirstWorkPenalty: 0.2, workFloor: 0.2,nutritionNorm:1
   });
   const copy = value => JSON.parse(JSON.stringify(value));
   const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
@@ -1767,7 +1923,7 @@ function сгенерироватьРод(сид) {
       if (key === 'careTime') {for (const n of Object.values(value)) positive(n, 'careTime');}
       else positive(value, key, !key.endsWith('Threshold'));
     }
-    if (p.bedThreshold >= 1 || p.workFloor > 1) throw new Error('Порог вне диапазона');
+    if (p.bedThreshold >= 1 || p.workFloor > 1 || p.nutritionNorm<=0) throw new Error('Порог вне диапазона');
     return p;
   }
   function event(s, type, people, text, parent = null, evidence = null, observable = true) {
@@ -1783,32 +1939,35 @@ function сгенерироватьРод(сид) {
   }
   function sources(p, day) {return p.sources.filter(x => x.untilDay === null || x.untilDay >= day);}
   function condition(s, p, day = s.day) {
-    const active = [...sources(p, day), ...medical.effects(p, s.medicalParameters)], pain = Math.max(0, ...active.map(x => x.pain));
+    const active = [...sources(p, day), ...medical.effects(p, s.medicalParameters,day)], pain = Math.max(0, ...active.map(x => x.pain));
     const alive = p.health > 0;
     return {alive, pain, bed: alive && (p.health < s.parameters.bedThreshold || pain >= 3 || active.some(x => x.preventsStanding)),
-      canWork: alive && pain < 2 && p.health >= s.parameters.bedThreshold && !active.some(x => x.preventsStanding)};
+      canWork: alive && life.work(s,p)>0 && pain < 2 && p.health >= s.parameters.bedThreshold && !active.some(x => x.preventsStanding)};
   }
   function band(p) {return p.health <= 0 ? 'умер' : p.health < 0.15 ? 'при смерти' : p.health < 0.3 ? 'еле жив' : p.health < 0.6 ? 'ослаб' : 'крепок';}
   function efficiency(s, p) {
     const k = s.parameters;
-    return p.health * p.ageFactor * Math.max(k.workFloor, 1 - k.hungerWorkPenalty * Math.min(1, p.hunger / k.hungerThreshold) - k.thirstWorkPenalty * Math.min(1, p.thirst / k.thirstThreshold));
+    return p.health * life.work(s,p) * Math.max(k.workFloor, 1 - k.hungerWorkPenalty * Math.min(1, p.hunger / k.hungerThreshold) - k.thirstWorkPenalty * Math.min(1, p.thirst / k.thirstThreshold));
   }
   function create(spec) {
     const s = {version: VERSION, day: spec.day || 0, parameters: parameters(spec.parameters),
+      calendarStart:spec.calendarStart||'2000-01-01',calendarDayAtStart:spec.day||0,
+      lifeParameters:life.params(spec.lifeParameters),dentalParameters:dental.params(spec.dentalParameters),
       medicalParameters: medical.params(spec.medicalParameters), seed: spec.seed ?? 1,
       people: {}, households: copy(spec.households), observer: copy(spec.observer || {household: 'А', present: true}),
       observations: {}, events: [], nextSeq: 1, appliedImpacts: [], lastLedger: null};
     if (!Number.isInteger(s.day) || s.day < 0) throw new Error('Некорректный день');
     for (const raw of spec.people) {
       if (s.people[raw.id]) throw new Error('Повтор жителя');
-      const p = {...copy(raw), health: raw.health ?? 1, cap: raw.cap ?? 1, ageFactor: raw.ageFactor ?? 1,
-        foodDemand: raw.foodDemand ?? 1, waterDemand: raw.waterDemand ?? 1, maxTexture: raw.maxTexture ?? 3,
+      const knownAge=raw.ageYears!==undefined||raw.birthDate;
+      const p = {...copy(raw), health: raw.health ?? 1, cap: raw.cap ?? 1, ageFactor: raw.ageFactor ?? (knownAge?null:1),
+        foodDemand: raw.foodDemand ?? (knownAge?null:1), waterDemand: raw.waterDemand ?? (knownAge?null:1), maxTexture: raw.maxTexture ?? 3,
         capacity: raw.capacity ?? 1, present: raw.present !== false, careEligible: raw.careEligible === true,
         canLift: raw.canLift !== false, cleans: raw.cleans !== false, knows: copy(raw.knows || []),
         permits: copy(raw.permits || []), sources: copy(raw.sources || []),
         hunger: raw.hunger || 0, thirst: raw.thirst || 0, slowHunger: raw.slowHunger || 0,
         need: raw.need || 0, bedSince: raw.bedSince ?? null, notice: {}, noticeSeq: {}, last: null};
-      medical.setup(p); s.people[p.id] = p;
+      life.setup(s,p,raw);medical.setup(p); s.people[p.id] = p;
     }
     validate(s);
     for (const p of Object.values(s.people)) {
@@ -1825,6 +1984,8 @@ function сгенерироватьРод(сид) {
     if (s.version !== VERSION || !Number.isInteger(s.day) || !Number.isInteger(s.nextSeq)) throw new Error('Неизвестный формат состояния');
     parameters(s.parameters);
     medical.params(s.medicalParameters);
+    life.params(s.lifeParameters);dental.params(s.dentalParameters);life.calendar(s);
+    if(!Number.isInteger(s.calendarDayAtStart))throw Error('Некорректная привязка календаря');
     for (const [id, h] of Object.entries(s.households)) {
       positive(h.water, 'water', true); positive(h.waste, 'waste', true); positive(h.pot.amount, 'pot.amount', true); positive(h.pot.capacity, 'pot.capacity');
       if (h.pot.amount > h.pot.capacity || !Array.isArray(h.careOrder)) throw new Error('Некорректный быт двора ' + id);
@@ -1839,10 +2000,12 @@ function сгенерироватьРод(сид) {
     }
     for (const p of Object.values(s.people)) {
       medical.validate(p);
+      life.validate(s,p);
       if (!s.households[p.household]) throw new Error('Нет двора');
       positive(p.cap, 'cap'); positive(p.health, 'health', true); positive(p.capacity, 'capacity', true);
       if (p.cap > 1 || p.health > p.cap || p.capacity > 1) throw new Error('Здоровье или время вне диапазона');
-      for (const key of ['ageFactor', 'foodDemand', 'waterDemand']) positive(p[key], key);
+      for (const key of ['ageFactor', 'foodDemand', 'waterDemand']) if(p[key]!==null)positive(p[key], key,key==='ageFactor');
+      if(!Number.isInteger(p.maxTexture)||p.maxTexture<0||p.maxTexture>3)throw Error('Некорректный допуск пищи');
       for (const key of ['hunger', 'thirst', 'slowHunger', 'need']) positive(p[key], key, true);
       for (const x of p.sources) {
         positive(x.loss, 'source.loss', true);
@@ -1876,17 +2039,29 @@ function сгенерироватьРод(сид) {
         const time=k.examTime/Math.max(0.000001,cd.efficiencyAtStart);
         if(cd.time+time>c.capacity+1e-10){d.medicalReason='знахарке не хватило времени на осмотр';continue;}
         cd.time=round(cd.time+time);cd.helped.push({patient:p.id,task:'exam',time});
-        const found=[...known.map(x=>({id:x.observed.kind,text:x.observed.title,visible:true})),...p.illnesses.flatMap(i=>medical.signs(i,true,c.healer.quality,'exam|'+s.seed+'|'+p.id+'|'+s.day+'|'+i.id))];
+        const dentalKey='dental-exam|'+s.seed+'|'+p.id+'|'+s.day;
+        const found=[...known.map(x=>({id:x.observed.kind,text:x.observed.title,visible:true})),
+          ...dental.signs(p,true,c.healer.quality,dentalKey,medical.unit),
+          ...p.illnesses.flatMap(i=>medical.signs(i,true,c.healer.quality,'exam|'+s.seed+'|'+p.id+'|'+s.day+'|'+i.id))];
+        const dentalCount=dental.countFinding(s,p,c.healer.quality,dentalKey,medical.unit);
         const choice=medical.choose(c.healer,found,ctx,k);
         const hypothesis=choice?.hypothesis||(found.length?'причина неясна':'заметных признаков недомогания не обнаружила');
-        const seq=event(s,'MedicalExam',[p.id,c.id],c.name+' осмотрела '+p.name+'. '+(choice?'Предполагает: '+hypothesis:hypothesis),m.requestSeq||p.originSeq,{found:copy(found),choice:copy(choice)});
-        const exam={day:s.day,healerId:c.id,found:found.map(x=>x.text),signIds:found.map(x=>x.id),hypothesis,method:choice?.method||null,seq};
+        const seq=event(s,'MedicalExam',[p.id,c.id],c.name+' осмотрела '+p.name+'. '+(choice?'Предполагает: '+hypothesis:hypothesis),m.requestSeq||p.originSeq,{found:copy(found),choice:copy(choice),dentalCount});
+        const exam={day:s.day,healerId:c.id,found:found.map(x=>x.text),signIds:found.map(x=>x.id),hypothesis,method:choice?.method||null,dentalCount,seq};
         m.exams.push(exam);m.requested=false;m.requestSeq=null;
         m.plan=choice?{...choice,healerId:c.id,signKey,examSeq:seq,reviewUntil:s.day+3}:null;
       }
       const plan=m.plan;if(!plan)continue;
       if(ctx)plan.reviewUntil=s.day+3;
-      const pack=medical.PACKS[plan.method],time=k.treatmentTime/Math.max(0.000001,cd.efficiencyAtStart);
+      const pack=medical.PACKS[plan.method],extraction=plan.method==='extract';
+      if(extraction){
+        if(!['attack','flare'].includes(p.dental.episode?.phase)||!p.dental.count){d.medicalReason='нет больного зуба для удаления';m.plan=null;continue;}
+        if(s.appliedImpacts.includes('extract|'+p.id+'|'+p.dental.episode.id)){m.plan=null;continue;}
+        if(!m.exams.find(x=>x.seq===plan.examSeq)?.signIds.includes('tooth-ache')){d.medicalReason='сначала нужно осмотреть больной зуб';continue;}
+        if((h.medicine?.dentalTools||0)<1){d.medicalReason='нет инструмента для удаления зуба';continue;}
+      }
+      const baseTime=extraction?s.dentalParameters.extractionTime:plan.method==='rinse'?s.dentalParameters.rinseTime:k.treatmentTime;
+      const time=baseTime/Math.max(0.000001,cd.efficiencyAtStart);
       if(cd.time+time>c.capacity+1e-10){d.medicalReason='знахарке не хватило времени на лечение';continue;}
       if((h.medicine?.[pack.stock]||0)<1||(pack.clean&&(h.medicine?.dressings||0)<1)){d.medicalReason='нет средства'+(pack.clean?' или чистой повязки':'');continue;}
       if(!h.waterClear||h.water<k.waterCost){d.medicalReason='для лечения не хватило чистой воды';continue;}
@@ -1896,6 +2071,26 @@ function сгенерироватьРод(сид) {
       m.treatment={day:s.day,healerId:c.id,method:plan.method};
       m.treatment.seq=event(s,'TreatmentPerformed',[p.id,c.id],c.name+': '+pack.label,plan.examSeq,{water:k.waterCost,stock:pack.stock,amount:1,dressings:pack.clean?1:0});
       m.treatments.push({...m.treatment,examSeq:plan.examSeq});
+      if(plan.method==='rinse')p.dental.reliefDay=s.day;
+      if(extraction){
+        const ep=p.dental.episode,id='extract|'+p.id+'|'+ep.id;
+        const before=p.dental.count,countExam=m.exams.find(x=>x.seq===plan.examSeq);
+        p.dental.count--;ep.phase='extracted';ep.extractedDay=s.day;
+        s.appliedImpacts.push(id);
+        // Точность берётся только из доставленного осмотра этих суток.
+        // Сравнение старого знания с истиной было бы скрытым каналом информации.
+        const countedNow=countExam?.day===s.day&&Number.isInteger(countExam.dentalCount)&&s.events.some(e=>e.seq===countExam.seq&&e.observed);
+        const knownCount=countedNow?countExam.dentalCount-1:null;
+        const seq=event(s,'DentalExtraction',[p.id,c.id],c.name+': у '+p.name+' удалён один зуб; во время удаления — невыносимая боль',m.treatment.seq,
+          {id,countBefore:before,countAfter:p.dental.count,knownCount,painDuring:3,water:k.waterCost,stock:pack.stock,amount:1});
+        ep.originSeq=seq;p.originSeq=seq;
+        // Уже начавшаяся инфекция продолжает собственное течение.
+        if(!p.illnesses.some(i=>i.cause==='dental-infection'&&i.phase!=='outcome')){
+          const infection=medical.fromEvent(p,{id:ep.id+'-extraction-infection',cause:'dental-infection',eventId:id,clean:true},s.day,s.seed);
+          if(infection){infection.originSeq=seq;p.illnesses.push(infection);}
+        }
+        m.plan=null;
+      }
       if(ctx&&!m.episodes.some(x=>!x.outcome)){
         const exam=m.exams.find(x=>x.seq===plan.examSeq);
         m.episodes.push({examSeq:exam.seq,healerId:c.id,startedDay:s.day,signIds:copy(exam.signIds),hypothesis:exam.hypothesis,method:plan.method,outcome:null});
@@ -1960,12 +2155,22 @@ function сгенерироватьРод(сид) {
     const previousDay = s.day, k = s.parameters;
     const previousConditions = Object.fromEntries(Object.values(s.people).map(p => [p.id, condition(s, p, previousDay)]));
     s.day++;
+    for(const p of Object.values(s.people))for(const change of dental.advance(s,p,medical.unit)){
+      const ep=p.dental.episode;
+      const seq=event(s,change.type,[p.id],p.name+': '+change.text,ep.originSeq||p.originSeq);
+      ep.originSeq=seq;
+      if(change.infection&&!p.illnesses.some(i=>i.cause==='dental-infection'&&i.phase!=='outcome')){
+        const infection=medical.fromEvent(p,{id:ep.id+'-infection',cause:'dental-infection',eventId:ep.id,clean:false},s.day,s.seed);
+        if(infection){infection.originSeq=seq;p.illnesses.push(infection);}
+      }
+    }
     const ledger = {day: s.day, households: {}, people: {}};
     for (const p of Object.values(s.people)) {
       if (!p.present || p.health <= 0) continue;
       const c = condition(s, p), bedLongEnough = c.bed && p.bedSince !== null && p.bedSince <= previousDay;
+      const needs=life.needs(s,p);
       const d = {day:s.day, observed:s.observer.present && p.household===s.observer.household,
-        foodDemand:p.foodDemand,waterDemand:p.waterDemand,
+        foodDemand:needs.foodDemand,waterDemand:needs.waterDemand,
         food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{},
         canEat: !c.bed, canDrink: !c.bed, bed: c.bed, bedLongEnough,
         canWorkAtStart: c.canWork, efficiencyAtStart: efficiency(s, p),
@@ -1987,24 +2192,24 @@ function сгенерироватьРод(сид) {
       }
       // Each lot is allocated proportionally among eligible consumers, then debited once.
       for (const f of h.food) {
-        const eaters = people.filter(p => ledger.people[p.id].canEat && f.texture <= (ledger.people[p.id].bed ? 0 : p.maxTexture));
-        const demand = sum(eaters.map(p => Math.max(0, p.foodDemand - ledger.people[p.id].food)));
+        const eaters = people.filter(p => ledger.people[p.id].canEat && f.texture <= dental.texture(s,p,ledger.people[p.id].bed));
+        const demand = sum(eaters.map(p => Math.max(0, ledger.people[p.id].foodDemand - ledger.people[p.id].food)));
         const total = Math.min(f.amount * f.nutrition, demand);
         if (demand <= 0 || total <= 0) continue;
         for (const p of eaters) {
-          const d = ledger.people[p.id], n = total * Math.max(0, p.foodDemand - d.food) / demand;
+          const d = ledger.people[p.id], n = total * Math.max(0, d.foodDemand - d.food) / demand;
           if (n <= 0) continue;
           d.food = round(d.food + n); d.qualitySum += n * f.quality; d.foods.push({id: f.id, name: f.name, amount: n});
         }
         f.amount = round(Math.max(0, f.amount - total / f.nutrition));
       }
       const drinkers = people.filter(p => ledger.people[p.id].canDrink && h.waterClear);
-      const demand = sum(drinkers.map(p => p.waterDemand)), water = h.waterClear ? Math.min(h.water, demand) : 0;
-      for (const p of drinkers) ledger.people[p.id].water = round(water * p.waterDemand / demand);
+      const demand = sum(drinkers.map(p => ledger.people[p.id].waterDemand)), water = h.waterClear ? Math.min(h.water, demand) : 0;
+      for (const p of drinkers) ledger.people[p.id].water = round(water * ledger.people[p.id].waterDemand / demand);
       h.water = round(Math.max(0, h.water - water));
       for (const p of people) {
         const d = ledger.people[p.id], reasons = new Set(d.careReasons);
-        const foodRatio = clamp(d.food / p.foodDemand, 0, 1), waterRatio = clamp(d.water / p.waterDemand, 0, 1);
+        const foodRatio = clamp(d.food / d.foodDemand, 0, 1), waterRatio = clamp(d.water / d.waterDemand, 0, 1);
         d.foodReason = foodRatio >= 1 - 1e-10 ? '' : d.bed && !d.canEat ? (h.food.some(f => f.texture === 0 && f.amount > 0) ? 'некому подать еду' : 'нет подходящей жидкой пищи') : 'подходящей еды не хватило';
         d.waterReason = waterRatio >= 1 - 1e-10 ? '' : !h.waterClear ? 'вода заметно мутная' : d.bed && !d.canDrink && ledger.households[hid].waterBefore > 0 ? 'некому подать воду' : 'воды не хватило';
         p.need = round(p.need + foodRatio * k.needFromFood + waterRatio * k.needFromWater);
@@ -2055,14 +2260,14 @@ function сгенерироватьРод(сид) {
         const quality = d.food > 0 ? d.qualitySum / d.food : 0;
         p.hunger = round(Math.max(0, p.hunger + (foodRatio < 1 - 1e-10 ? 1 - foodRatio : -k.hungerRecovery)));
         p.thirst = round(Math.max(0, p.thirst + (waterRatio < 1 - 1e-10 ? 1 - waterRatio : -k.thirstRecovery)));
-        p.slowHunger = round(Math.max(0, p.slowHunger + 1 - 3 * clamp(quality * foodRatio, 0, 1)));
+        p.slowHunger = round(Math.max(0, p.slowHunger + 1 - 3 * clamp(quality / k.nutritionNorm, 0, 1)));
         const oldSigns=medical.visible(p).map(x=>x.text).sort();
         const phaseChanges=medical.advance(p,s.day,{foodRatio,quality,hungerStrength:clamp(p.hunger/k.hungerThreshold,0,1),thirstStrength:clamp(p.thirst/k.thirstThreshold,0,1),fullCare:d.fullCare,warm:h.warm},s.medicalParameters,s.seed);
         for(const change of phaseChanges){const illness=p.illnesses.find(x=>x.id===change.illnessId);
           illness.transitionSeq=event(s,'IllnessCourse',[p.id],'Переход болезни: '+change.to,illness.transitionSeq||illness.originSeq,{...copy(change),severity:illness.severity,cause:illness.cause},false);}
         const newSigns=medical.visible(p).map(x=>x.text).sort();
         if(JSON.stringify(oldSigns)!==JSON.stringify(newSigns))p.medical.lastSignsSeq=event(s,'MedicalSignsChanged',[p.id],p.name+': '+(newSigns.length?newSigns.join(', '):'заметные признаки больше не наблюдаются'),p.medical.plan?.examSeq||p.originSeq,{before:oldSigns,after:newSigns});
-        const active = [...sources(p, s.day),...medical.effects(p,s.medicalParameters)].map(copy);
+        const active = [...sources(p, s.day),...medical.effects(p,s.medicalParameters,s.day)].map(copy);
         if (p.hunger >= k.hungerThreshold) active.push({id: 'hunger', loss: k.hungerLoss, mode: 'block'});
         if (p.thirst >= k.thirstThreshold) active.push({id: 'thirst', loss: k.thirstLoss, mode: 'block'});
         if (p.slowHunger >= k.slowHungerThreshold) active.push({id: 'slowHunger', loss: p.slowHunger >= k.slowHungerSevereThreshold ? k.slowHungerSevereLoss : k.slowHungerLoss, mode: 'deduct'});
@@ -2117,14 +2322,15 @@ function сгенерироватьРод(сид) {
       const careItems=d?.bedLongEnough?['drink','feed','warmth','turn','hygiene'].map(task=>({task,
         ...(copy(d.careTasks?.[task]||legacyCare(task))),
         helpers:d.care.filter(x=>x.task===task).map(x=>({id:x.helper,name:s.people[x.helper].name}))})):[];
-      s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),
+      s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),age:life.age(s,p),teeth:dental.knownCount(s,p),
         bed: c.bed, pain: ['нет', 'терпимая', 'сильная', 'невыносимая'][c.pain],
+        workReason:!c.alive?'dead':c.bed?'bed':life.work(s,p)<=0?'age':c.pain>=2?'pain':null,
         injuries:p.sources.filter(x=>x.observed).map(x=>({...copy(x.observed),active:x.untilDay===null||x.untilDay>=s.day})),
         medicine:{...medical.project(p,s.day,s.events),reason:d?.medicalReason||''},
         needs:c.alive?{hunger:tracked('hunger',needLevel(p.hunger,s.parameters.hungerThreshold)),
           thirst:tracked('thirst',needLevel(p.thirst,s.parameters.thirstThreshold)),
           toilet:p.need>=s.parameters.needThreshold-1e-10?'waiting':'clear'}:null,
-        allowedFood:c.alive?['Жидкая','Жидкая и мягкая','Жидкая, мягкая и плотная','Любая'][c.bed?0:p.maxTexture]:null,
+        allowedFood:c.alive?['Жидкая','Жидкая и мягкая','Жидкая, мягкая и плотная','Любая'][dental.texture(s,p,c.bed)]:null,
         intake,
         assistance:d?d.helped.map(x=>({patient:x.patient,name:s.people[x.patient].name,task:x.task,time:x.time})):[],
         food: d ? (d.foodReason || 'поел досыта') : 'за текущие сутки сведений ещё нет',
@@ -2134,7 +2340,7 @@ function сгенерироватьРод(сид) {
         care: d ? {needed: d.bedLongEnough, full: d.fullCare, reasons: [...d.careReasons],items:careItems,
           helpers: [...new Set(d.care.map(x => s.people[x.helper].name))],
           tasks: [...new Set(d.care.map(x => x.task))]} : null,
-        work: !c.alive ? 'не выполняет дел' : c.bed ? 'лежит, самостоятельно себя не обслуживает' : !c.canWork ? 'за назначенную работу не берётся из-за боли' : d?.helped.length ? 'часть дня занята помощью больному' : 'может работать и обслуживать себя',
+        work: !c.alive ? 'не выполняет дел' : c.bed ? 'лежит, самостоятельно себя не обслуживает' : life.work(s,p)<=0 ? 'по возрасту ещё не работает' : !c.canWork ? 'за назначенную работу не берётся из-за боли' : d?.helped.length ? 'часть дня занята помощью больному' : 'может работать и обслуживать себя',
         hunger: p.hunger >= s.parameters.hungerThreshold ? 'голод давит' : p.hunger > 0 ? 'недоедает' : '',
         thirst: p.thirst >= s.parameters.thirstThreshold ? 'жажда давит' : p.thirst > 0 ? 'недопивает' : ''};
     }
@@ -2146,7 +2352,13 @@ function сгенерироватьРод(сид) {
   function save(s) {validate(s); return JSON.stringify(s);}
   function restore(text) {
     const s=JSON.parse(text);
-    if(s.version===1){s.version=VERSION;s.medicalParameters=medical.params();s.seed=1;for(const p of Object.values(s.people))medical.setup(p);}
+    if(s.version===1){s.version=2;s.medicalParameters=medical.params();s.seed=1;for(const p of Object.values(s.people))medical.setup(p);}
+    if(s.version===2){
+      s.version=VERSION;s.calendarStart='2000-01-01';s.calendarDayAtStart=s.day;
+      s.lifeParameters=life.params();s.dentalParameters=dental.params();s.parameters=parameters(s.parameters);
+      // Старое ограничение пищи не превращается в придуманное число зубов или возраст.
+      for(const p of Object.values(s.people)){p.birthDate=null;dental.setup(p);}
+    }
     validate(s);
     if(Object.values(s.observations).some(o=>!('needs' in o)||!('intake' in o)||o.care&&!Array.isArray(o.care.items))) {
       // Rebuild only observations available now. Never reconstruct stale daily facts from truth.
@@ -2159,7 +2371,7 @@ function сгенерироватьРод(сид) {
     }
     return s;
   }
-  return {VERSION, DEFAULTS, create, advance, impact, deliver, requestExam, condition, observe, save, restore, validate};
+  return {VERSION, DEFAULTS, create, advance, impact, deliver, requestExam, condition, observe, save, restore, validate,needs:life.needs,age:life.age,foodTexture:dental.texture};
 });
 /* Начальные условия прогонов первого пакета; значения предварительные. */
 (function (root, factory) {
@@ -2167,7 +2379,7 @@ function сгенерироватьРод(сид) {
   else root.NovgorBodyScenarios = factory(root.NovgorBody);
 })(typeof globalThis === 'object' ? globalThis : this, function (body) {
   'use strict';
-  const labels = {wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
+  const labels = {tooth:'Зуб: удаление и твёрдая пища',toothRinse:'Зуб: полоскание вместо удаления',toothInfection:'Зуб: боль и воспаление',ages:'Возрастные нормы еды и воды',wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
   function make(kind = 'care', names = {}) {
     if (!Object.hasOwn(labels, kind)) throw new Error('Неизвестные начальные условия');
     const spec = {
@@ -2190,12 +2402,29 @@ function сгенерироватьРод(сид) {
         healer:{quality:0.85,beliefs:{wound:kind==='woundWrong'?{hypothesis:'рану знобит от нечистого ветра',method:'wormwood'}:{hypothesis:'рана загноилась',method:'clean'}}}});
       spec.households['А'].medicine={garlic:40,wormwood:40,dressings:40};
     }
+    if(kind.startsWith('tooth')){
+      Object.assign(spec.people[0],{health:1,ageYears:40,bedSince:null,sources:[],dental:{count:kind==='toothInfection'?8:20,origin:'явные исходные условия зубного случая',episode:{id:'initial-tooth',phase:'flare',startedDay:0,untilDay:4}}});
+      if(kind==='toothInfection')spec.people[0].illnesses=[{id:'initial-mouth-infection',cause:'dental-infection',startedDay:-2,phase:'manifest',severity:0.4,daysInPhase:0,origin:'initial-tooth'}];
+      spec.people.push({id:'p3',name:names.p3||'Ведана',family:'семья-А',household:'А',knows:['p1','p2','p6'],healer:{quality:1,beliefs:{
+        dental:{hypothesis:kind==='toothRinse'?'полоскание успокоит больной зуб':'больной зуб нужно удалить',method:kind==='toothRinse'?'rinse':'extract'},
+        mouth:{hypothesis:'припухлость у зуба или ранки',method:'rinse'}
+      }}});
+      spec.households['А'].medicine={dentalTools:1,dressings:40,rinseHerbs:40};
+      Object.assign(spec.households['А'].food[0],{name:kind==='toothInfection'?'каша':'сухари',texture:kind==='toothInfection'?1:3});
+    }
+    if(kind==='ages'){
+      spec.people=[{id:'p9',name:names.p9||'Малуша',ageYears:4,family:'семья-А',household:'А'},
+        {id:'p7',name:names.p7||'Путша',ageYears:10,family:'семья-А',household:'А'},
+        {id:'p6',name:names.p6||'Нежата',ageYears:17,family:'семья-А',household:'А'}];
+      spec.households['А'].careOrder=[];
+    }
     return spec;
   }
   // Внешний вход опыта, а не добыча или производство в игровом мире.
   // make() оставляет конечные запасы для проверок самого runtime.
   function createTrial(kind = 'care', names = {}, options = {}) {
     const spec=make(kind,names);
+    for(const p of spec.people)if(Object.hasOwn(options.ages||{},p.id))p.ageYears=options.ages[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.maxTextures||{},p.id)) {
       const texture=options.maxTextures[p.id];
       if(!Number.isInteger(texture)||texture<0||texture>3)throw new Error('Некорректный допуск пищи');
@@ -2203,6 +2432,7 @@ function сгенерироватьРод(сид) {
     }
     const state = body.create(spec);
     state.trial = {kind, closedStock: options.closedStock === true,
+      foodTemplate:{...state.households['А'].food[0]},
       foodTarget: state.households['А'].food.reduce((n,f)=>n+f.amount*f.nutrition,0),
       waterTarget: state.households['А'].water};
     return state;
@@ -2219,8 +2449,8 @@ function сгенерироватьРод(сид) {
       const water=Math.max(0,Math.round((state.trial.waterTarget-h.water)*1e12)/1e12);
       if(food<=1e-10 && water<=1e-10) continue;
       const supply={water,label:'Внешнее снабжение — условие опыта',food:[]};
-      if(food>1e-10) supply.food.push({id:'trial-food-'+state.day,name:state.trial.kind==='hard'?'сухари':'похлёбка',
-        amount:food,nutrition:1,quality:1,texture:state.trial.kind==='hard'?3:0});
+      if(food>1e-10){const f=state.trial.foodTemplate||{name:state.trial.kind==='hard'?'сухари':'похлёбка',nutrition:1,quality:1,texture:state.trial.kind==='hard'?3:0};
+        supply.food.push({id:'trial-food-'+state.day,name:f.name,amount:food/f.nutrition,nutrition:f.nutrition,quality:f.quality,texture:f.texture});}
       body.deliver(state,'А',supply);
     }
     return state;
@@ -2229,7 +2459,7 @@ function сгенерироватьРод(сид) {
     const h=state.households['А'];
     const people=Object.values(state.people).filter(p=>p.household==='А'&&p.present&&p.health>0);
     const food=h.food.reduce((n,f)=>n+f.amount*f.nutrition,0),water=h.water;
-    const foodDemand=people.reduce((n,p)=>n+p.foodDemand,0),waterDemand=people.reduce((n,p)=>n+p.waterDemand,0);
+    const foodDemand=people.reduce((n,p)=>n+body.needs(state,p).foodDemand,0),waterDemand=people.reduce((n,p)=>n+body.needs(state,p).waterDemand,0);
     return {food,water,foodDays:foodDemand?food/foodDemand:null,waterDays:waterDemand?water/waterDemand:null,
       closedStock:state.trial.closedStock,shortage:people.some(p=>p.last&&(p.last.foodReason||p.last.waterReason))};
   }
@@ -2254,7 +2484,7 @@ const я = () => пеш(УИ.кто);
 // Общий runtime отдаёт наблюдения; адаптер не пересчитывает физиологию.
 function остановитьТело() {
   ТЕЛО.state = null; ТЕЛО.snapshot = null; ТЕЛО.base = null; ТЕЛО.kind = null;
-  for (const id of ["body-day","body-week","body-stop"]) $(id).disabled = true;
+  for (const id of ["body-day","body-week","body-stop","body-soft-food"]) $(id).disabled = true;
   $("body-status").textContent = "Расчёт не запущен.";
   $("body-stock").textContent = "Обычный опыт получает припасы извне каждый день. Добыча и производство пока не рассчитываются.";
 }
@@ -2269,6 +2499,7 @@ function обновитьТело() {
     const card = out.пешки[id], o = NovgorBody.observe(s, id);
     card.dev.телесный_расчёт = клонировать(p);
     if(o){
+      if(o.age!==null&&o.age!==undefined)card.возраст=o.age;
       card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
       card.боль=o.pain;card.слёг=o.bed;
       card.состояния=[o.hunger&&{тип:"голод",сила_словами:o.hunger},o.thirst&&{тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
@@ -2292,7 +2523,7 @@ function обновитьТело() {
       блоки:[], поручения:[], фон_словами:o.work};
     card.телесная_сводка = o;
   }
-  const типы = {InitialCondition:"СостояниеИзвестно",InjuryKnown:"Рана",ExamRequested:"ОсмотрПоручен",MedicalExam:"Гипотеза",TreatmentPerformed:"СредствоГотово",MedicalSignsChanged:"ПризнакиИзменились",IllnessCourse:"ТечениеБолезни",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
+  const типы = {DentalAttack:"ЗубнаяБоль",DentalFlare:"ЗубнаяБоль",DentalQuiet:"ЗубнаяБоль",DentalExtraction:"ЗубУдалён",InitialCondition:"СостояниеИзвестно",InjuryKnown:"Рана",ExamRequested:"ОсмотрПоручен",MedicalExam:"Гипотеза",TreatmentPerformed:"СредствоГотово",MedicalSignsChanged:"ПризнакиИзменились",IllnessCourse:"ТечениеБолезни",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
   for (const e of s.events) {
     if (!типы[e.type]) continue;
     out.журнал.push({seq:1000000+e.seq,день:b.день+e.day,тип:типы[e.type],участники:e.people,
@@ -2306,12 +2537,14 @@ function обновитьТело() {
   $("body-stock").textContent=(stock.closedStock?"Запасы не пополняются — опыт истощения. ":"Припасы поступают извне после каждых суток. ")+
     (s.observer.present?"Запас еды при полной выдаче: "+days(stock.foodDays)+"; воды: "+days(stock.waterDays)+". ":"Нет текущих сведений о запасах. ")+
     (shortage?"Есть нехватка еды, воды или помощи — причина показана в здоровье.":"");
+  $("body-soft-food").disabled=!s.observer.present;
 }
 function начатьТело() {
   УИ.б3=false;
   const base = клонировать(СНИМКИ[УИ.снимок]);
   const kind = $("body-scenario").value;
-  const names = Object.fromEntries(["p1","p2","p3","p6"].map(id=>[id,base.пешки[id].имя]));
+  const names = Object.fromEntries(Object.entries(base.пешки).map(([id,p])=>[id,p.имя]));
+  const ages=Object.fromEntries(Object.entries(base.пешки).map(([id,p])=>[id,p.возраст]));
   const maxTextures={};
   for(const id of Object.keys(names)) {
     const text=base.пешки[id].зубы_допуск||'';
@@ -2321,10 +2554,11 @@ function начатьТело() {
     else if(/жидк/.test(text))maxTextures[id]=0;
   }
   ТЕЛО.base=base; ТЕЛО.kind=kind;
-  ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked,maxTextures});
+  // В возрастном опыте сравниваются явно заданные 4, 10 и 17 лет.
+  ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked,maxTextures,ages:kind==='ages'?{}:ages});
   обновитьТело();
-  for (const id of ["body-day","body-week","body-stop"]) $(id).disabled=false;
-  УИ.кто="p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
+  for (const id of ["body-day","body-week","body-stop","body-soft-food"]) $(id).disabled=false;
+  УИ.кто=kind==='ages'?"p9":"p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
 }
 function потребностиСнимка(п) {
   const day=п.сведения_на??п.выход?.известно_на??тек().день;
@@ -2364,7 +2598,7 @@ function нарисоватьБытТела(к) {
   row('food','Голод',state('hunger',['Нет','Недоедание','Сильный голод']),intake('food')+(foods.length?'<span class="body-note">'+foods.map(f=>экр(f.name)+(foods.length>1?' · '+экр(percent(f.ratio)):'')).join('<br>')+'</span>':''));
   row('water','Жажда',state('thirst',['Нет','Жажда','Сильная жажда']),intake('water'));
   const toilet=o.intake?.toilet;
-  row('toilet','Естественная нужда',o.needs?({waiting:'Требуется туалет',clear:'Не требуется',unknown:'Нет сведений'}[o.needs.toilet]):'—',toilet?({done:'Справлена',partial:'Не полностью','not-needed':'Не требовалось',blocked:'Не справлена',unknown:'Нет сведений'}[toilet.status]+(toilet.reason?'<span class="body-problem">'+экр(toilet.reason)+'</span>':'')):'Нет сведений');
+  row('toilet','Туалет',o.needs?({waiting:'Требуется туалет',clear:'Не требуется',unknown:'Нет сведений'}[o.needs.toilet]):'—',toilet?({done:'Справлена',partial:'Не полностью','not-needed':'Не требовалось',blocked:'Не справлена',unknown:'Нет сведений'}[toilet.status]+(toilet.reason?'<span class="body-problem">'+экр(toilet.reason)+'</span>':'')):'Нет сведений');
   table.appendChild(rows);block.appendChild(table);
   if(o.allowedFood)block.appendChild(э("div","стр",'<span class="подп">Допустимая пища:</span> '+экр(o.allowedFood)));
   block.appendChild(э("h3","","Уход"));
@@ -2418,8 +2652,13 @@ function нарисоватьМедицину(к) {
   if(п.боль&&п.боль!=="нет")chips.appendChild(э("span","чип вним","Боль: "+экр(п.боль)));
   for(const text of signs)chips.appendChild(э("span","чип вним",экр(text)));
   if(chips.childNodes.length)box.appendChild(chips);
+  if(o&&(o.teeth||signs.some(x=>/зуб/.test(x)))){
+    const teeth=э("p","");teeth.id="health-teeth";
+    teeth.textContent=o.teeth?'Последний известный счёт зубов: '+o.teeth.count+' · '+o.teeth.source+', '+деньТ(ТЕЛО.base.день+o.teeth.day)+'.':'Точный счёт зубов пока неизвестен. Нужен осмотр.';
+    box.appendChild(teeth);
+  }
   if(o){
-    const impact=!o.alive?"Умер.":o.bed?"Не может ходить и работать.":o.pain==="сильная"||o.pain==="невыносимая"?"Может ходить. За назначенную работу не берётся из-за боли.":"Может ходить и работать.";
+    const impact=!o.alive?"Умер.":o.bed?"Не может ходить и работать.":o.workReason==='age'?"Может ходить. По возрасту ещё не работает.":o.pain==="сильная"||o.pain==="невыносимая"?"Может ходить. За назначенную работу не берётся из-за боли.":"Может ходить и работать.";
     box.appendChild(э("div","health-impact",экр(impact)));
     if(injury&&!injury.active&&!signs.length&&o.alive)box.appendChild(э("p","мелко","Ограничение после травмы снято. Заметных признаков осложнения сейчас нет."));
   }else if(п.слёг)box.appendChild(э("div","health-impact","Нуждается в помощи с едой, питьём и повседневным уходом."));
@@ -2854,7 +3093,7 @@ const РЕНДЕР = {
       ф.appendChild(b);
     }
     к.appendChild(ф);
-    const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние|Рана|Признак|Осмотр|^Встал$|Умер|Болезн|Уход/.test(т) ? "тело" :
+    const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние|Рана|Признак|Осмотр|^Встал$|Умер|Болезн|Уход|Зуб/.test(т) ? "тело" :
       /Заём|Вещь|Пользуется|Возврат|Пропажа/.test(т) ? "вещи" :
       /Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход/.test(т) ? "работы" : "люди";
     let список = досье(УИ.кто);
@@ -3022,7 +3261,7 @@ function нарисовать() {
   $("день-подпись").textContent = тек().подпись_дня;
   $("границы").hidden=УИ.режим!=="дев";
   $("сноска-снимка").innerHTML=`<p>${экр(тек().описание)}.</p><p>Данные — согласованные тестовые снимки. Суточное планирование, течение болезни и исполнение осмотра здесь не моделируются. Память пар и её затухание рассчитываются при чтении; численные настройки демонстрационные. Полные игровые правила и баланс этим прототипом не закрыты.</p><p>Словесные ступени мастерства — предложение подачи. Пороги открыты. Наследование внешности и не переданные снимком поля видны в Диагностике.</p>`;
-  if (ТЕЛО.state) $("сноска-снимка").innerHTML = "<p>Телесный расчёт: питание, питьё, туалет, уход и работа. Первый медицинский случай: рана с осложнением, течение болезни, осмотр и лечение. Истинная причина скрыта от игрока; версия знахарки может быть ошибочной. Сон, среда, остальные болезни, возрастные процессы и полный планировщик ещё не подключены. Численные настройки предварительные.</p>";
+  if (ТЕЛО.state) $("сноска-снимка").innerHTML = "<p>Телесный расчёт: питание, питьё, туалет, уход и работа; личные нормы по возрасту; рана с осложнением; зубная боль, полоскание, удаление и воспаление. Истинная причина болезни скрыта, версия знахарки может быть ошибочной. Доставка мягкой пищи добавляет припасы извне. Сон, среда, остальные болезни, развитие младенца и полный планировщик ещё не подключены. Численные настройки предварительные.</p>";
   $("кн-игрок").setAttribute("aria-pressed", УИ.режим==="игрок"?"true":"false");
   $("кн-дев").setAttribute("aria-pressed", УИ.режим==="дев"?"true":"false");
   нарисоватьЛюдей(); нарисоватьШапку(); нарисоватьВкладки();
@@ -3061,6 +3300,13 @@ $("кн-дев").addEventListener("click", ()=>{ УИ.режим="дев"; на�
 $("body-start").addEventListener("click", начатьТело);
 $("body-day").addEventListener("click", ()=>{NovgorBodyScenarios.advanceTrial(ТЕЛО.state);обновитьТело();нарисовать();});
 $("body-week").addEventListener("click", ()=>{NovgorBodyScenarios.advanceTrial(ТЕЛО.state,7);обновитьТело();нарисовать();});
+$("body-soft-food").addEventListener("click",()=>{
+  const s=ТЕЛО.state;if(!s||!s.observer.present)return;
+  const amount=Object.values(s.people).filter(p=>p.present&&p.health>0).reduce((n,p)=>n+NovgorBody.needs(s,p).foodDemand,0);
+  if(!amount)return;
+  NovgorBody.deliver(s,'А',{label:'Доставлена мягкая пища',food:[{id:'soft-food-'+s.nextSeq,name:'каша',amount,nutrition:1,quality:1,texture:1}]});
+  обновитьТело();нарисовать();
+});
 $("body-stop").addEventListener("click", ()=>{остановитьТело();нарисовать();});
 document.addEventListener("keydown", e=>{
   if (["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName)) return;
