@@ -2268,17 +2268,20 @@ function обновитьТело() {
   for (const [id, p] of Object.entries(s.people)) {
     const card = out.пешки[id], o = NovgorBody.observe(s, id);
     card.dev.телесный_расчёт = клонировать(p);
+    if(o){
+      card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
+      card.боль=o.pain;card.слёг=o.bed;
+      card.состояния=[o.hunger&&{тип:"голод",сила_словами:o.hunger},o.thirst&&{тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
+      card.признаки={на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
+      card.телесная_сводка=o;
+    }
     if (!o || o.stale) {
-      card.выход = {цель:"вне двора", ушёл_день:b.день, предел_дней:"срок неизвестен", известно_на:b.день+(o?.day||0)};
-      if(o)card.телесная_сводка=o;
+      delete card.выход;
+      card.сведения_на=b.день+(o?.day||0);
       card.план = {бюджет:{}, блоки:[], поручения:[], подпись:"Текущих сведений об этом человеке нет."};
       continue;
     }
-    delete card.выход;
-    card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
-    card.боль = o.pain; card.слёг = o.bed;
-    card.состояния = [o.hunger && {тип:"голод",сила_словами:o.hunger}, o.thirst && {тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
-    card.признаки = {на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
+    delete card.выход;delete card.сведения_на;
     card.dev.здоровье = p.health; card.dev.предел_здоровья = p.cap;
     card.dev.медленный_голод = p.slowHunger; card.dev.телесные_накопители = {нужда:p.need};
     card.dev.иммунитет=p.medical.immunity;card.dev.стойкость=p.medical.resistance;
@@ -2403,7 +2406,7 @@ function нарисоватьМедицину(к) {
   const п=я(),o=п.телесная_сводка,med=o?.medicine;
   const injuries=o?.injuries||[],injury=injuries.find(x=>x.active)||injuries.at(-1);
   const box=э("section","health-case");box.id="health-current";
-  box.appendChild(э("div","health-kicker",o?"Текущее наблюдение · "+экр(деньТ(ТЕЛО.base.день+o.day)):"Последние известные сведения"));
+  box.appendChild(э("div","health-kicker",o?(o.stale?"Последнее наблюдение · ":"Текущее наблюдение · ")+экр(деньТ(ТЕЛО.base.день+o.day)):"Последние известные сведения"));
   box.appendChild(э("h2","",экр(injury?.title||(п.слёг?"Не встаёт с постели":п.полоса))));
   if(injury)box.appendChild(э("p","",`${экр(деньТ(ТЕЛО.base.день+injury.day))}: ${экр(injury.event)}.`));
   if(!o){
@@ -2430,7 +2433,7 @@ function нарисоватьМедицину(к) {
       treatment.appendChild(э("p","",`<b>Версия знахарки:</b> ${экр(ex.hypothesis)}.`));
       if(ex.found.length)treatment.appendChild(э("p","мелко","При осмотре: "+ex.found.map(экр).join(", ")+"."));
     }else treatment.appendChild(э("p","","Осмотра после начала расчёта ещё не было."));
-    if(med.treatment)treatment.appendChild(э("p","",`<b>${med.treatment.day===o.day?"Сделано сегодня":"Последняя помощь · "+экр(деньТ(ТЕЛО.base.день+med.treatment.day))}:</b> ${экр(med.treatment.label)}.`));
+    if(med.treatment)treatment.appendChild(э("p","",`<b>${!o.stale&&med.treatment.day===ТЕЛО.state.day?"Сделано сегодня":"Последняя помощь · "+экр(деньТ(ТЕЛО.base.день+med.treatment.day))}:</b> ${экр(med.treatment.label)}.`));
     if(med.reason)treatment.appendChild(э("p","",`Помощь задержана: ${экр(med.reason)}.`));
     if(o.alive)кнопкаОсмотра(treatment);
     к.appendChild(treatment);
@@ -2524,12 +2527,13 @@ function порученияСнимка(){ const к = тек().ид; return (У�
 function кнопкаОсмотра(к) {
   const п = я();
   if (ТЕЛО.state && ТЕЛО.state.people[УИ.кто]) {
-    const patient=ТЕЛО.state.people[УИ.кто];
-    if(!patient.health||!Object.values(ТЕЛО.state.people).some(c=>c.id!==patient.id&&c.healer))return;
-    const b=э("button","кн",patient.medical.requested?"Осмотр поручен":"Позвать знахарку");b.type="button";b.disabled=patient.medical.requested;
+    const patient=ТЕЛО.state.people[УИ.кто],known=п.телесная_сводка;
+    if(!known?.alive||!Object.values(ТЕЛО.state.people).some(c=>c.id!==patient.id&&c.healer))return;
+    const requested=Boolean(known.medicine.pendingExam);
+    const b=э("button","кн",requested?"Осмотр поручен":"Позвать знахарку");b.type="button";b.disabled=requested||known.stale;
     b.addEventListener("click",()=>{NovgorBody.requestExam(ТЕЛО.state,УИ.кто);обновитьТело();нарисовать();});
     к.appendChild(b);
-    к.appendChild(э("div","примечание",patient.medical.requested?"Знахарка попробует провести осмотр в следующие сутки.":"Осмотр выполняется в течение суток; лечение выбирает знахарка."));
+    к.appendChild(э("div","примечание",known.stale?"Текущих сведений о человеке нет.":requested?"Знахарка попробует провести осмотр в следующие сутки.":"Осмотр выполняется в течение суток; лечение выбирает знахарка."));
     return;
   }
   const знахарка = тек().пешки.p3;
@@ -2956,10 +2960,12 @@ function нарисоватьШапку() {
   if (п.выход) ст.appendChild(э("span","чип вним","в выходе, "+(тек().день-п.выход.ушёл_день)+"-й день из "+п.выход.предел_дней));
   if (п.слёг) ст.appendChild(э("span","чип худо","слёг"));
   среднее.appendChild(ст);
-  const сч = э("div","сейчас","сейчас: ");
+  const historical=п.телесная_сводка?.stale||(п.сведения_на!==undefined&&п.сведения_на<тек().день);
+  const сч = э("div","сейчас",historical?"Текущие сведения отсутствуют.":"сейчас: ");
   const дела = (п.план?.блоки||[]);
   const моё = дела.find(б=>!б.ссылка_на && б.состояние==="исполняется");
-  if (п.выход) сч.appendChild(document.createTextNode("в пути — "+п.выход.цель));
+  if(historical){}
+  else if (п.выход) сч.appendChild(document.createTextNode("в пути — "+п.выход.цель));
   else if (моё) { const b=э("button","ссыл",экр(моё.дело)); b.type="button"; b.addEventListener("click",()=>вВкладку("Работа",моё.ид)); сч.appendChild(b); }
   else if (дела.length && дела[0].ссылка_на) { сч.appendChild(document.createTextNode("в помощниках у ")); сч.appendChild(людиСсылка(дела[0].у_кого)); }
   else сч.appendChild(document.createTextNode(п.план?.простой? "без поручений" : (п.план?.фон_словами||п.план?.неприменимо||"—")));
