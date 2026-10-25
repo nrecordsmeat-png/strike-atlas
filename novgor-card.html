@@ -2268,16 +2268,20 @@ function обновитьТело() {
   for (const [id, p] of Object.entries(s.people)) {
     const card = out.пешки[id], o = NovgorBody.observe(s, id);
     card.dev.телесный_расчёт = клонировать(p);
+    if(o){
+      card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
+      card.боль=o.pain;card.слёг=o.bed;
+      card.состояния=[o.hunger&&{тип:"голод",сила_словами:o.hunger},o.thirst&&{тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
+      card.признаки={на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
+      card.телесная_сводка=o;
+    }
     if (!o || o.stale) {
-      card.выход = {цель:"вне двора", ушёл_день:b.день, предел_дней:"срок неизвестен", известно_на:b.день};
+      delete card.выход;
+      card.сведения_на=b.день+(o?.day||0);
       card.план = {бюджет:{}, блоки:[], поручения:[], подпись:"Текущих сведений об этом человеке нет."};
       continue;
     }
-    delete card.выход;
-    card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
-    card.боль = o.pain; card.слёг = o.bed;
-    card.состояния = [o.hunger && {тип:"голод",сила_словами:o.hunger}, o.thirst && {тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
-    card.признаки = {на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
+    delete card.выход;delete card.сведения_на;
     card.dev.здоровье = p.health; card.dev.предел_здоровья = p.cap;
     card.dev.медленный_голод = p.slowHunger; card.dev.телесные_накопители = {нужда:p.need};
     card.dev.иммунитет=p.medical.immunity;card.dev.стойкость=p.medical.resistance;
@@ -2322,20 +2326,35 @@ function начатьТело() {
   for (const id of ["body-day","body-week","body-stop"]) $(id).disabled=false;
   УИ.кто="p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
 }
+function потребностиСнимка(п) {
+  const day=п.сведения_на??п.выход?.известно_на??тек().день;
+  const alive=!/^умер/.test(п.полоса||'');
+  const known=type=>{
+    if(!Array.isArray(п.состояния))return null;
+    const s=п.состояния.find(x=>x.тип===type);
+    return {level:!s?0:/давит|сильн/.test(s.сила_словами||'')?2:1,trend:null};
+  };
+  const food=п.зубы_допуск||'';
+  const texture=п.слёг?0:/любая/.test(food)?3:/плотн/.test(food)?2:/мягк/.test(food)?1:/жидк/.test(food)?0:null;
+  return {fromSnapshot:true,day,stale:Boolean(п.выход)||day!==тек().день,alive,bed:п.слёг,
+    needs:alive?{hunger:known('голод'),thirst:known('жажда'),toilet:'unknown'}:null,
+    allowedFood:alive&&texture!==null?['Жидкая','Жидкая и мягкая','Жидкая, мягкая и плотная','Любая'][texture]:null,
+    intake:null,care:null,assistance:[]};
+}
 function нарисоватьБытТела(к) {
-  const o=я().телесная_сводка;
-  if (!o) return;
+  const п=я(),o=п.телесная_сводка||потребностиСнимка(п);
+  const absoluteDay=day=>o.fromSnapshot?day:ТЕЛО.base.день+day;
   const block=э("section",""); block.id="body-daily";
   block.appendChild(э("h3","","Потребности"));
-  const date=o.intake?деньТ(ТЕЛО.base.день+o.intake.day):null;
+  const date=o.intake?деньТ(absoluteDay(o.intake.day)):null;
   if (!o.alive) block.appendChild(э("p","мелко",date?`Последние сведения при жизни — ${экр(date)}.`:"Сведений о питании и уходе при жизни нет."));
-  else if(o.stale)block.appendChild(э("p","мелко","Последнее наблюдение — "+экр(деньТ(ТЕЛО.base.день+o.day))+"."));
+  else if(o.stale)block.appendChild(э("p","мелко","Последние сведения — "+экр(деньТ(absoluteDay(o.day)))+"."));
   const percent=ratio=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(ratio*100)+'% нормы';
   const table=э("table","body-table");table.id="body-needs";
-  table.appendChild(э("thead","",`<tr><th scope="col">Потребность</th><th scope="col">${o.alive?"Состояние":"Сейчас"}</th><th scope="col">${date?"За "+экр(date):"Получено за сутки"}</th></tr>`));
+  table.appendChild(э("thead","",`<tr><th scope="col">Потребность</th><th scope="col">${o.stale?"Последнее известное состояние":o.alive?"Состояние":"Сейчас"}</th><th scope="col">${date?"За "+экр(date):"Получено за сутки"}</th></tr>`));
   const rows=э("tbody","");
   const state=(key,labels)=>{
-    const n=o.needs?.[key];if(!n)return '—';
+    const n=o.needs?.[key];if(!n)return o.alive?'Нет сведений':'—';
     const trend=n.trend?`<span class="body-trend" title="${n.trend>0?'Усиливается':'Ослабевает'}" aria-label="${n.trend>0?'Усиливается':'Ослабевает'}">${n.trend>0?'↑':'↓'}</span>`:'';
     return экр(labels[n.level])+trend;
   };
@@ -2347,9 +2366,9 @@ function нарисоватьБытТела(к) {
   const toilet=o.intake?.toilet;
   row('toilet','Естественная нужда',o.needs?({waiting:'Требуется туалет',clear:'Не требуется',unknown:'Нет сведений'}[o.needs.toilet]):'—',toilet?({done:'Справлена',partial:'Не полностью','not-needed':'Не требовалось',blocked:'Не справлена',unknown:'Нет сведений'}[toilet.status]+(toilet.reason?'<span class="body-problem">'+экр(toilet.reason)+'</span>':'')):'Нет сведений');
   table.appendChild(rows);block.appendChild(table);
-  if(o.allowedFood)block.appendChild(э("div","стр",'<span class="подп">Допустимая пища</span> '+экр(o.allowedFood)));
+  if(o.allowedFood)block.appendChild(э("div","стр",'<span class="подп">Допустимая пища:</span> '+экр(o.allowedFood)));
   block.appendChild(э("h3","","Уход"));
-  if(o.alive)block.appendChild(э("div","стр",'<span class="подп">Сейчас</span> '+(o.bed?'Требуется уход':'Не требуется')));
+  if(o.alive)block.appendChild(э("div","стр",'<span class="подп">'+(o.stale?'На дату сведений:':'Сейчас:')+'</span> '+(o.bed?'Требуется уход':'Не требуется')));
   const tasks={drink:'Поение',feed:'Кормление',warmth:'Тепло у постели',turn:'Поворот',hygiene:'Вынос и гигиена',exam:'Осмотр',treatment:'Лечение'};
   if(!o.care)block.appendChild(э("div","мелко","За сутки нет сведений."));
   else if(o.care.needed){
@@ -2387,14 +2406,14 @@ function нарисоватьМедицину(к) {
   const п=я(),o=п.телесная_сводка,med=o?.medicine;
   const injuries=o?.injuries||[],injury=injuries.find(x=>x.active)||injuries.at(-1);
   const box=э("section","health-case");box.id="health-current";
-  box.appendChild(э("div","health-kicker",o?"Текущее наблюдение · "+экр(деньТ(ТЕЛО.base.день+o.day)):"Последние известные сведения"));
+  box.appendChild(э("div","health-kicker",o?(o.stale?"Последнее наблюдение · ":"Текущее наблюдение · ")+экр(деньТ(ТЕЛО.base.день+o.day)):"Последние известные сведения"));
   box.appendChild(э("h2","",экр(injury?.title||(п.слёг?"Не встаёт с постели":п.полоса))));
   if(injury)box.appendChild(э("p","",`${экр(деньТ(ТЕЛО.base.день+injury.day))}: ${экр(injury.event)}.`));
   if(!o){
     const events=досье(УИ.кто).filter(e=>видимоИгроку(e)&&["ПолосаЗдоровья","Слёг","Поправилась"].includes(e.тип)).slice(0,2);
     for(const e of events.reverse())box.appendChild(э("p","",`${экр(деньТ(e.день))}: ${экр(e.текст)}`));
   }
-  const signs=[...(п.признаки?.на_виду||[]),...(п.состояния||[]).filter(x=>!o||!['голод','жажда'].includes(x.тип)).map(x=>x.сила_словами)];
+  const signs=[...(п.признаки?.на_виду||[]),...(п.состояния||[]).filter(x=>!['голод','жажда'].includes(x.тип)).map(x=>x.сила_словами)];
   const chips=э("div","health-signs");
   if(п.боль&&п.боль!=="нет")chips.appendChild(э("span","чип вним","Боль: "+экр(п.боль)));
   for(const text of signs)chips.appendChild(э("span","чип вним",экр(text)));
@@ -2414,7 +2433,7 @@ function нарисоватьМедицину(к) {
       treatment.appendChild(э("p","",`<b>Версия знахарки:</b> ${экр(ex.hypothesis)}.`));
       if(ex.found.length)treatment.appendChild(э("p","мелко","При осмотре: "+ex.found.map(экр).join(", ")+"."));
     }else treatment.appendChild(э("p","","Осмотра после начала расчёта ещё не было."));
-    if(med.treatment)treatment.appendChild(э("p","",`<b>${med.treatment.day===o.day?"Сделано сегодня":"Последняя помощь · "+экр(деньТ(ТЕЛО.base.день+med.treatment.day))}:</b> ${экр(med.treatment.label)}.`));
+    if(med.treatment)treatment.appendChild(э("p","",`<b>${!o.stale&&med.treatment.day===ТЕЛО.state.day?"Сделано сегодня":"Последняя помощь · "+экр(деньТ(ТЕЛО.base.день+med.treatment.day))}:</b> ${экр(med.treatment.label)}.`));
     if(med.reason)treatment.appendChild(э("p","",`Помощь задержана: ${экр(med.reason)}.`));
     if(o.alive)кнопкаОсмотра(treatment);
     к.appendChild(treatment);
@@ -2508,12 +2527,13 @@ function порученияСнимка(){ const к = тек().ид; return (У�
 function кнопкаОсмотра(к) {
   const п = я();
   if (ТЕЛО.state && ТЕЛО.state.people[УИ.кто]) {
-    const patient=ТЕЛО.state.people[УИ.кто];
-    if(!patient.health||!Object.values(ТЕЛО.state.people).some(c=>c.id!==patient.id&&c.healer))return;
-    const b=э("button","кн",patient.medical.requested?"Осмотр поручен":"Позвать знахарку");b.type="button";b.disabled=patient.medical.requested;
+    const patient=ТЕЛО.state.people[УИ.кто],known=п.телесная_сводка;
+    if(!known?.alive||!Object.values(ТЕЛО.state.people).some(c=>c.id!==patient.id&&c.healer))return;
+    const requested=Boolean(known.medicine.pendingExam);
+    const b=э("button","кн",requested?"Осмотр поручен":"Позвать знахарку");b.type="button";b.disabled=requested||known.stale;
     b.addEventListener("click",()=>{NovgorBody.requestExam(ТЕЛО.state,УИ.кто);обновитьТело();нарисовать();});
     к.appendChild(b);
-    к.appendChild(э("div","примечание",patient.medical.requested?"Знахарка попробует провести осмотр в следующие сутки.":"Осмотр выполняется в течение суток; лечение выбирает знахарка."));
+    к.appendChild(э("div","примечание",known.stale?"Текущих сведений о человеке нет.":requested?"Знахарка попробует провести осмотр в следующие сутки.":"Осмотр выполняется в течение суток; лечение выбирает знахарка."));
     return;
   }
   const знахарка = тек().пешки.p3;
@@ -2676,8 +2696,8 @@ const РЕНДЕР = {
 
   "Здоровье"(к) {
     const п = я();
-    нарисоватьМедицину(к);
     нарисоватьБытТела(к);
+    нарисоватьМедицину(к);
     const откр = п.признаки?.при_осмотре_открыты||[];
     if (откр.length) { к.appendChild(э("h3","","Выявлено при осмотре"));
       for (const пр of откр) к.appendChild(э("div","стр",экр(пр))); }
@@ -2685,7 +2705,6 @@ const РЕНДЕР = {
     if(/слаб.*глаз|слеп|плох.*вид/i.test(п.зрение||""))limitations.push("Зрение: "+п.зрение);
     if(/туговат|глух|плох.*слыш/i.test(п.слух||""))limitations.push("Слух: "+п.слух);
     if(п.речь&&п.речь!=="говорит")limitations.push("Речь: "+п.речь);
-    if(!п.телесная_сводка&&п.зубы_допуск&&п.зубы_допуск!=="любая еда")limitations.push("Подходящая пища: "+п.зубы_допуск);
     for(const x of п.хронический_фон||[])limitations.push("Жалоба: "+x);
     if(limitations.length){к.appendChild(э("h3","","Длительные ограничения и жалобы"));for(const x of limitations)к.appendChild(э("div","стр",экр(x)));}
     const осм = п.осмотры||[];
@@ -2941,10 +2960,12 @@ function нарисоватьШапку() {
   if (п.выход) ст.appendChild(э("span","чип вним","в выходе, "+(тек().день-п.выход.ушёл_день)+"-й день из "+п.выход.предел_дней));
   if (п.слёг) ст.appendChild(э("span","чип худо","слёг"));
   среднее.appendChild(ст);
-  const сч = э("div","сейчас","сейчас: ");
+  const historical=п.телесная_сводка?.stale||(п.сведения_на!==undefined&&п.сведения_на<тек().день);
+  const сч = э("div","сейчас",historical?"Текущие сведения отсутствуют.":"сейчас: ");
   const дела = (п.план?.блоки||[]);
   const моё = дела.find(б=>!б.ссылка_на && б.состояние==="исполняется");
-  if (п.выход) сч.appendChild(document.createTextNode("в пути — "+п.выход.цель));
+  if(historical){}
+  else if (п.выход) сч.appendChild(document.createTextNode("в пути — "+п.выход.цель));
   else if (моё) { const b=э("button","ссыл",экр(моё.дело)); b.type="button"; b.addEventListener("click",()=>вВкладку("Работа",моё.ид)); сч.appendChild(b); }
   else if (дела.length && дела[0].ссылка_на) { сч.appendChild(document.createTextNode("в помощниках у ")); сч.appendChild(людиСсылка(дела[0].у_кого)); }
   else сч.appendChild(document.createTextNode(п.план?.простой? "без поручений" : (п.план?.фон_словами||п.план?.неприменимо||"—")));
