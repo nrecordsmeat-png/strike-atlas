@@ -84,6 +84,18 @@ details.сноска li{margin:2px 0}
 .пусто{color:var(--текст2);font-style:italic;padding:4px 0}
 .обзор-блок{background:var(--панель2);border:1px solid var(--кромка);border-radius:8px;padding:9px 11px;margin-bottom:8px}
 .обзор-блок .з{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--текст2);margin-bottom:2px}
+.health-case{border:1px solid var(--кромка);border-radius:9px;padding:14px;margin-bottom:12px}
+.health-case h2{font-size:20px;line-height:1.25;margin:4px 0 8px;font-weight:600}
+.health-case p{margin:7px 0}
+.health-kicker{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--текст2)}
+.health-signs{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.health-impact{padding-top:9px;margin-top:10px;border-top:1px solid var(--кромка)}
+.health-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0}
+.health-item{background:var(--панель2);border-radius:7px;padding:10px;overflow-wrap:anywhere}
+.health-item b{display:block;font-size:12px;color:var(--текст2);font-weight:500;margin-bottom:3px}
+.health-treatment{border-left:3px solid var(--акцент);padding:2px 12px;margin:12px 0}
+.health-treatment p{margin:5px 0}
+@media(max-width:520px){.health-grid{grid-template-columns:1fr}.health-case{padding:11px}}
 details.раск{margin-top:3px}
 details.раск>summary{cursor:pointer;color:var(--текст2);font-size:12.5px;list-style-position:inside}
 .подсвет{background:var(--акцент-фон);border-radius:6px;box-shadow:inset 0 0 0 1px var(--акцент)}
@@ -132,6 +144,7 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
     <p class="мелко" id="body-participants">Условия задаются на старте; дальше расходуются запасы и время помощи. Численные настройки предварительные.</p>
     <label for="body-scenario">Условия</label>
     <select class="фильтр-ввод" id="body-scenario" style="width:min(260px,100%)">
+      <option value="wound">Рана: осмотр и лечение</option><option value="woundWrong">Рана: ошибочная версия знахарки</option>
       <option value="care">Помощь есть</option><option value="absent">Помощница отсутствует</option>
       <option value="scarce">Мало воды</option><option value="hard">Только твёрдая пища</option><option value="noToilet">Нет туалета</option>
     </select>
@@ -1544,15 +1557,187 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="0f4cc48905048c4e1775af4eb71ec9d2cf87516a2548c6ed58a7be700022acd5">
+<script data-body-runtime="33a3b2934a56c316822d425ac903b93fd6f01bad10158a32bf7b62421f6806ec">
+/* Контент первого медицинского случая; все числа — параметры опыта. */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory();
+  else root.NovgorMedicalContent=factory();
+})(globalThis,function(){
+  'use strict';
+  const woundSigns=[
+    ['wet',0.1,'рана мокнет',true],['red',0.3,'покраснение вокруг раны',true],
+    ['fever',0.55,'жар и озноб',true],['weak',0.75,'резкая слабость',true],
+    ['heat',0.25,'края раны горячие на ощупь',false],['discharge',0.45,'выделения из раны',false]
+  ];
+  const causes={'wound-infection':{
+    label:'нагноение раны',healthMode:'block',course:{},
+    signs:{manifest:woundSigns,crisis:woundSigns},
+    pain:[[0,1],[0.55,2],[0.85,3]],
+    trigger:{chance:0.4,cleanMultiplier:0.2,incubationMin:2,incubationMax:4,severity:0.15},
+    treatment:{clean:1,wormwood:0}
+  }};
+  const packs={
+    clean:{label:'чесночное средство, чистая повязка и обряд',remedy:'чесночное средство',care:'очистка раны и чистая повязка',ritual:'обряд',stock:'garlic',clean:true},
+    wormwood:{label:'полынный отвар, тепло и обряд',remedy:'полынный отвар',care:'поддержание тепла',ritual:'обряд',stock:'wormwood',clean:false}
+  };
+  return {causes,packs,contexts:{wet:'wound'}};
+});
+/* Первый медицинский случай. Правила опираются на 07; числа опытные. */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports) module.exports=factory(require('./medical-content.js'));
+  else root.NovgorMedical=factory(root.NovgorMedicalContent);
+})(globalThis,function(content){
+  'use strict';
+  const copy=x=>JSON.parse(JSON.stringify(x));
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const round=x=>Math.round(x*1e12)/1e12;
+  const DEFAULTS=Object.freeze({growth:0.02,lossScale:0.035,careEffect:0.01,
+    cleanEffect:0.07,herbEffect:0.01,crisisSeverity:0.8,manifestDays:10,crisisDays:2,
+    deathShare:0.12,examTime:0.08,treatmentTime:0.08,waterCost:0.15,
+    immunityRate:0.05,nutritionWeight:0.12,nutritionReference:0.75,burdenWeight:0.12,
+    resistanceGain:0.1,recognition:0.3,memorySize:8,learningThreshold:3});
+  const PACKS=content.packs,CAUSES=content.causes;
+  function unit(key){let n=2166136261;for(const c of key)n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;return n/4294967296;}
+  function params(input={}) {
+    const p={...DEFAULTS,...input};
+    for(const [k,v]of Object.entries(p))if(!Number.isFinite(v)||v<0)throw Error('Некорректный медицинский параметр: '+k);
+    if(p.crisisSeverity>1||p.deathShare>1||p.immunityRate>1||!Number.isInteger(p.memorySize)||p.memorySize<1)throw Error('Параметр вне диапазона');
+    return p;
+  }
+  function setup(person) {
+    person.illnesses=copy(person.illnesses||[]);
+    person.medical={immunity:0.8,baseImmunity:0.8,resistance:{},exams:[],treatments:[],episodes:[],plan:null,treatment:null,
+      requested:false,requestSeq:null,...copy(person.medical||{})};
+    if(person.healer)person.healer={quality:0.85,beliefs:{},memory:[],learned:{},counts:{},...copy(person.healer)};
+    for(const illness of person.illnesses){
+      Object.assign(illness,{daysInPhase:illness.daysInPhase||0,incubation:illness.incubation??2,outcome:illness.outcome||null,
+        originSeq:illness.originSeq||null,caseRecorded:illness.caseRecorded||false});
+    }
+  }
+  function validate(person) {
+    if(!Array.isArray(person.illnesses)||!person.medical)throw Error('Нет медицинского состояния');
+    const ids=new Set();
+    for(const i of person.illnesses){
+      if(typeof i.id!=='string'||!i.id||ids.has(i.id)||!CAUSES[i.cause])throw Error('Неизвестная или повторная болезнь');ids.add(i.id);
+      if(!['hidden','manifest','crisis','outcome'].includes(i.phase)||!Number.isFinite(i.severity)||i.severity<0||i.severity>1||!Number.isInteger(i.daysInPhase)||i.daysInPhase<0)throw Error('Некорректное течение болезни');
+    }
+    if(!Number.isFinite(person.medical.immunity)||person.medical.immunity<0||person.medical.immunity>1)throw Error('Некорректный иммунитет');
+    if(person.healer&&(!Number.isFinite(person.healer.quality)||person.healer.quality<0||person.healer.quality>1))throw Error('Некорректное качество осмотра');
+  }
+  function signs(illness,inspected=false,quality=1,key='') {
+    if(illness.phase==='hidden'||illness.phase==='outcome')return [];
+    const rows=CAUSES[illness.cause].signs[illness.phase]||[];
+    return rows.filter(([id,t,text,visible])=>illness.severity>=t&&(visible||(inspected&&unit(key+'|'+id)<quality)))
+      .map(([id,t,text,visible])=>({id,text,visible}));
+  }
+  function visible(person) {return person.illnesses.flatMap(i=>signs(i));}
+  function effects(person,p=DEFAULTS) {
+    return person.illnesses.filter(i=>i.phase!=='outcome'||i.outcome==='death').map(i=>({
+      id:'illness:'+i.id,name:CAUSES[i.cause].label,mode:CAUSES[i.cause].healthMode,
+      loss:i.outcome==='death'?person.health:(CAUSES[i.cause].course.lossScale??p.lossScale)*i.severity,
+      pain:i.phase==='hidden'?0:Math.max(0,...CAUSES[i.cause].pain.filter(([threshold])=>i.severity>=threshold).map(([,pain])=>pain)),
+      preventsStanding:false,illnessId:i.id
+    }));
+  }
+  function context(person,day) {return person.sources.find(x=>x.observed&&(x.untilDay===null||x.untilDay>=day))?.observed.kind||visible(person).map(x=>content.contexts[x.id]).find(Boolean)||null;}
+  function fromEvent(person,input,day,seed) {
+    if(!CAUSES[input.cause]?.trigger||typeof input.id!=='string'||!input.id)throw Error('Неизвестное осложнение события');
+    if(person.illnesses.some(i=>i.id===input.id))return null;
+    const resistance=clamp(person.medical.immunity+(person.medical.resistance[input.cause]||0),0.2,1);
+    // Заглушки первого типа причины; состояния сами болезнь не порождают.
+    const t=CAUSES[input.cause].trigger;
+    const chance=clamp(t.chance*(1.5-resistance)*(input.clean?t.cleanMultiplier:1),0,1);
+    if(unit('complication|'+seed+'|'+person.id+'|'+input.id)>=chance)return null;
+    return {id:input.id,cause:input.cause,origin:input.eventId,startedDay:day,phase:'hidden',severity:t.severity,
+      daysInPhase:0,incubation:t.incubationMin+Math.floor(unit('incubation|'+seed+'|'+person.id+'|'+input.id)*(t.incubationMax-t.incubationMin+1)),outcome:null,caseRecorded:false,originSeq:null};
+  }
+  function choose(healer,collected,ctx,p=DEFAULTS) {
+    const ids=new Set(collected.map(x=>x.id));let best=null,score=0;
+    for(const c of healer.memory){
+      const old=new Set(c.signs),union=new Set([...ids,...old]);
+      const hit=[...ids].filter(x=>old.has(x)).length/(union.size||1);
+      if(hit>score||(hit===score&&c.day>(best?.day??-Infinity))){best=c;score=hit;}
+    }
+    const remembered=best&&score>=p.recognition?best:null;
+    const belief=remembered||healer.beliefs[ctx];
+    if(!belief)return null;
+    const learned=healer.learned[[...ids].sort().join('|')];
+    const starting=Object.values(healer.beliefs).find(x=>x.hypothesis===belief.hypothesis);
+    const method=learned||starting?.method;
+    if(!method)return null;
+    if(!PACKS[method])throw Error('Неизвестный лечебный пакет');
+    return {hypothesis:belief.hypothesis,method,from:learned?'выученная связка':remembered?'память о прошлом случае':'исходное убеждение'};
+  }
+  function advance(person,day,input,p=DEFAULTS,seed=0) {
+    const m=person.medical,ratio=input.foodRatio;
+    const burden=input.hungerStrength+input.thirstStrength;
+    const useful=clamp(input.quality*ratio,0,1);
+    const target=clamp(m.baseImmunity-p.burdenWeight*burden+p.nutritionWeight*(useful-p.nutritionReference)+(input.warm?0.02:0)-0.05*person.illnesses.filter(i=>i.phase!=='outcome').length,0.1,1);
+    m.immunity=round(clamp(m.immunity+(target-m.immunity)*p.immunityRate,0,1));
+    const changes=[];
+    for(const i of person.illnesses){
+      if(i.phase==='outcome')continue;
+      const course={...p,...CAUSES[i.cause].course};
+      const before=i.phase,beforeSeverity=i.severity;
+      const resistance=clamp(m.immunity+(m.resistance[i.cause]||0),0.2,1);
+      const pack=m.treatment?.day===day?PACKS[m.treatment.method]:null;
+      const treatment=pack?(course.cleanEffect+course.herbEffect)*(CAUSES[i.cause].treatment[m.treatment.method]||0):0;
+      i.severity=round(clamp(i.severity+course.growth/resistance-treatment-(input.fullCare?course.careEffect:0),0,1));
+      i.daysInPhase++;
+      if(i.severity<=0){i.phase='outcome';i.outcome='recovered';}
+      else if(i.phase==='hidden'&&i.daysInPhase>=i.incubation){i.phase='manifest';i.daysInPhase=0;}
+      else if(i.phase==='manifest'&&(i.severity>=course.crisisSeverity||i.daysInPhase>=course.manifestDays)){i.phase='crisis';i.daysInPhase=0;}
+      else if(i.phase==='crisis'&&i.daysInPhase>=course.crisisDays){
+        const roll=unit('medical-outcome|'+seed+'|'+person.id+'|'+i.id+'|'+i.startedDay);
+        const deathShare=clamp(course.deathShare*(1.5-resistance),0,1);
+        i.phase='outcome';i.outcome=roll<deathShare?'death':'recovered';
+        if(i.outcome==='recovered')i.severity=0;
+      }
+      if(i.outcome==='recovered')m.resistance[i.cause]=clamp((m.resistance[i.cause]||0)+p.resistanceGain,0,1);
+      i.lastChange={day,before:beforeSeverity,after:i.severity,treatment,care:input.fullCare?p.careEffect:0};
+      if(before!==i.phase)changes.push({illnessId:i.id,from:before,to:i.phase,outcome:i.outcome});
+    }
+    return changes;
+  }
+  function finishCase(patient,healers,day,p=DEFAULTS,bed=false) {
+    // Обучение принадлежит наблюдаемому эпизоду помощи, а не скрытой болезни.
+    if(!patient.present)return;
+    for(const episode of patient.medical.episodes){
+      if(episode.outcome)continue;
+      const clinician=healers.find(x=>x.id===episode.healerId&&x.present&&x.health>0&&x.household===patient.household);
+      if(!clinician)continue;
+      const appearsRecovered=!bed&&!visible(patient).length&&!patient.sources.some(x=>x.observed&&(x.untilDay===null||x.untilDay>=day));
+      if(patient.health>0&&!appearsRecovered)continue;
+      const outcome=patient.health>0?'recovered':'died';
+      const h=clinician.healer,key=episode.signIds.slice().sort().join('|');
+      h.memory.push({day,signs:episode.signIds,hypothesis:episode.hypothesis,method:episode.method,outcome,basis:'наблюдение исхода помощи'});
+      h.memory=h.memory.slice(-(p.memorySize*(h.literate?2:1)));
+      const count=h.counts[key+'|'+episode.method]||(h.counts[key+'|'+episode.method]={attempts:0,successes:0});
+      count.attempts++;if(outcome==='recovered')count.successes++;
+      if(2*count.successes-count.attempts>=p.learningThreshold)h.learned[key]=episode.method;
+      episode.outcome=outcome;episode.observedDay=day;
+    }
+  }
+  function project(person,day,events=[]) {
+    const active=visible(person),m=person.medical;
+    const delivered=new Set(events.filter(e=>e.observed&&e.day<=day).map(e=>e.seq));
+    const latest=m.exams.filter(x=>delivered.has(x.seq)).at(-1)||null;
+    const treatment=m.treatments.filter(x=>delivered.has(x.seq)).at(-1)||null;
+    return {symptoms:active.map(x=>x.text),lastExam:latest?{day:latest.day,healerId:latest.healerId,
+      found:latest.found,hypothesis:latest.hypothesis,methodLabel:PACKS[latest.method]?.label||null}:null,
+      treatment:treatment?{day:treatment.day,healerId:treatment.healerId,label:PACKS[treatment.method].label}:null,
+      pendingExam:m.requested};
+  }
+  return {DEFAULTS,PACKS,CAUSES,unit,params,setup,validate,signs,visible,effects,context,fromEvent,choose,advance,finishCase,project};
+});
 /* Runtime телесного слоя. Предварительные параметры — не игровой баланс. */
 (function (root, factory) {
-  const api = factory();
+  const api = factory(typeof module === 'object' && module.exports ? require('./medical.js') : root.NovgorMedical);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NovgorBody = api;
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+})(typeof globalThis === 'object' ? globalThis : this, function (medical) {
   'use strict';
-  const VERSION = 1;
+  const VERSION = 2;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -1578,8 +1763,8 @@ function сгенерироватьРод(сид) {
     if (p.bedThreshold >= 1 || p.workFloor > 1) throw new Error('Порог вне диапазона');
     return p;
   }
-  function event(s, type, people, text, parent = null, evidence = null) {
-    const observed = s.observer.present && people.some(id => s.people[id]?.present && s.people[id]?.household === s.observer.household);
+  function event(s, type, people, text, parent = null, evidence = null, observable = true) {
+    const observed = observable && s.observer.present && people.some(id => s.people[id]?.present && s.people[id]?.household === s.observer.household);
     const e = {seq: s.nextSeq++, day: s.day, type, people: [...people], text, parent, evidence: copy(evidence), observed};
     s.events.push(e); return e.seq;
   }
@@ -1591,7 +1776,7 @@ function сгенерироватьРод(сид) {
   }
   function sources(p, day) {return p.sources.filter(x => x.untilDay === null || x.untilDay >= day);}
   function condition(s, p, day = s.day) {
-    const active = sources(p, day), pain = Math.max(0, ...active.map(x => x.pain));
+    const active = [...sources(p, day), ...medical.effects(p, s.medicalParameters)], pain = Math.max(0, ...active.map(x => x.pain));
     const alive = p.health > 0;
     return {alive, pain, bed: alive && (p.health < s.parameters.bedThreshold || pain >= 3 || active.some(x => x.preventsStanding)),
       canWork: alive && pain < 2 && p.health >= s.parameters.bedThreshold && !active.some(x => x.preventsStanding)};
@@ -1603,6 +1788,7 @@ function сгенерироватьРод(сид) {
   }
   function create(spec) {
     const s = {version: VERSION, day: spec.day || 0, parameters: parameters(spec.parameters),
+      medicalParameters: medical.params(spec.medicalParameters), seed: spec.seed ?? 1,
       people: {}, households: copy(spec.households), observer: copy(spec.observer || {household: 'А', present: true}),
       observations: {}, events: [], nextSeq: 1, appliedImpacts: [], lastLedger: null};
     if (!Number.isInteger(s.day) || s.day < 0) throw new Error('Некорректный день');
@@ -1615,18 +1801,23 @@ function сгенерироватьРод(сид) {
         permits: copy(raw.permits || []), sources: copy(raw.sources || []),
         hunger: raw.hunger || 0, thirst: raw.thirst || 0, slowHunger: raw.slowHunger || 0,
         need: raw.need || 0, bedSince: raw.bedSince ?? null, notice: {}, noticeSeq: {}, last: null};
-      s.people[p.id] = p;
+      medical.setup(p); s.people[p.id] = p;
     }
     validate(s);
     for (const p of Object.values(s.people)) {
       if (condition(s, p).bed && p.bedSince === null) p.bedSince = s.day;
       p.originSeq = event(s, 'InitialCondition', [p.id], 'Известно на начало: ' + p.name + (p.present ? '' : ' отсутствует во дворе'), null, {present:p.present, sources:p.sources});
+      for (const x of p.sources.filter(x => x.observed)) {
+        p.originSeq = event(s, 'InjuryKnown', [p.id], p.name + ': ' + x.observed.event, p.originSeq, {injury:copy(x.observed)});
+      }
+      for (const i of p.illnesses) i.originSeq = i.originSeq || p.originSeq;
     }
     observeDay(s); return s;
   }
   function validate(s) {
     if (s.version !== VERSION || !Number.isInteger(s.day) || !Number.isInteger(s.nextSeq)) throw new Error('Неизвестный формат состояния');
     parameters(s.parameters);
+    medical.params(s.medicalParameters);
     for (const [id, h] of Object.entries(s.households)) {
       positive(h.water, 'water', true); positive(h.waste, 'waste', true); positive(h.pot.amount, 'pot.amount', true); positive(h.pot.capacity, 'pot.capacity');
       if (h.pot.amount > h.pot.capacity || !Array.isArray(h.careOrder)) throw new Error('Некорректный быт двора ' + id);
@@ -1637,8 +1828,10 @@ function сгенерироватьРод(сид) {
         if (!Number.isInteger(f.texture) || f.texture < 0 || f.texture > 3) throw new Error('Твёрдость вне диапазона');
       }
       for (const pid of h.careOrder) if (!s.people[pid] || s.people[pid].household !== id) throw new Error('Чужой исполнитель в круге');
+      for (const n of Object.values(h.medicine || {})) positive(n, 'medicine', true);
     }
     for (const p of Object.values(s.people)) {
+      medical.validate(p);
       if (!s.households[p.household]) throw new Error('Нет двора');
       positive(p.cap, 'cap'); positive(p.health, 'health', true); positive(p.capacity, 'capacity', true);
       if (p.cap > 1 || p.health > p.cap || p.capacity > 1) throw new Error('Здоровье или время вне диапазона');
@@ -1652,6 +1845,56 @@ function сгенерироватьРод(сид) {
     }
     return s;
   }
+  function requestExam(s, pid) {
+    const p=s.people[pid]; if(!p||p.health<=0) throw new Error('Нет живого пациента');
+    if(p.medical.requested) return false;
+    p.medical.requested=true;
+    p.medical.requestSeq=event(s,'ExamRequested',[pid],p.name+': попросили осмотреть',p.originSeq);
+    observeDay(s); return true;
+  }
+  function medicalDay(s, people, ledger) {
+    const k=s.medicalParameters;
+    for(const p of people) {
+      const m=p.medical,d=ledger[p.id],ctx=medical.context(p,s.day);
+      d.medicalReason='';
+      // Решение опирается на известную рану и признаки, а не на скрытую причину.
+      const publicSigns=medical.visible(p), known=p.sources.filter(x=>x.observed&&(x.untilDay===null||x.untilDay>=s.day));
+      const signKey=publicSigns.map(x=>x.id).sort().join('|');
+      if(!m.requested&&!ctx&&(!m.plan||s.day>m.plan.reviewUntil)){m.plan=null;continue;}
+      const healers=people.filter(c=>c.id!==p.id&&c.healer&&c.knows.includes(p.id)&&ledger[c.id].canWorkAtStart);
+      if(!healers.length){d.medicalReason='нет доступной знахарки';continue;}
+      const c=healers[0],cd=ledger[c.id],h=s.households[p.household];
+      const examNeeded=m.requested||!m.plan||m.plan.healerId!==c.id||(ctx&&m.plan.signKey!==signKey);
+      if(examNeeded) {
+        const time=k.examTime/Math.max(0.000001,cd.efficiencyAtStart);
+        if(cd.time+time>c.capacity+1e-10){d.medicalReason='знахарке не хватило времени на осмотр';continue;}
+        cd.time=round(cd.time+time);cd.helped.push({patient:p.id,task:'exam',time});
+        const found=[...known.map(x=>({id:x.observed.kind,text:x.observed.title,visible:true})),...p.illnesses.flatMap(i=>medical.signs(i,true,c.healer.quality,'exam|'+s.seed+'|'+p.id+'|'+s.day+'|'+i.id))];
+        const choice=medical.choose(c.healer,found,ctx,k);
+        const hypothesis=choice?.hypothesis||(found.length?'причина неясна':'заметных признаков недомогания не обнаружила');
+        const seq=event(s,'MedicalExam',[p.id,c.id],c.name+' осмотрела '+p.name+'. '+(choice?'Предполагает: '+hypothesis:hypothesis),m.requestSeq||p.originSeq,{found:copy(found),choice:copy(choice)});
+        const exam={day:s.day,healerId:c.id,found:found.map(x=>x.text),signIds:found.map(x=>x.id),hypothesis,method:choice?.method||null,seq};
+        m.exams.push(exam);m.requested=false;m.requestSeq=null;
+        m.plan=choice?{...choice,healerId:c.id,signKey,examSeq:seq,reviewUntil:s.day+3}:null;
+      }
+      const plan=m.plan;if(!plan)continue;
+      if(ctx)plan.reviewUntil=s.day+3;
+      const pack=medical.PACKS[plan.method],time=k.treatmentTime/Math.max(0.000001,cd.efficiencyAtStart);
+      if(cd.time+time>c.capacity+1e-10){d.medicalReason='знахарке не хватило времени на лечение';continue;}
+      if((h.medicine?.[pack.stock]||0)<1||(pack.clean&&(h.medicine?.dressings||0)<1)){d.medicalReason='нет средства'+(pack.clean?' или чистой повязки':'');continue;}
+      if(!h.waterClear||h.water<k.waterCost){d.medicalReason='для лечения не хватило чистой воды';continue;}
+      cd.time=round(cd.time+time);cd.helped.push({patient:p.id,task:'treatment',time});
+      h.medicine[pack.stock]--;if(pack.clean)h.medicine.dressings--;
+      h.water=round(h.water-k.waterCost);
+      m.treatment={day:s.day,healerId:c.id,method:plan.method};
+      m.treatment.seq=event(s,'TreatmentPerformed',[p.id,c.id],c.name+': '+pack.label,plan.examSeq,{water:k.waterCost,stock:pack.stock,amount:1,dressings:pack.clean?1:0});
+      m.treatments.push({...m.treatment,examSeq:plan.examSeq});
+      if(ctx&&!m.episodes.some(x=>!x.outcome)){
+        const exam=m.exams.find(x=>x.seq===plan.examSeq);
+        m.episodes.push({examSeq:exam.seq,healerId:c.id,startedDay:s.day,signIds:copy(exam.signIds),hypothesis:exam.hypothesis,method:plan.method,outcome:null});
+      }
+    }
+  }
   function impact(s, pid, input) {
     if (typeof input.id !== 'string' || !input.id) throw new Error('Нужен устойчивый id воздействия');
     if (s.appliedImpacts.includes(input.id)) return false;
@@ -1660,10 +1903,12 @@ function сгенерироватьРод(сид) {
     if (input.source) {
       const probe = copy(s); probe.people[pid].sources.push(copy(input.source)); validate(probe);
     }
+    const complication=input.complication?medical.fromEvent(p,{...input.complication,eventId:input.id},s.day,s.seed):null;
     p.health = round(Math.max(0, p.health - input.loss));
     if (input.source) p.sources.push(copy(input.source));
     s.appliedImpacts.push(input.id);
     p.originSeq = event(s, 'Impact', [pid], input.label || 'Разовое воздействие', p.originSeq, {loss:input.loss, source:input.source || null});
+    if(complication){complication.originSeq=p.originSeq;p.illnesses.push(complication);}
     if (condition(s, p).bed && p.bedSince === null) p.bedSince = s.day;
     if (!p.health) event(s, 'Death', [pid], p.name + ': умер', p.originSeq, {loss:input.loss, source:input.source || null});
     observeDay(s); return true;
@@ -1719,6 +1964,7 @@ function сгенерироватьРод(сид) {
     for (const [hid, h] of Object.entries(s.households)) {
       const people = Object.values(s.people).filter(p => p.household === hid && ledger.people[p.id]);
       ledger.households[hid] = {foodBefore: sum(h.food.map(f => f.amount * f.nutrition)), waterBefore: h.water, potBefore: h.pot.amount, wasteRemoved: 0};
+      medicalDay(s,people,ledger.people);
       for (const p of people) {
         const d = ledger.people[p.id], reasons = new Set();
         if (!d.bedLongEnough) continue;
@@ -1783,7 +2029,13 @@ function сгенерироватьРод(сид) {
         p.hunger = round(Math.max(0, p.hunger + (foodRatio < 1 - 1e-10 ? 1 - foodRatio : -k.hungerRecovery)));
         p.thirst = round(Math.max(0, p.thirst + (waterRatio < 1 - 1e-10 ? 1 - waterRatio : -k.thirstRecovery)));
         p.slowHunger = round(Math.max(0, p.slowHunger + 1 - 3 * clamp(quality * foodRatio, 0, 1)));
-        const active = sources(p, s.day).map(copy);
+        const oldSigns=medical.visible(p).map(x=>x.text).sort();
+        const phaseChanges=medical.advance(p,s.day,{foodRatio,quality,hungerStrength:clamp(p.hunger/k.hungerThreshold,0,1),thirstStrength:clamp(p.thirst/k.thirstThreshold,0,1),fullCare:d.fullCare,warm:h.warm},s.medicalParameters,s.seed);
+        for(const change of phaseChanges){const illness=p.illnesses.find(x=>x.id===change.illnessId);
+          illness.transitionSeq=event(s,'IllnessCourse',[p.id],'Переход болезни: '+change.to,illness.transitionSeq||illness.originSeq,{...copy(change),severity:illness.severity,cause:illness.cause},false);}
+        const newSigns=medical.visible(p).map(x=>x.text).sort();
+        if(JSON.stringify(oldSigns)!==JSON.stringify(newSigns))p.medical.lastSignsSeq=event(s,'MedicalSignsChanged',[p.id],p.name+': '+(newSigns.length?newSigns.join(', '):'заметные признаки больше не наблюдаются'),p.medical.plan?.examSeq||p.originSeq,{before:oldSigns,after:newSigns});
+        const active = [...sources(p, s.day),...medical.effects(p,s.medicalParameters)].map(copy);
         if (p.hunger >= k.hungerThreshold) active.push({id: 'hunger', loss: k.hungerLoss, mode: 'block'});
         if (p.thirst >= k.thirstThreshold) active.push({id: 'thirst', loss: k.thirstLoss, mode: 'block'});
         if (p.slowHunger >= k.slowHungerThreshold) active.push({id: 'slowHunger', loss: p.slowHunger >= k.slowHungerSevereThreshold ? k.slowHungerSevereLoss : k.slowHungerLoss, mode: 'deduct'});
@@ -1802,13 +2054,15 @@ function сгенерироватьРод(сид) {
         const foodSeq = changed(s, p, 'food', d.foodReason, 'FoodShortage', p.name + ': ' + d.foodReason, careSeq || p.originSeq);
         const waterSeq = changed(s, p, 'water', d.waterReason, 'WaterShortage', p.name + ': ' + d.waterReason, careSeq || p.originSeq);
         const evidence = {loss, recovery, sources:copy(active), food:d.food, water:d.water, care:copy(d.care), reasons:copy(d.careReasons), causes:[careSeq,foodSeq,waterSeq].filter(Boolean)};
-        if (d.beforeBand !== band(p)) event(s, p.health === 0 ? 'Death' : 'HealthBand', [p.id], p.name + ': ' + band(p), waterSeq || foodSeq || careSeq || p.originSeq, evidence);
-        if (d.beforeBed !== after.bed && p.health > 0) event(s, after.bed ? 'Bedridden' : 'GotUp', [p.id], p.name + (after.bed ? ': слёг' : ': встал'), waterSeq || foodSeq || careSeq || p.originSeq, evidence);
+        const illnessSeq=p.illnesses.find(x=>x.outcome==='death')?.transitionSeq||p.medical.lastSignsSeq;
+        if (d.beforeBand !== band(p)) event(s, p.health === 0 ? 'Death' : 'HealthBand', [p.id], p.name + ': ' + band(p), waterSeq || foodSeq || careSeq || illnessSeq || p.originSeq, evidence);
+        if (d.beforeBed !== after.bed && p.health > 0) event(s, after.bed ? 'Bedridden' : 'GotUp', [p.id], p.name + (after.bed ? ': слёг' : ': встал'), waterSeq || foodSeq || careSeq || illnessSeq || p.originSeq, evidence);
         changed(s, p, 'toilet', /нет доступного|недоступна/.test(d.toileting) ? d.toileting : '', 'ToiletingBlocked', p.name + ': ' + d.toileting, p.originSeq);
       }
       ledger.households[hid].foodAfter = sum(h.food.map(f => f.amount * f.nutrition));
       ledger.households[hid].waterAfter = h.water;
     }
+    for(const p of Object.values(s.people))medical.finishCase(p,Object.values(s.people).filter(c=>c.healer),s.day,s.medicalParameters,condition(s,p).bed);
     s.lastLedger = ledger; observeDay(s); validate(s);
   }
   function observeDay(s) {
@@ -1818,6 +2072,8 @@ function сгенерироватьРод(сид) {
       const c = condition(s, p), d = p.last;
       s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),
         bed: c.bed, pain: ['нет', 'терпимая', 'сильная', 'невыносимая'][c.pain],
+        injuries:p.sources.filter(x=>x.observed).map(x=>({...copy(x.observed),active:x.untilDay===null||x.untilDay>=s.day})),
+        medicine:{...medical.project(p,s.day,s.events),reason:d?.medicalReason||''},
         food: d ? (d.foodReason || 'поел досыта') : 'за текущие сутки сведений ещё нет',
         foods: d ? [...new Set(d.foods.map(f => f.name))] : [],
         water: d ? (d.waterReason || 'напился') : 'за текущие сутки сведений ещё нет',
@@ -1835,8 +2091,12 @@ function сгенерироватьРод(сид) {
     return o ? {...copy(o), stale: o.day !== s.day || !s.people[pid].present || !s.observer.present} : null;
   }
   function save(s) {validate(s); return JSON.stringify(s);}
-  function restore(text) {return validate(JSON.parse(text));}
-  return {VERSION, DEFAULTS, create, advance, impact, deliver, condition, observe, save, restore, validate};
+  function restore(text) {
+    const s=JSON.parse(text);
+    if(s.version===1){s.version=VERSION;s.medicalParameters=medical.params();s.seed=1;for(const p of Object.values(s.people))medical.setup(p);}
+    return validate(s);
+  }
+  return {VERSION, DEFAULTS, create, advance, impact, deliver, requestExam, condition, observe, save, restore, validate};
 });
 /* Начальные условия прогонов первого пакета; значения предварительные. */
 (function (root, factory) {
@@ -1844,14 +2104,15 @@ function сгенерироватьРод(сид) {
   else root.NovgorBodyScenarios = factory(root.NovgorBody);
 })(typeof globalThis === 'object' ? globalThis : this, function (body) {
   'use strict';
-  const labels = {care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
+  const labels = {wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
   function make(kind = 'care', names = {}) {
     if (!Object.hasOwn(labels, kind)) throw new Error('Неизвестные начальные условия');
-    return {
+    const spec = {
       observer: {household: 'А', present: true},
       people: [
         {id: 'p1', name: names.p1 || 'Истома', family: 'семья-А', household: 'А', health: 0.62, bedSince: -2,
-          sources: [{id: 'leg', name: 'последствия травмы ноги', loss: 0, mode: 'deduct', pain: 1, preventsStanding: true, untilDay: 6}]},
+          sources: [{id: 'leg', name: 'последствия травмы ноги', loss: 0, mode: 'deduct', pain: 1, preventsStanding: true, untilDay: 6,
+            observed:{kind:'wound',title:'Рана правой голени',site:'правая голень',day:-2,event:'повредил правую голень при рубке дров; наступать на ногу больно'}}]},
         {id: 'p2', name: names.p2 || 'Милава', family: 'семья-А', household: 'А', careEligible: true, knows: ['p1'], present: kind !== 'absent'},
         {id: 'p6', name: names.p6 || 'Нежата', family: 'семья-А', household: 'А'}
       ],
@@ -1860,6 +2121,13 @@ function сгенерироватьРод(сид) {
         latrineAccessible: kind !== 'noToilet', pot: {amount: 0, capacity: 3, accessible: true},
         wasteDestination: true, waste: 0, careOrder: ['p2']}}
     };
+    if(kind==='wound'||kind==='woundWrong') {
+      spec.people[0].illnesses=[{id:'leg-complication',cause:'wound-infection',startedDay:-2,phase:'manifest',severity:0.5,daysInPhase:0,origin:'leg'}];
+      spec.people.push({id:'p3',name:names.p3||'Ведана',family:'семья-А',household:'А',knows:['p1','p2','p6'],
+        healer:{quality:0.85,beliefs:{wound:kind==='woundWrong'?{hypothesis:'рану знобит от нечистого ветра',method:'wormwood'}:{hypothesis:'рана загноилась',method:'clean'}}}});
+      spec.households['А'].medicine={garlic:40,wormwood:40,dressings:40};
+    }
+    return spec;
   }
   // Внешний вход опыта, а не добыча или производство в игровом мире.
   // make() оставляет конечные запасы для проверок самого runtime.
@@ -1940,15 +2208,18 @@ function обновитьТело() {
     card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
     card.боль = o.pain; card.слёг = o.bed;
     card.состояния = [o.hunger && {тип:"голод",сила_словами:o.hunger}, o.thirst && {тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
-    card.признаки = {на_виду:o.bed?["лежит, самостоятельно себя не обслуживает"]:[],при_осмотре_открыты:[]};
+    card.признаки = {на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
     card.dev.здоровье = p.health; card.dev.предел_здоровья = p.cap;
     card.dev.медленный_голод = p.slowHunger; card.dev.телесные_накопители = {нужда:p.need};
-    delete card.dev.иммунитет; delete card.dev.болезнь; delete card.dev.боль_источники;
+    card.dev.иммунитет=p.medical.immunity;card.dev.стойкость=p.medical.resistance;
+    const illness=p.illnesses.at(-1);
+    card.dev.болезнь=illness?{причина:illness.cause,фаза:illness.phase,тяжесть:illness.severity,дней_в_фазе:illness.daysInPhase,откуда:illness.origin,чем_лечат:p.medical.plan?.method||"нет",исход:illness.outcome||"не наступил"}:null;
+    delete card.dev.боль_источники;
     card.план = {бюджет:{ёмкость_тела:o.work, фон_двора:p.last?.helped.length?"помощь больному занимает часть дня":"обычный быт", уход:[]},
       блоки:[], поручения:[], фон_словами:o.work};
     card.телесная_сводка = o;
   }
-  const типы = {InitialCondition:"СостояниеИзвестно",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
+  const типы = {InitialCondition:"СостояниеИзвестно",InjuryKnown:"Рана",ExamRequested:"ОсмотрПоручен",MedicalExam:"Гипотеза",TreatmentPerformed:"СредствоГотово",MedicalSignsChanged:"ПризнакиИзменились",IllnessCourse:"ТечениеБолезни",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
   for (const e of s.events) {
     if (!типы[e.type]) continue;
     out.журнал.push({seq:1000000+e.seq,день:b.день+e.day,тип:типы[e.type],участники:e.people,
@@ -1966,7 +2237,7 @@ function начатьТело() {
   УИ.б3=false;
   const base = клонировать(СНИМКИ[УИ.снимок]);
   const kind = $("body-scenario").value;
-  const names = Object.fromEntries(["p1","p2","p6"].map(id=>[id,base.пешки[id].имя]));
+  const names = Object.fromEntries(["p1","p2","p3","p6"].map(id=>[id,base.пешки[id].имя]));
   ТЕЛО.base=base; ТЕЛО.kind=kind;
   ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked});
   обновитьТело();
@@ -1976,27 +2247,68 @@ function начатьТело() {
 function нарисоватьБытТела(к) {
   const o=я().телесная_сводка;
   if (!o) return;
-  const block=э("section","обзор-блок"); block.id="body-daily";
-  block.appendChild(э("div","мелко",`Наблюдение во дворе — ${экр(деньТ(ТЕЛО.base.день+o.day))}`));
+  const block=э("section",""); block.id="body-daily";
+  block.appendChild(э("h3","","Питание и повседневная помощь"));
   if (!o.alive) block.appendChild(э("p","",`Человек умер. Последние сведения о питании и уходе — ${экр(деньТ(ТЕЛО.base.день+o.dailyDay))}.`));
-  block.appendChild(э("h3","","Питание и питьё"));
-  block.appendChild(э("div","стр",`Еда: ${экр(o.food)}${o.foods.length?" · "+o.foods.map(экр).join(", "):""}`));
-  block.appendChild(э("div","стр",`Питьё: ${экр(o.water)}`));
-  block.appendChild(э("h3","","Самообслуживание"));
-  block.appendChild(э("div","стр",экр(o.need)));
-  block.appendChild(э("h3","","Уход"));
+  const grid=э("div","health-grid");
+  grid.appendChild(э("div","health-item",`<b>Еда</b>${экр(o.food)}${o.foods.length?" · "+o.foods.map(экр).join(", "):""}`));
+  grid.appendChild(э("div","health-item",`<b>Вода</b>${экр(o.water)}`));
+  grid.appendChild(э("div","health-item",`<b>Туалет</b>${экр(o.need)}`));
+  grid.appendChild(э("div","health-item",`<b>Повседневные дела</b>${экр(o.work)}`));
+  block.appendChild(grid);
   if (!o.care) block.appendChild(э("div","стр","За текущие сутки сведений ещё нет."));
   else if (!o.care.needed) block.appendChild(э("div","стр",o.bed?"Суточный уход ещё не начат.":"Обслуживает себя самостоятельно."));
   else {
     block.appendChild(э("div","стр",o.care.full?"Полный уход получен.":"Уход неполный."));
     if(o.care.helpers.length) block.appendChild(э("div","стр","Помогают: "+o.care.helpers.map(экр).join(", ")));
     const tasks={drink:"поили",feed:"кормили",warmth:"поддерживали тепло",turn:"поворачивали",hygiene:"вынесли за больным"};
-    if(o.care.tasks.length) block.appendChild(э("div","стр","Сделано: "+o.care.tasks.map(x=>tasks[x]).map(экр).join(", ")));
+    if(o.care.tasks.length) block.appendChild(э("div","мелко","Сделано: "+o.care.tasks.map(x=>tasks[x]).map(экр).join(", ")));
     if(!o.care.full) for(const reason of o.care.reasons) block.appendChild(э("div","стр",экр(reason)));
   }
-  block.appendChild(э("h3","","Повседневные дела"));
-  block.appendChild(э("div","стр",экр(o.work)));
   к.appendChild(block);
+}
+function нарисоватьМедицину(к) {
+  const п=я(),o=п.телесная_сводка,med=o?.medicine;
+  const injuries=o?.injuries||[],injury=injuries.find(x=>x.active)||injuries.at(-1);
+  const box=э("section","health-case");box.id="health-current";
+  box.appendChild(э("div","health-kicker",o?"Текущее наблюдение · "+экр(деньТ(ТЕЛО.base.день+o.day)):"Последние известные сведения"));
+  box.appendChild(э("h2","",экр(injury?.title||(п.слёг?"Не встаёт с постели":п.полоса))));
+  if(injury)box.appendChild(э("p","",`${экр(деньТ(ТЕЛО.base.день+injury.day))}: ${экр(injury.event)}.`));
+  if(!o){
+    const events=досье(УИ.кто).filter(e=>видимоИгроку(e)&&["ПолосаЗдоровья","Слёг","Поправилась"].includes(e.тип)).slice(0,2);
+    for(const e of events.reverse())box.appendChild(э("p","",`${экр(деньТ(e.день))}: ${экр(e.текст)}`));
+  }
+  const signs=[...(п.признаки?.на_виду||[]),...(п.состояния||[]).map(x=>x.сила_словами)];
+  const chips=э("div","health-signs");
+  if(п.боль&&п.боль!=="нет")chips.appendChild(э("span","чип вним","Боль: "+экр(п.боль)));
+  for(const text of signs)chips.appendChild(э("span","чип вним",экр(text)));
+  if(chips.childNodes.length)box.appendChild(chips);
+  if(o){
+    const impact=!o.alive?"Умер.":o.bed?"Не может ходить и работать. Еду и воду нужно подавать; для еды подходит жидкое.":o.pain==="сильная"||o.pain==="невыносимая"?"Может обслуживать себя, но за назначенную работу не берётся из-за боли.":"Может ходить, есть, пить и обслуживать себя самостоятельно.";
+    box.appendChild(э("div","health-impact",экр(impact)));
+    if(injury&&!injury.active&&!signs.length&&o.alive)box.appendChild(э("p","мелко","Ограничение после травмы снято. Заметных признаков осложнения сейчас нет."));
+  }else if(п.слёг)box.appendChild(э("div","health-impact","Нуждается в помощи с едой, питьём и повседневным уходом."));
+  else{const blocks=неБерётся(п);if(blocks.length)box.appendChild(э("div","health-impact",blocks.slice(0,2).map(x=>экр(x.что+": "+x.причина)).join("<br>")));}
+  к.appendChild(box);
+  const examService=o&&ТЕЛО.state&&Object.values(ТЕЛО.state.people).some(c=>c.id!==УИ.кто&&c.healer);
+  if(med&&(injury||med.lastExam||med.pendingExam||examService)){
+    const treatment=э("section","health-treatment");treatment.id="health-treatment";
+    if(med.lastExam){const ex=med.lastExam;
+      treatment.appendChild(э("div","мелко",`Осмотр: ${экр(деньТ(ТЕЛО.base.день+ex.day))} · ${экр(пеш(ex.healerId).имя)}`));
+      treatment.appendChild(э("p","",`<b>Версия знахарки:</b> ${экр(ex.hypothesis)}.`));
+      if(ex.found.length)treatment.appendChild(э("p","мелко","При осмотре: "+ex.found.map(экр).join(", ")+"."));
+    }else treatment.appendChild(э("p","","Осмотра после начала расчёта ещё не было."));
+    if(med.treatment)treatment.appendChild(э("p","",`<b>${med.treatment.day===o.day?"Сделано сегодня":"Последняя помощь · "+экр(деньТ(ТЕЛО.base.день+med.treatment.day))}:</b> ${экр(med.treatment.label)}.`));
+    if(med.reason)treatment.appendChild(э("p","",`Помощь задержана: ${экр(med.reason)}.`));
+    if(o.alive)кнопкаОсмотра(treatment);
+    к.appendChild(treatment);
+  }else if(!o&&п.осмотры?.length){
+    const ex=п.осмотры.at(-1),treatment=э("section","health-treatment");
+    treatment.appendChild(э("div","мелко",`Последний осмотр: ${экр(деньТ(ex.день))} · ${экр(пеш(ex.кем).имя)}`));
+    treatment.appendChild(э("p","",`<b>Версия знахарки:</b> ${экр(ex.реплика)}`));
+    treatment.appendChild(э("p","мелко","Выявлено тогда: "+ex.собрано.map(экр).join(", ")));
+    к.appendChild(treatment);
+  }
 }
 const экр = т => String(т).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const э = (тег, кл, html) => { const e = document.createElement(тег); if (кл) e.className = кл; if (html !== undefined) e.innerHTML = html; return e; };
@@ -2080,7 +2392,12 @@ function порученияСнимка(){ const к = тек().ид; return (У�
 function кнопкаОсмотра(к) {
   const п = я();
   if (ТЕЛО.state && ТЕЛО.state.people[УИ.кто]) {
-    к.appendChild(э("p","мелко","Вызов знахарки будет подключён вместе с исполнением осмотров и лечения."));
+    const patient=ТЕЛО.state.people[УИ.кто];
+    if(!patient.health||!Object.values(ТЕЛО.state.people).some(c=>c.id!==patient.id&&c.healer))return;
+    const b=э("button","кн",patient.medical.requested?"Осмотр поручен":"Позвать знахарку");b.type="button";b.disabled=patient.medical.requested;
+    b.addEventListener("click",()=>{NovgorBody.requestExam(ТЕЛО.state,УИ.кто);обновитьТело();нарисовать();});
+    к.appendChild(b);
+    к.appendChild(э("div","примечание",patient.medical.requested?"Знахарка попробует провести осмотр в следующие сутки.":"Осмотр выполняется в течение суток; лечение выбирает знахарка."));
     return;
   }
   const знахарка = тек().пешки.p3;
@@ -2112,7 +2429,7 @@ function кнопкаОсмотра(к) {
 
 // Служебные параметры остаются в диагностике. В игровом тексте нет ссылок на документы.
 function названиеСобытия(тип){
-  return ({ПостройкаВстала:"Стройка",ЗаёмДан:"Заём",ДитяСлабо:"Самочувствие",Гипотеза:"Осмотр",СредствоГотово:"Лечение",ЕдаПриготовлена:"Готовка",СостояниеДавит:"Самочувствие",ПолосаЗдоровья:"Самочувствие",РешилСтроить:"Выход",ВозвратЗатребован:"Возврат вещи",ПользуетсяНеотданным:"Чужая вещь",РешилПопробовать:"Смена лечения",УходНеполон:"Уход",ЗаёмВозвращён:"Возврат вещи",ДобычаПринесена:"Промысел",Поправилась:"Выздоровление",ТравыСобраны:"Сбор трав"})[тип]||"Событие";
+  return ({Рана:"Травма",ОсмотрПоручен:"Осмотр",ПризнакиИзменились:"Самочувствие",Встал:"Самочувствие",Умер:"Смерть",ПостройкаВстала:"Стройка",ЗаёмДан:"Заём",ДитяСлабо:"Самочувствие",Гипотеза:"Осмотр",СредствоГотово:"Лечение",ЕдаПриготовлена:"Готовка",СостояниеДавит:"Самочувствие",ПолосаЗдоровья:"Самочувствие",РешилСтроить:"Выход",ВозвратЗатребован:"Возврат вещи",ПользуетсяНеотданным:"Чужая вещь",РешилПопробовать:"Смена лечения",УходНеполон:"Уход",ЗаёмВозвращён:"Возврат вещи",ДобычаПринесена:"Промысел",Поправилась:"Выздоровление",ТравыСобраны:"Сбор трав"})[тип]||"Событие";
 }
 function чистыйТекст(т) {
   return т.replace(/\s*\[(?:\d|демо|канон)[^\]]*\]/giu,"")
@@ -2243,29 +2560,28 @@ const РЕНДЕР = {
 
   "Здоровье"(к) {
     const п = я();
-    к.appendChild(э("h3","","Самочувствие"));
-    к.appendChild(э("div","стр",`полоса: <b>${экр(п.полоса)}</b>${п.слёг?" · слёг":""} · боль: ${экр(п.боль)}`));
-    for (const с of (п.состояния||[])) к.appendChild(э("div","стр",`состояние «${экр(с.тип)}»: ${экр(с.сила_словами)}`));
-    for (const пр of (п.признаки?.на_виду||[])) к.appendChild(э("div","стр",`на виду: ${экр(пр)}`));
+    нарисоватьМедицину(к);
     нарисоватьБытТела(к);
     const откр = п.признаки?.при_осмотре_открыты||[];
     if (откр.length) { к.appendChild(э("h3","","Выявлено при осмотре"));
       for (const пр of откр) к.appendChild(э("div","стр",экр(пр))); }
-    к.appendChild(э("h3","","Особенности тела"));
-    к.appendChild(э("div","стр",`сила: ${экр(п.сила_видимая)} · зрение: ${экр(п.зрение)} · слух: ${экр(п.слух)} · речь: ${экр(п.речь)}`));
-    к.appendChild(э("div","стр",`внешность: ${экр(п.внешность.волосы)} волосы · ${экр(п.внешность.кожа)}`));
-    к.appendChild(э("div","стр",`еда по зубам: ${экр(п.зубы_допуск)} · одёжа: ${экр(п.одёжа)}`));
-    if ((п.отметины||[]).length) к.appendChild(э("div","стр",`отметины: ${п.отметины.map(экр).join("; ")}`));
-    if ((п.хронический_фон||[]).length) к.appendChild(э("div","стр мелко",`Привычные жалобы: ${п.хронический_фон.map(экр).join("; ")}`));
+    const limitations=[];
+    if(/слаб.*глаз|слеп|плох.*вид/i.test(п.зрение||""))limitations.push("Зрение: "+п.зрение);
+    if(/туговат|глух|плох.*слыш/i.test(п.слух||""))limitations.push("Слух: "+п.слух);
+    if(п.речь&&п.речь!=="говорит")limitations.push("Речь: "+п.речь);
+    if(п.зубы_допуск&&п.зубы_допуск!=="любая еда")limitations.push("Подходящая пища: "+п.зубы_допуск);
+    for(const x of п.хронический_фон||[])limitations.push("Жалоба: "+x);
+    if(limitations.length){к.appendChild(э("h3","","Длительные ограничения и жалобы"));for(const x of limitations)к.appendChild(э("div","стр",экр(x)));}
     const осм = п.осмотры||[];
-    if (осм.length) к.appendChild(э("h3","","Осмотры знахарки"));
+    const history=э("details","раск");
+    if (осм.length) history.appendChild(э("summary","",п.телесная_сводка?"Осмотры до начала расчёта":"История осмотров"));
     for (const о of осм) {
       const р = э("div","стр",`<span class="день-м">${экр(деньТ(о.день))}</span>${экр(пеш(о.кем).имя)}: собрала — ${о.собрано.map(экр).join(", ")}`);
       р.appendChild(э("div","мелко",`Мнение знахарки: ${экр(о.реплика)}`));
-      к.appendChild(р);
+      history.appendChild(р);
     }
-    к.appendChild(э("h3","","Помощь знахарки"));
-    кнопкаОсмотра(к);
+    if(осм.length)к.appendChild(history);
+    if(!п.телесная_сводка){к.appendChild(э("h3","","Помощь знахарки"));кнопкаОсмотра(к);}
     if (УИ.режим==="дев") {
       к.appendChild(devСтрока({имя:"здоровье", значение:п.dev.здоровье, ид:"body.health", род:"хранимое 0..предел (17 §1)", источник:"канон 17 §1; число — демо-снимок"}));
       к.appendChild(devСтрока({имя:"предел здоровья", значение:п.dev.предел_здоровья, ид:"body.cap", род:"хранимое (17 §1)", источник:"канон 17 §1; число — демо"}));
@@ -2273,7 +2589,7 @@ const РЕНДЕР = {
       к.appendChild(devСтрока({имя:"иммунитет общий", значение:п.dev.иммунитет, ид:"body.immunity", род:"хранимое, ползёт к цели (07 §5а)", источник:"канон 07 §5а; число — демо"}));
       if (п.dev.стойкость) к.appendChild(devСтрока({имя:"стойкость к причинам", значение:JSON.stringify(п.dev.стойкость), ид:"body.resist", род:"хранимое (07 §5а)", источник:"канон 07 §5а"}));
       if (п.dev.болезнь) { const б = п.dev.болезнь;
-        к.appendChild(devСтрока({имя:"болезнь: "+б.причина, значение:`фаза ${б.фаза}, тяжесть ${б.тяжесть}, день ${б.дней_в_фазе}`, ид:"illness", род:"объект болезни (07 §2)", входы:`откуда: ${б.откуда}; чем лечат: ${б.чем_лечат}; доли исхода: ${б.исходы_доли}`, источник:"канон 07 §2; числа — демо"})); }
+        к.appendChild(devСтрока({имя:"болезнь: "+б.причина, значение:`фаза ${б.фаза}, тяжесть ${б.тяжесть}, день ${б.дней_в_фазе}`, ид:"illness", род:"объект болезни (07 §2)", входы:`откуда: ${б.откуда}; чем лечат: ${б.чем_лечат}; исход: ${б.исход||б.исходы_доли}`, источник:"канон 07 §2; числа опытные"})); }
       if (п.dev.боль_источники) к.appendChild(devСтрока({имя:"источники боли", значение:п.dev.боль_источники.join("; "), ид:"body.pain", род:"вычисляемое: max по источникам (17 §6)", источник:"канон 17 §6"}));
     }
   },
@@ -2403,7 +2719,7 @@ const РЕНДЕР = {
       ф.appendChild(b);
     }
     к.appendChild(ф);
-    const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние/.test(т) ? "тело" :
+    const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние|Рана|Признак|Осмотр|^Встал$|Умер|Болезн|Уход/.test(т) ? "тело" :
       /Заём|Вещь|Пользуется|Возврат|Пропажа/.test(т) ? "вещи" :
       /Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход/.test(т) ? "работы" : "люди";
     let список = досье(УИ.кто);
@@ -2559,7 +2875,8 @@ function нарисоватьБ3() {
 }
 function нарисовать() {
   $("body-controls").hidden=УИ.б3;
-  $("body-participants").textContent="Участвуют: "+["p1","p2","p6"].map(id=>СНИМКИ[УИ.снимок].пешки[id].имя).join(", ")+". Условия задаются на старте; дальше расходуются запасы и время помощи. Численные настройки предварительные.";
+  const participants=ТЕЛО.state?Object.keys(ТЕЛО.state.people):["p1","p2","p3","p6"];
+  $("body-participants").textContent=(ТЕЛО.state?"Участвуют: ":"В медицинском случае участвуют: ")+participants.map(id=>СНИМКИ[УИ.снимок].пешки[id].имя).join(", ")+". Расходуются запасы и время помощи. Численные настройки предварительные.";
   $("б3-сцена").setAttribute("aria-pressed", String(УИ.б3));
   $("б3-сцена").classList.toggle("вкл", УИ.б3);
   if (УИ.б3) { нарисоватьБ3(); return; }
@@ -2568,7 +2885,7 @@ function нарисовать() {
   $("день-подпись").textContent = тек().подпись_дня;
   $("границы").hidden=УИ.режим!=="дев";
   $("сноска-снимка").innerHTML=`<p>${экр(тек().описание)}.</p><p>Данные — согласованные тестовые снимки. Суточное планирование, течение болезни и исполнение осмотра здесь не моделируются. Память пар и её затухание рассчитываются при чтении; численные настройки демонстрационные. Полные игровые правила и баланс этим прототипом не закрыты.</p><p>Словесные ступени мастерства — предложение подачи. Пороги открыты. Наследование внешности и не переданные снимком поля видны в Диагностике.</p>`;
-  if (ТЕЛО.state) $("сноска-снимка").innerHTML = "<p>Телесный расчёт: потребление пищи и воды, нужда, помощь, расход времени и изменение здоровья. Сон, среда, болезни, осмотры, возрастные процессы и полный планировщик пока не подключены. Численные настройки предварительные.</p>";
+  if (ТЕЛО.state) $("сноска-снимка").innerHTML = "<p>Телесный расчёт: питание, питьё, туалет, уход и работа. Первый медицинский случай: рана с осложнением, течение болезни, осмотр и лечение. Истинная причина скрыта от игрока; версия знахарки может быть ошибочной. Сон, среда, остальные болезни, возрастные процессы и полный планировщик ещё не подключены. Численные настройки предварительные.</p>";
   $("кн-игрок").setAttribute("aria-pressed", УИ.режим==="игрок"?"true":"false");
   $("кн-дев").setAttribute("aria-pressed", УИ.режим==="дев"?"true":"false");
   нарисоватьЛюдей(); нарисоватьШапку(); нарисоватьВкладки();
