@@ -151,6 +151,7 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
     <p class="мелко" id="body-participants">Условия задаются на старте; дальше расходуются запасы и время помощи. Численные настройки предварительные.</p>
     <label for="body-scenario">Условия</label>
     <select class="фильтр-ввод" id="body-scenario" style="width:min(260px,100%)">
+      <option value="sewNormal">Шитьё: нормальное зрение</option><option value="sewWeak">Шитьё: ослабленное зрение</option><option value="sewSevere">Шитьё: сильно ослабленное зрение</option><option value="sewBlind">Шитьё: зрение отсутствует</option><option value="sewReplacement">Шитьё: другой исполнитель</option>
       <option value="tooth">Зуб: удаление и твёрдая пища</option><option value="toothRinse">Зуб: полоскание вместо удаления</option><option value="toothInfection">Зуб: боль и воспаление</option><option value="ages">Возрастные нормы еды и воды</option>
       <option value="wound" selected>Рана: осмотр и лечение</option><option value="woundWrong">Рана: ошибочная версия знахарки</option>
       <option value="care">Помощь есть</option><option value="absent">Помощница отсутствует</option>
@@ -163,7 +164,7 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
     <button class="кн" id="body-soft-food" type="button" disabled>Доставить мягкую пищу</button>
     <button class="кн" id="body-stop" type="button" disabled>Вернуться к снимку</button>
     <p class="мелко" id="body-status" role="status" aria-live="polite">Расчёт не запущен.</p>
-    <p class="мелко" id="body-stock">Обычный опыт получает припасы извне каждый день. Добыча и производство пока не рассчитываются.</p>
+    <p class="мелко" id="body-stock">Еда и вода поступают извне. Полотно для шитья не пополняется.</p>
   </details>
   <details class="сноска" id="б3-параметры" hidden></details>
   <details class="сноска" id="границы" hidden><summary>Источники и границы прототипа</summary><div id="сноска-снимка"></div></details>
@@ -873,7 +874,7 @@ const РОД = {
       мать: "p3", отец: null, супруг: "p2",
       внешность: { волосы: "тёмно-русые", кожа: "обычный тон" },
       сила_видимая: "сильный",            // видима глазом, числа нет [17 §5б]
-      зрение: "зоркий", слух: "чуткий", зубы_допуск: "любая еда", речь: "говорит",
+      зрение: "Нормальное", слух: "чуткий", зубы_допуск: "любая еда", речь: "говорит",
       одёжа: "справная", отметины: ["шрам через бровь — от сука на валке"],
       хронический_фон: ["поясницу тянет к дождю"],   // [06 §3]
       скарб_постоянное: [
@@ -890,7 +891,7 @@ const РОД = {
     p2: { имя: "Милава", пол: "ж", возраст: 36, двор: "А", роль: "хозяйка двора А",
       мать: null, отец: null, супруг: "p1",
       внешность: { волосы: "русые", кожа: "обычный тон" },
-      сила_видимая: "обычная", зрение: "зоркая", слух: "чуткий", зубы_допуск: "любая еда",
+      сила_видимая: "обычная", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "любая еда",
       речь: "говорит", одёжа: "справная", отметины: [], хронический_фон: ["руки к вечеру ноют"],
       скарб_постоянное: [
         { ид: "в4", вещь: "серп", владелец: "p2", держатель: "p2" },
@@ -901,7 +902,7 @@ const РОД = {
     p3: { имя: "Улита, бабка", пол: "ж", возраст: 63, двор: "А", роль: "знахарка рода, мать хозяев",
       мать: null, отец: null, супруг: null,
       внешность: { волосы: "седые (были чёрные)", кожа: "обычный тон" },
-      сила_видимая: "слабосильная", зрение: "слаба глазами", слух: "туговата",
+      сила_видимая: "слабосильная", зрение: "Ослабленное", слух: "туговата",
       зубы_допуск: "до плотной еды", речь: "говорит", одёжа: "справная",
       отметины: ["согнуло — спина не разгибается до конца"],
       хронический_фон: ["колени на холод"],
@@ -915,7 +916,7 @@ const РОД = {
     p4: { имя: "Жирята", пол: "м", возраст: 29, двор: "Б", роль: "хозяин двора Б",
       мать: "p3", отец: null, супруг: "p5",
       внешность: { волосы: "тёмно-русые", кожа: "обычный тон" },
-      сила_видимая: "обычная", зрение: "зоркий", слух: "чуткий", зубы_допуск: "любая еда",
+      сила_видимая: "обычная", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "любая еда",
       речь: "говорит", одёжа: "справная", отметины: [], хронический_фон: ["плечо поламывает"],
       скарб_постоянное: [
         { ид: "в8", вещь: "нож поясной", владелец: "p4", держатель: "p4" },
@@ -927,7 +928,7 @@ const РОД = {
     p5: { имя: "Весея", пол: "ж", возраст: 24, двор: "Б", роль: "жена хозяина Б, хозяйка двора Б",
       мать: null, отец: null, супруг: "p4",
       внешность: { волосы: "светлые", кожа: "светлый тон" },
-      сила_видимая: "обычная", зрение: "зоркая", слух: "чуткий", зубы_допуск: "любая еда",
+      сила_видимая: "обычная", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "любая еда",
       речь: "говорит", одёжа: "справная", отметины: [], хронический_фон: [],
       скарб_постоянное: [
         { ид: "в10", вещь: "веретено", владелец: "p5", держатель: "p5" },
@@ -938,7 +939,7 @@ const РОД = {
     p6: { имя: "Нежата", пол: "м", возраст: 17, двор: "А", роль: "старший сын хозяина",
       мать: "p2", отец: "p1", супруг: "p8",
       внешность: { волосы: "тёмно-русые", кожа: "обычный тон" },
-      сила_видимая: "обычная", зрение: "зоркий", слух: "чуткий", зубы_допуск: "любая еда",
+      сила_видимая: "обычная", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "любая еда",
       речь: "говорит", одёжа: "справная", отметины: [], хронический_фон: [],
       скарб_постоянное: [ { ид: "в12", вещь: "нож поясной", владелец: "p6", держатель: "p6" } ],
       dev: { черты: ["bezotkazny", "mirolyub"], качество_роли: 0.5,
@@ -947,7 +948,7 @@ const РОД = {
     p7: { имя: "Путша", пол: "м", возраст: 15, двор: "А", роль: "младший сын хозяина",
       мать: "p2", отец: "p1", супруг: null,
       внешность: { волосы: "русые", кожа: "обычный тон" },
-      сила_видимая: "обычная", зрение: "зоркий", слух: "чуткий", зубы_допуск: "любая еда",
+      сила_видимая: "обычная", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "любая еда",
       речь: "говорит", одёжа: "худая", отметины: [], хронический_фон: [],
       скарб_постоянное: [ { ид: "в13", вещь: "нож поясной", владелец: "p7", держатель: "p7" } ],
       dev: { черты: ["lenivy", "mirolyub"], качество_роли: 0.4,
@@ -956,7 +957,7 @@ const РОД = {
     p8: { имя: "Забава", пол: "ж", возраст: 16, двор: "А", роль: "сноха, жена Нежаты",
       мать: null, отец: null, супруг: "p6",
       внешность: { волосы: "рыжие", кожа: "светлый тон" },
-      сила_видимая: "обычная", зрение: "зоркая", слух: "чуткий", зубы_допуск: "любая еда",
+      сила_видимая: "обычная", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "любая еда",
       речь: "говорит", одёжа: "справная", отметины: [], хронический_фон: [],
       скарб_постоянное: [ { ид: "в14", вещь: "веретено", владелец: "p8", держатель: "p8" } ],
       dev: { черты: ["serdobolny", "boyazlivy"], качество_роли: 0.5, предел_здоровья: 1.0 }
@@ -964,7 +965,7 @@ const РОД = {
     p9: { имя: "Малуша", пол: "ж", возраст: 4, двор: "А", роль: "дитя (дочь хозяина)",
       мать: "p2", отец: "p1", супруг: null,
       внешность: { волосы: "тёмно-русые", кожа: "обычный тон" },
-      сила_видимая: "мала ещё", зрение: "зоркая", слух: "чуткий", зубы_допуск: "мягкое и жидкое (молочные)",
+      сила_видимая: "мала ещё", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "мягкое и жидкое (молочные)",
       речь: "говорит", одёжа: "справная", отметины: [], хронический_фон: [],
       скарб_постоянное: [],
       dev: { черты: [], качество_роли: null,
@@ -973,7 +974,7 @@ const РОД = {
     p10: { имя: "Вторак", пол: "м", возраст: 2, двор: "А", роль: "дитя (сын Нежаты), ползун",
       мать: "p8", отец: "p6", супруг: null,
       внешность: { волосы: "рыжие", кожа: "светлый тон" },
-      сила_видимая: "мал ещё", зрение: "зоркий", слух: "чуткий", зубы_допуск: "мягкое и жидкое",
+      сила_видимая: "мал ещё", зрение: "Нормальное", слух: "чуткий", зубы_допуск: "мягкое и жидкое",
       речь: "лепечет", одёжа: "справная", отметины: [], хронический_фон: [],
       скарб_постоянное: [],
       dev: { черты: [], качество_роли: null,
@@ -1566,7 +1567,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="4cc5453f8493a6e6b3ec6449621565a277785e4af241454c949600a5d21dd883">
+<script data-body-runtime="3de8030e6242b5d7c58cf68d0aa2ce1c124f18155fb1911257dfa98441326b7a">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -1707,6 +1708,141 @@ function сгенерироватьРод(сид) {
     return [...exams,...removals].sort((a,b)=>a.seq-b.seq).at(-1)||null;
   }
   return {DEFAULTS,params,setup,validate,texture,pain,effects,signs,advance,countFinding,knownCount};
+});
+/* Категории зрения и допуск действия; численной остроты и возрастной динамики здесь нет. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.NovgorVision = factory();
+})(typeof globalThis === 'object' ? globalThis : this, function () {
+  'use strict';
+  const LEVELS = Object.freeze(['blind', 'severe', 'weak', 'normal']);
+  const LABELS = Object.freeze({normal:'Нормальное', weak:'Ослабленное', severe:'Сильно ослабленное', blind:'Отсутствует'});
+  function validate(level) {
+    if (level !== null && !LEVELS.includes(level)) throw Error('Неизвестный уровень зрения');
+  }
+  function setup(p) {p.vision = p.vision === undefined ? null : p.vision; validate(p.vision);}
+  function label(level) {validate(level); return level === null ? 'Нет сведений' : LABELS[level];}
+  function admits(level, minimum) {
+    validate(level); validate(minimum);
+    return minimum === null || level !== null && LEVELS.indexOf(level) >= LEVELS.indexOf(minimum);
+  }
+  function fromDescription(text) {
+    if (/^нормальное$|^зорк/iu.test(text || '')) return 'normal';
+    if (/^сильно ослабленное$|подслеповат/iu.test(text || '')) return 'severe';
+    if (/^отсутствует$|^слеп/iu.test(text || '')) return 'blind';
+    if (/^ослабленное$|слаба? глазами/iu.test(text || '')) return 'weak';
+    return null;
+  }
+  return {LEVELS, LABELS, validate, setup, label, admits, fromDescription};
+});
+/* Первый исполняемый рецепт: мешок. Числа DEFAULTS — условия опыта, не баланс. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./vision.js'));
+  else root.NovgorWork = factory(root.NovgorVision);
+})(typeof globalThis === 'object' ? globalThis : this, function (vision) {
+  'use strict';
+  const ID = 'remeslo.shit', TITLE = 'Шитьё мешков', MINIMUM = 'weak', EPS = 1e-10;
+  const DEFAULTS = Object.freeze({bagEffort:0.5, clothPerBag:1});
+  const copy = x => JSON.parse(JSON.stringify(x));
+  const round = n => Math.round(n * 1e12) / 1e12;
+  function parameters(input) {
+    const p = {...DEFAULTS, ...input};
+    if (!Number.isFinite(p.bagEffort) || p.bagEffort <= EPS || !Number.isInteger(p.clothPerBag) || p.clothPerBag < 1) throw Error('Некорректные условия шитья');
+    return p;
+  }
+  function setup(s) {
+    s.workParameters = parameters(s.workParameters);
+    for (const p of Object.values(s.people)) p.knownWorks = p.knownWorks === undefined ? [] : p.knownWorks;
+    for (const h of Object.values(s.households)) {
+      if (h.work === undefined) h.work = null;
+      if (h.work && Array.isArray(h.work.jobs)) h.work.jobs = h.work.jobs.map(j => ({
+        completed:0, progress:0, status:'pending', reason:'', day:null, workers:[], originSeq:null, ...j
+      }));
+    }
+  }
+  function validate(s) {
+    if (!s.workParameters || !Number.isFinite(s.workParameters.bagEffort) || !Number.isInteger(s.workParameters.clothPerBag)) throw Error('Нет параметров шитья');
+    const k = parameters(s.workParameters);
+    for (const p of Object.values(s.people)) {
+      if (!Array.isArray(p.knownWorks) || p.knownWorks.some(id => typeof id !== 'string') || new Set(p.knownWorks).size !== p.knownWorks.length) throw Error('Некорректный репертуар работ');
+    }
+    for (const [hid, h] of Object.entries(s.households)) {
+      const w = h.work; if (w === null) continue;
+      if (!w || !Array.isArray(w.order) || !Array.isArray(w.jobs) || new Set(w.order).size !== w.order.length) throw Error('Некорректная очередь работ');
+      if (w.order.some(id => !s.people[id] || s.people[id].household !== hid)) throw Error('Чужой исполнитель работы');
+      for (const key of ['cloth', 'bags', 'needles']) if (!Number.isInteger(w[key]) || w[key] < 0) throw Error('Некорректный запас для шитья');
+      const ids = new Set();
+      for (const j of w.jobs) {
+        if (typeof j.id !== 'string' || !j.id || ids.has(j.id) || j.workId !== ID || !s.people[j.owner] || s.people[j.owner].household !== hid) throw Error('Некорректная задача шитья');
+        ids.add(j.id);
+        if (!Number.isInteger(j.quantity) || j.quantity < 1 || !Number.isInteger(j.completed) || j.completed < 0 || j.completed > j.quantity || !Number.isFinite(j.progress) || j.progress < 0 || j.progress >= k.bagEffort || j.completed === j.quantity && j.progress !== 0) throw Error('Некорректный объём шитья');
+        if (!['pending', 'waiting', 'partial', 'done'].includes(j.status) || typeof j.reason !== 'string' || j.day !== null && !Number.isInteger(j.day) || !Array.isArray(j.workers) || j.workers.some(id => !s.people[id] || s.people[id].household !== hid)) throw Error('Некорректный результат шитья');
+      }
+    }
+  }
+  function admission(p, condition) {
+    let code = null, reason = '';
+    if (!p.knownWorks.includes(ID)) {code = 'knowledge'; reason = 'Не умеет шить мешки';}
+    else if (!p.present) {code = 'absent'; reason = 'Нет на месте';}
+    else if (!condition.canWork) {code = 'body'; reason = !condition.alive ? 'Умер' : condition.bed ? 'Не может встать и работать' : condition.pain >= 2 ? 'Сильная боль не позволяет работать' : 'По возрасту ещё не работает';}
+    else if (!vision.admits(p.vision, MINIMUM)) {
+      code = 'vision'; reason = p.vision === null ? 'Нет сведений о зрении для допуска к шитью' : 'Зрение: ' + vision.label(p.vision).toLowerCase() + '; для шитья нужно ослабленное или нормальное';
+    }
+    return {workId:ID, title:TITLE, minimumVision:MINIMUM, allowed:code === null, code, reason};
+  }
+  function day(s, ledger, condition, emit) {
+    const k = s.workParameters;
+    for (const h of Object.values(s.households)) {
+      const w = h.work; if (!w) continue;
+      for (const j of w.jobs) {
+        if (j.completed === j.quantity) continue;
+        const before = {completed:j.completed, progress:j.progress}, workers = [], attempts = [];
+        let cloth = 0, reason = '';
+        while (j.completed < j.quantity) {
+          let chosen = null;
+          attempts.length = 0;
+          for (const id of w.order) {
+            const p = s.people[id], d = ledger[id], a = admission(p, condition(p));
+            if (!a.allowed) {attempts.push(p.name + ': ' + a.reason); continue;}
+            if (!d || !d.canWorkAtStart || d.efficiencyAtStart <= EPS || (p.capacity - d.time) * d.efficiencyAtStart <= EPS) {attempts.push('У подходящих исполнителей не осталось времени'); continue;}
+            chosen = {p, d}; break;
+          }
+          if (!chosen) {reason = [...new Set(attempts)].join('; ') || 'Нет доступного исполнителя'; break;}
+          if (!w.needles) {reason = 'Нет иглы'; break;}
+          if (j.progress === 0 && w.cloth < k.clothPerBag) {reason = 'Нет полотна'; break;}
+          const {p, d} = chosen;
+          const effort = Math.min(k.bagEffort - j.progress, (p.capacity - d.time) * d.efficiencyAtStart);
+          const time = round(effort / d.efficiencyAtStart);
+          if (j.progress === 0) {w.cloth -= k.clothPerBag; cloth += k.clothPerBag;}
+          d.time = round(d.time + time); j.progress = round(j.progress + effort);
+          const finished = j.progress >= k.bagEffort - EPS;
+          if (finished) {j.progress = 0; j.completed++; w.bags++;}
+          d.production.push({jobId:j.id, workId:ID, time, effort:round(effort), bags:finished ? 1 : 0});
+          if (!workers.includes(p.id)) workers.push(p.id);
+        }
+        j.day = s.day; j.workers = workers;
+        j.status = j.completed === j.quantity ? 'done' : workers.length ? 'partial' : 'waiting';
+        j.reason = reason;
+        const produced = j.completed - before.completed;
+        if (workers.length) emit('WorkPerformed', [...new Set([j.owner, ...workers])],
+          TITLE + ': ' + (produced ? 'сшито мешков — ' + produced : 'часть работы выполнена, мешок ещё не готов'), j.originSeq,
+          {jobId:j.id, workId:ID, cloth, bags:produced, workers:copy(workers), reason});
+        else if (j.notice !== reason) emit('WorkWaiting', [j.owner], TITLE + ' ждёт: ' + reason.toLowerCase(), j.originSeq, {jobId:j.id, reason});
+        j.notice = reason;
+      }
+    }
+  }
+  function project(s, p, d, previous, condition) {
+    const w = s.households[p.household].work;
+    if (!w) return null;
+    return {admission:admission(p, condition), cloth:w.cloth, bags:w.bags,
+      timeSpent:d ? d.time : null, remainingTime:d ? round(Math.max(0, p.capacity-d.time)) : null,
+      dailyDay:d?.day ?? null, daily:d ? copy(d.production || []) : null,
+      queue:w.jobs.map(j => ({id:j.id, title:TITLE, quantity:j.quantity, completed:j.completed, inProgress:j.progress > 0,
+        lastRun:j.day === s.day && d ? {day:j.day, status:j.status, reason:j.reason, workers:copy(j.workers)}
+          : copy(previous?.queue?.find(old => old.id === j.id)?.lastRun || null)}))};
+  }
+  return {ID, TITLE, MINIMUM, DEFAULTS, parameters, setup, validate, admission, day, project};
 });
 /* Контент первого медицинского случая; все числа — параметры опыта. */
 (function(root,factory){
@@ -1895,12 +2031,12 @@ function сгенерироватьРод(сид) {
 /* Runtime телесного слоя. Предварительные параметры — не игровой баланс. */
 (function (root, factory) {
   const node=typeof module === 'object' && module.exports;
-  const api = factory(node?require('./medical.js'):root.NovgorMedical,node?require('./life.js'):root.NovgorLife,node?require('./dental.js'):root.NovgorDental);
+  const api = factory(node?require('./medical.js'):root.NovgorMedical,node?require('./life.js'):root.NovgorLife,node?require('./dental.js'):root.NovgorDental,node?require('./vision.js'):root.NovgorVision,node?require('./work.js'):root.NovgorWork);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NovgorBody = api;
-})(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental) {
+})(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work) {
   'use strict';
-  const VERSION = 3;
+  const VERSION = 4;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -1952,7 +2088,7 @@ function сгенерироватьРод(сид) {
   function create(spec) {
     const s = {version: VERSION, day: spec.day || 0, parameters: parameters(spec.parameters),
       calendarStart:spec.calendarStart||'2000-01-01',calendarDayAtStart:spec.day||0,
-      lifeParameters:life.params(spec.lifeParameters),dentalParameters:dental.params(spec.dentalParameters),
+      lifeParameters:life.params(spec.lifeParameters),dentalParameters:dental.params(spec.dentalParameters),workParameters:work.parameters(spec.workParameters),
       medicalParameters: medical.params(spec.medicalParameters), seed: spec.seed ?? 1,
       people: {}, households: copy(spec.households), observer: copy(spec.observer || {household: 'А', present: true}),
       observations: {}, events: [], nextSeq: 1, appliedImpacts: [], lastLedger: null};
@@ -1967,8 +2103,9 @@ function сгенерироватьРод(сид) {
         permits: copy(raw.permits || []), sources: copy(raw.sources || []),
         hunger: raw.hunger || 0, thirst: raw.thirst || 0, slowHunger: raw.slowHunger || 0,
         need: raw.need || 0, bedSince: raw.bedSince ?? null, notice: {}, noticeSeq: {}, last: null};
-      life.setup(s,p,raw);medical.setup(p); s.people[p.id] = p;
+      life.setup(s,p,raw);medical.setup(p);vision.setup(p); s.people[p.id] = p;
     }
+    work.setup(s);
     validate(s);
     for (const p of Object.values(s.people)) {
       if (condition(s, p).bed && p.bedSince === null) p.bedSince = s.day;
@@ -1978,13 +2115,16 @@ function сгенерироватьРод(сид) {
       }
       for (const i of p.illnesses) i.originSeq = i.originSeq || p.originSeq;
     }
+    for (const h of Object.values(s.households)) for (const j of h.work?.jobs || []) {
+      j.originSeq = event(s, 'WorkQueued', [j.owner], s.people[j.owner].name + ': нужно сшить мешков — ' + j.quantity, s.people[j.owner].originSeq, {jobId:j.id, workId:j.workId, quantity:j.quantity});
+    }
     observeDay(s); return s;
   }
   function validate(s) {
     if (s.version !== VERSION || !Number.isInteger(s.day) || !Number.isInteger(s.nextSeq)) throw new Error('Неизвестный формат состояния');
     parameters(s.parameters);
     medical.params(s.medicalParameters);
-    life.params(s.lifeParameters);dental.params(s.dentalParameters);life.calendar(s);
+    life.params(s.lifeParameters);dental.params(s.dentalParameters);life.calendar(s);work.validate(s);
     if(!Number.isInteger(s.calendarDayAtStart))throw Error('Некорректная привязка календаря');
     for (const [id, h] of Object.entries(s.households)) {
       positive(h.water, 'water', true); positive(h.waste, 'waste', true); positive(h.pot.amount, 'pot.amount', true); positive(h.pot.capacity, 'pot.capacity');
@@ -2000,7 +2140,7 @@ function сгенерироватьРод(сид) {
     }
     for (const p of Object.values(s.people)) {
       medical.validate(p);
-      life.validate(s,p);
+      life.validate(s,p);vision.validate(p.vision);
       if (!s.households[p.household]) throw new Error('Нет двора');
       positive(p.cap, 'cap'); positive(p.health, 'health', true); positive(p.capacity, 'capacity', true);
       if (p.cap > 1 || p.health > p.cap || p.capacity > 1) throw new Error('Здоровье или время вне диапазона');
@@ -2171,7 +2311,7 @@ function сгенерироватьРод(сид) {
       const needs=life.needs(s,p);
       const d = {day:s.day, observed:s.observer.present && p.household===s.observer.household,
         foodDemand:needs.foodDemand,waterDemand:needs.waterDemand,
-        food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{},
+        food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{}, production:[],
         canEat: !c.bed, canDrink: !c.bed, bed: c.bed, bedLongEnough,
         canWorkAtStart: c.canWork, efficiencyAtStart: efficiency(s, p),
         foodReason: '', waterReason: '', careReasons: [], toileting: '', toiletUsed:false, toiletPending:false, toiletReason:'',
@@ -2293,6 +2433,7 @@ function сгенерироватьРод(сид) {
       ledger.households[hid].waterAfter = h.water;
     }
     for(const p of Object.values(s.people))medical.finishCase(p,Object.values(s.people).filter(c=>c.healer),s.day,s.medicalParameters,condition(s,p).bed);
+    work.day(s,ledger.people,p=>condition(s,p),(...args)=>event(s,...args));
     // Helpers may act for a patient later in iteration order. Snapshot only the completed day.
     for(const p of Object.values(s.people)) {
       const d=ledger.people[p.id];if(!d)continue;
@@ -2322,7 +2463,8 @@ function сгенерироватьРод(сид) {
       const careItems=d?.bedLongEnough?['drink','feed','warmth','turn','hygiene'].map(task=>({task,
         ...(copy(d.careTasks?.[task]||legacyCare(task))),
         helpers:d.care.filter(x=>x.task===task).map(x=>({id:x.helper,name:s.people[x.helper].name}))})):[];
-      s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),age:life.age(s,p),teeth:dental.knownCount(s,p),
+      s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),age:life.age(s,p),teeth:dental.knownCount(s,p),vision:p.vision,
+        production:work.project(s,p,d,previous?.production,c),
         bed: c.bed, pain: ['нет', 'терпимая', 'сильная', 'невыносимая'][c.pain],
         workReason:!c.alive?'dead':c.bed?'bed':life.work(s,p)<=0?'age':c.pain>=2?'pain':null,
         injuries:p.sources.filter(x=>x.observed).map(x=>({...copy(x.observed),active:x.untilDay===null||x.untilDay>=s.day})),
@@ -2354,10 +2496,16 @@ function сгенерироватьРод(сид) {
     const s=JSON.parse(text);
     if(s.version===1){s.version=2;s.medicalParameters=medical.params();s.seed=1;for(const p of Object.values(s.people))medical.setup(p);}
     if(s.version===2){
-      s.version=VERSION;s.calendarStart='2000-01-01';s.calendarDayAtStart=s.day;
+      s.version=3;s.calendarStart='2000-01-01';s.calendarDayAtStart=s.day;
       s.lifeParameters=life.params();s.dentalParameters=dental.params();s.parameters=parameters(s.parameters);
       // Старое ограничение пищи не превращается в придуманное число зубов или возраст.
       for(const p of Object.values(s.people)){p.birthDate=null;dental.setup(p);}
+    }
+    if(s.version===3){
+      s.version=VERSION;s.workParameters=work.parameters();
+      for(const p of Object.values(s.people)){p.vision=null;p.knownWorks=[];}
+      for(const h of Object.values(s.households))h.work=null;
+      for(const o of Object.values(s.observations)){o.vision=null;o.production=null;}
     }
     validate(s);
     if(Object.values(s.observations).some(o=>!('needs' in o)||!('intake' in o)||o.care&&!Array.isArray(o.care.items))) {
@@ -2379,7 +2527,7 @@ function сгенерироватьРод(сид) {
   else root.NovgorBodyScenarios = factory(root.NovgorBody);
 })(typeof globalThis === 'object' ? globalThis : this, function (body) {
   'use strict';
-  const labels = {tooth:'Зуб: удаление и твёрдая пища',toothRinse:'Зуб: полоскание вместо удаления',toothInfection:'Зуб: боль и воспаление',ages:'Возрастные нормы еды и воды',wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
+  const labels = {sewNormal:'Шитьё: нормальное зрение',sewWeak:'Шитьё: ослабленное зрение',sewSevere:'Шитьё: сильно ослабленное зрение',sewBlind:'Шитьё: зрение отсутствует',sewReplacement:'Шитьё: другой исполнитель',tooth:'Зуб: удаление и твёрдая пища',toothRinse:'Зуб: полоскание вместо удаления',toothInfection:'Зуб: боль и воспаление',ages:'Возрастные нормы еды и воды',wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
   function make(kind = 'care', names = {}) {
     if (!Object.hasOwn(labels, kind)) throw new Error('Неизвестные начальные условия');
     const spec = {
@@ -2412,6 +2560,13 @@ function сгенерироватьРод(сид) {
       spec.households['А'].medicine={dentalTools:1,dressings:40,rinseHerbs:40};
       Object.assign(spec.households['А'].food[0],{name:kind==='toothInfection'?'каша':'сухари',texture:kind==='toothInfection'?1:3});
     }
+    if(kind.startsWith('sew')){
+      Object.assign(spec.people[0],{health:1,bedSince:null,sources:[],vision:'normal'});
+      Object.assign(spec.people[1],{vision:kind==='sewNormal'?'normal':kind==='sewWeak'?'weak':kind==='sewBlind'?'blind':'severe',knownWorks:['remeslo.shit']});
+      Object.assign(spec.people[2],{vision:'normal',knownWorks:kind==='sewReplacement'?['remeslo.shit']:[]});
+      spec.households['А'].work={cloth:2,bags:0,needles:1,order:['p2','p6'],
+        jobs:[{id:'bags-1',workId:'remeslo.shit',owner:'p2',quantity:1}]};
+    }
     if(kind==='ages'){
       spec.people=[{id:'p9',name:names.p9||'Малуша',ageYears:4,family:'семья-А',household:'А'},
         {id:'p7',name:names.p7||'Путша',ageYears:10,family:'семья-А',household:'А'},
@@ -2424,6 +2579,7 @@ function сгенерироватьРод(сид) {
   // make() оставляет конечные запасы для проверок самого runtime.
   function createTrial(kind = 'care', names = {}, options = {}) {
     const spec=make(kind,names);
+    for(const p of spec.people)if(Object.hasOwn(options.visions||{},p.id)&&!kind.startsWith('sew'))p.vision=options.visions[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.ages||{},p.id))p.ageYears=options.ages[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.maxTextures||{},p.id)) {
       const texture=options.maxTextures[p.id];
@@ -2486,7 +2642,7 @@ function остановитьТело() {
   ТЕЛО.state = null; ТЕЛО.snapshot = null; ТЕЛО.base = null; ТЕЛО.kind = null;
   for (const id of ["body-day","body-week","body-stop","body-soft-food"]) $(id).disabled = true;
   $("body-status").textContent = "Расчёт не запущен.";
-  $("body-stock").textContent = "Обычный опыт получает припасы извне каждый день. Добыча и производство пока не рассчитываются.";
+  $("body-stock").textContent = "Еда и вода поступают извне. Полотно для шитья не пополняется.";
 }
 function обновитьТело() {
   const b = ТЕЛО.base, s = ТЕЛО.state, out = клонировать(b);
@@ -2502,6 +2658,7 @@ function обновитьТело() {
       if(o.age!==null&&o.age!==undefined)card.возраст=o.age;
       card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
       card.боль=o.pain;card.слёг=o.bed;
+      card.зрение=NovgorVision.label(o.vision??null);
       card.состояния=[o.hunger&&{тип:"голод",сила_словами:o.hunger},o.thirst&&{тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
       card.признаки={на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
       card.телесная_сводка=o;
@@ -2523,7 +2680,7 @@ function обновитьТело() {
       блоки:[], поручения:[], фон_словами:o.work};
     card.телесная_сводка = o;
   }
-  const типы = {DentalAttack:"ЗубнаяБоль",DentalFlare:"ЗубнаяБоль",DentalQuiet:"ЗубнаяБоль",DentalExtraction:"ЗубУдалён",InitialCondition:"СостояниеИзвестно",InjuryKnown:"Рана",ExamRequested:"ОсмотрПоручен",MedicalExam:"Гипотеза",TreatmentPerformed:"СредствоГотово",MedicalSignsChanged:"ПризнакиИзменились",IllnessCourse:"ТечениеБолезни",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
+  const типы = {WorkQueued:"РаботаПоставлена",WorkPerformed:"РаботаИсполнена",WorkWaiting:"РаботаЖдёт",DentalAttack:"ЗубнаяБоль",DentalFlare:"ЗубнаяБоль",DentalQuiet:"ЗубнаяБоль",DentalExtraction:"ЗубУдалён",InitialCondition:"СостояниеИзвестно",InjuryKnown:"Рана",ExamRequested:"ОсмотрПоручен",MedicalExam:"Гипотеза",TreatmentPerformed:"СредствоГотово",MedicalSignsChanged:"ПризнакиИзменились",IllnessCourse:"ТечениеБолезни",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
   for (const e of s.events) {
     if (!типы[e.type]) continue;
     out.журнал.push({seq:1000000+e.seq,день:b.день+e.day,тип:типы[e.type],участники:e.people,
@@ -2555,10 +2712,11 @@ function начатьТело() {
   }
   ТЕЛО.base=base; ТЕЛО.kind=kind;
   // В возрастном опыте сравниваются явно заданные 4, 10 и 17 лет.
-  ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked,maxTextures,ages:kind==='ages'?{}:ages});
+  const visions=Object.fromEntries(Object.entries(base.пешки).map(([id,p])=>[id,NovgorVision.fromDescription(p.зрение)]));
+  ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked,maxTextures,visions,ages:kind==='ages'?{}:ages});
   обновитьТело();
   for (const id of ["body-day","body-week","body-stop","body-soft-food"]) $(id).disabled=false;
-  УИ.кто=kind==='ages'?"p9":"p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
+  УИ.кто=kind==='ages'?"p9":kind.startsWith('sew')?"p2":"p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
 }
 function потребностиСнимка(п) {
   const day=п.сведения_на??п.выход?.известно_на??тек().день;
@@ -2636,12 +2794,39 @@ function нарисоватьБытТела(к) {
   }
   к.appendChild(block);
 }
+function нарисоватьРаботыТела(к) {
+  const o=я().телесная_сводка, w=o.production, box=э("section","health-case");box.id="body-work";
+  const date=деньТ(ТЕЛО.base.день+o.day), percent=n=>new Intl.NumberFormat('ru-RU',{style:'percent',maximumFractionDigits:1}).format(n);
+  box.appendChild(э("div","health-kicker",(o.stale?"Последнее наблюдение · ":"Текущее наблюдение · ")+экр(date)));
+  box.appendChild(э("h2","",экр(w.admission.title)));
+  const admission=э("p","");admission.id="work-admission";
+  admission.textContent=w.admission.allowed?"Может шить мешки. Требование к зрению выполнено.":w.admission.reason+".";
+  box.appendChild(admission);
+  for(const j of w.queue){
+    const row=э("div","стр");row.dataset.workJob=j.id;
+    row.appendChild(э("div","",`Сшито: ${j.completed} из ${j.quantity}.${j.inProgress?" Следующий мешок ещё не готов.":""}`));
+    const run=j.lastRun;
+    if(run){
+      row.appendChild(э("div","мелко",экр(деньТ(ТЕЛО.base.день+run.day))+": "+экр({done:"задача выполнена",partial:"работа выполнена частично",waiting:"задача ждёт"}[run.status]||"ожидает исполнения")));
+      if(run.reason&&j.completed<j.quantity)row.appendChild(э("div","",экр(run.reason)));
+      if(run.workers.length){const who=э("div","мелко","Выполняли: ");run.workers.forEach((id,i)=>{if(i)who.appendChild(document.createTextNode(", "));who.appendChild(людиСсылка(id));});row.appendChild(who);}
+    }else row.appendChild(э("div","мелко",j.completed===j.quantity?"Мешки готовы; сведений об исполнении нет.":"Задача ожидает исполнения."));
+    box.appendChild(row);
+  }
+  const stock=э("p","");stock.id="work-stock";stock.textContent=`Полотно: ${w.cloth} шт. · Готовых мешков: ${w.bags}.`;box.appendChild(stock);
+  const time=э("p","");time.id="work-time";
+  time.textContent=w.dailyDay===null?"За сутки исполнения ещё нет.":"За "+деньТ(ТЕЛО.base.день+w.dailyDay)+": на шитьё — "+percent(w.daily.reduce((n,x)=>n+x.time,0))+" дня; свободно после всех дел — "+percent(w.remainingTime)+".";
+  box.appendChild(time);к.appendChild(box);
+}
 function нарисоватьМедицину(к) {
   const п=я(),o=п.телесная_сводка,med=o?.medicine;
   const injuries=o?.injuries||[],injury=injuries.find(x=>x.active)||injuries.at(-1);
   const box=э("section","health-case");box.id="health-current";
   box.appendChild(э("div","health-kicker",o?(o.stale?"Последнее наблюдение · ":"Текущее наблюдение · ")+экр(деньТ(ТЕЛО.base.день+o.day)):"Последние известные сведения"));
   box.appendChild(э("h2","",экр(injury?.title||(п.слёг?"Не встаёт с постели":п.полоса))));
+  const vision=э("div","стр");vision.id="health-vision";
+  vision.textContent="Зрение: "+NovgorVision.label(o?(o.vision??null):NovgorVision.fromDescription(п.зрение))+".";
+  box.appendChild(vision);
   if(injury)box.appendChild(э("p","",`${экр(деньТ(ТЕЛО.base.день+injury.day))}: ${экр(injury.event)}.`));
   if(!o){
     const events=досье(УИ.кто).filter(e=>видимоИгроку(e)&&["ПолосаЗдоровья","Слёг","Поправилась"].includes(e.тип)).slice(0,2);
@@ -2719,6 +2904,8 @@ function авторРеплики(e) { return e.говорящий && пеш(e.�
 // вычисляемое: «за что не берётся» — из сорванных поручений и боли [входы показывает dev]
 function неБерётся(п) {
   const из = [];
+  const admission=п.телесная_сводка?.production?.admission;
+  if(admission&&!admission.allowed)из.push({что:admission.title,причина:admission.reason});
   for (const пор of (п.план?.поручения||[])) if (пор.состояние === "сорвано") из.push({ что: пор.работа, причина: пор.причина });
   if (п.боль && п.боль.startsWith("сильная")) из.push({ что: "назначенные работы вообще", причина: "сильная боль" });
   return из;
@@ -2804,7 +2991,7 @@ function кнопкаОсмотра(к) {
 
 // Служебные параметры остаются в диагностике. В игровом тексте нет ссылок на документы.
 function названиеСобытия(тип){
-  return ({Рана:"Травма",ОсмотрПоручен:"Осмотр",ПризнакиИзменились:"Самочувствие",Встал:"Самочувствие",Умер:"Смерть",ПостройкаВстала:"Стройка",ЗаёмДан:"Заём",ДитяСлабо:"Самочувствие",Гипотеза:"Осмотр",СредствоГотово:"Лечение",ЕдаПриготовлена:"Готовка",СостояниеДавит:"Самочувствие",ПолосаЗдоровья:"Самочувствие",РешилСтроить:"Выход",ВозвратЗатребован:"Возврат вещи",ПользуетсяНеотданным:"Чужая вещь",РешилПопробовать:"Смена лечения",УходНеполон:"Уход",ЗаёмВозвращён:"Возврат вещи",ДобычаПринесена:"Промысел",Поправилась:"Выздоровление",ТравыСобраны:"Сбор трав"})[тип]||"Событие";
+  return ({РаботаПоставлена:"Задача",РаботаИсполнена:"Работа",РаботаЖдёт:"Работа ждёт",Рана:"Травма",ОсмотрПоручен:"Осмотр",ПризнакиИзменились:"Самочувствие",Встал:"Самочувствие",Умер:"Смерть",ПостройкаВстала:"Стройка",ЗаёмДан:"Заём",ДитяСлабо:"Самочувствие",Гипотеза:"Осмотр",СредствоГотово:"Лечение",ЕдаПриготовлена:"Готовка",СостояниеДавит:"Самочувствие",ПолосаЗдоровья:"Самочувствие",РешилСтроить:"Выход",ВозвратЗатребован:"Возврат вещи",ПользуетсяНеотданным:"Чужая вещь",РешилПопробовать:"Смена лечения",УходНеполон:"Уход",ЗаёмВозвращён:"Возврат вещи",ДобычаПринесена:"Промысел",Поправилась:"Выздоровление",ТравыСобраны:"Сбор трав"})[тип]||"Событие";
 }
 function чистыйТекст(т) {
   return т.replace(/\s*\[(?:\d|демо|канон)[^\]]*\]/giu,"")
@@ -2877,6 +3064,7 @@ const РЕНДЕР = {
 
   "Работа"(к) {
     const п = я();
+    if(п.телесная_сводка?.production){нарисоватьРаботыТела(к);return;}
     if (п.выход) {
       к.appendChild(э("h3","","Выход"));
       const в = п.выход;
@@ -2941,7 +3129,6 @@ const РЕНДЕР = {
     if (откр.length) { к.appendChild(э("h3","","Выявлено при осмотре"));
       for (const пр of откр) к.appendChild(э("div","стр",экр(пр))); }
     const limitations=[];
-    if(/слаб.*глаз|слеп|плох.*вид/i.test(п.зрение||""))limitations.push("Зрение: "+п.зрение);
     if(/туговат|глух|плох.*слыш/i.test(п.слух||""))limitations.push("Слух: "+п.слух);
     if(п.речь&&п.речь!=="говорит")limitations.push("Речь: "+п.речь);
     for(const x of п.хронический_фон||[])limitations.push("Жалоба: "+x);
@@ -3095,7 +3282,7 @@ const РЕНДЕР = {
     к.appendChild(ф);
     const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние|Рана|Признак|Осмотр|^Встал$|Умер|Болезн|Уход|Зуб/.test(т) ? "тело" :
       /Заём|Вещь|Пользуется|Возврат|Пропажа/.test(т) ? "вещи" :
-      /Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход/.test(т) ? "работы" : "люди";
+      /Работа|Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход/.test(т) ? "работы" : "люди";
     let список = досье(УИ.кто);
     if (УИ.режим!=="дев") список = список.filter(доставлено);
     const всего = список.length;
@@ -3332,6 +3519,10 @@ $("исходные-данные").addEventListener("click",()=>{
 if (location.hash === "#b3") {
   УИ.б3 = true; УИ.кто = "girl"; УИ.вкладка = "Знания";
   $("снимки-выбор").querySelectorAll("button").forEach(b => { b.classList.remove("вкл"); b.setAttribute("aria-pressed", "false"); });
+}
+if(location.hash === "#vision"){
+  $("body-controls").open=true;$("body-scenario").value="sewReplacement";
+  начатьТело();УИ.вкладка="Работа";
 }
 нарисовать();
 </script>
