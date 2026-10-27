@@ -2927,6 +2927,24 @@ function остановитьТело() {
   $("body-stock").textContent = "Еда и вода поступают извне. Полотно для шитья не пополняется.";
   $("body-soft-food").hidden=false;$("body-stock-mode").hidden=false;$("body-stop").hidden=false;
 }
+function сводкаГотовки(s,hid){
+  if(s.day===0)return 'Сутки ещё не прожиты.';
+  const observations=Object.values(s.people).filter(p=>p.household===hid).map(p=>NovgorBody.observe(s,p.id));
+  if(observations.every(o=>o&&!o.stale&&!o.alive))return 'Готовка не выполняется: во дворе нет живых жителей.';
+  const current=observations.filter(o=>o&&!o.stale&&o.production?.dailyDay===s.day);
+  if(!current.length)return 'Нет сведений о готовке за текущие сутки.';
+  const w=current[0].production,id=NovgorEconomy.IDS.cook,batch=s.households[hid].work.economy.rules.mealBatch;
+  const fmt=n=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(n);
+  const cooked=current.reduce((n,o)=>n+o.production.daily.filter(r=>r.workId===id).reduce((sum,r)=>sum+(r.units||0)*batch,0),0);
+  const job=w.queue.find(j=>j.workId===id&&j.completed<j.quantity),blocked=w.demandBlocks?.find(b=>b.title===NovgorEconomy.ACTIONS[id].title);
+  let text=cooked?'Сегодня приготовлено '+fmt(cooked)+' суточных рационов взрослого.':job||blocked?'Сегодня готовой еды не получено.':'Сегодня готовка не требовалась.';
+  if(job){
+    const reason=job.lastRun?.day===s.day?job.lastRun.reason:'';
+    text+=reason?' Готовка: '+reason+'.':' Нет текущих сведений о причине простоя готовки.';
+    if(reason==='Не хватает гороха для готовки')text+=' На одну готовку нужно '+fmt(batch)+' ед. гороха; в мешках — '+fmt(w.stock.grain)+', на месте уборки — '+fmt(w.stock.loose)+'.';
+  }else if(blocked)text+=' Новый объём готовки не назначен: '+blocked.owner+' не может принять решение.';
+  return text;
+}
 function обновитьТело() {
   const b = ТЕЛО.base, s = ТЕЛО.state, out = клонировать(b);
   out.ид = "body-" + b.ид;
@@ -2981,9 +2999,9 @@ function обновитьТело() {
   $("body-soft-food").disabled=!s.observer.present;
   $("body-soft-food").hidden=!!s.settlement;$("body-stock-mode").hidden=!!s.settlement;
   if(s.settlement){
-    const who=s.people[УИ.кто],hid=who?.household||s.observer.household,h=s.households[hid],o=who&&NovgorBody.observe(s,who.id);
+    const who=s.people[УИ.кто],hid=who?.household||s.observer.household,h=s.households[hid];
     const known=s.observer.present&&(s.observer.households||[s.observer.household]).includes(hid);
-    $("body-stock").textContent=known?"Двор "+hid+": припасы производятся трудом жителей. Готовая еда — "+Math.floor(h.food.reduce((n,f)=>n+f.amount*f.nutrition,0)*10)/10+" суточных рационов взрослого; вода — "+Math.floor(h.water*10)/10+". Внешнего пополнения нет.":"Нет текущих сведений о запасах этого двора.";
+    $("body-stock").textContent=known?"Двор "+hid+". Готовая еда — "+Math.floor(h.food.reduce((n,f)=>n+f.amount*f.nutrition,0)*10)/10+" суточных рационов взрослого; вода — "+Math.floor(h.water*10)/10+". "+сводкаГотовки(s,hid)+" Внешнего пополнения нет.":"Нет текущих сведений о запасах этого двора.";
     $("body-participants").textContent="Все жители участвуют в суточном расчёте. Уборка урожая, тара, готовка и вода используют общее время людей.";
   }
 }
