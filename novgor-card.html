@@ -153,12 +153,18 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
     <select class="фильтр-ввод" id="body-scenario" style="width:min(260px,100%)">
       <option value="settlement">Жизнь поселения</option><option value="settlementPoor">Поселение: ухудшилось зрение</option>
       <option value="sewNormal">Шитьё: нормальное зрение</option><option value="sewWeak">Шитьё: ослабленное зрение</option><option value="sewSevere">Шитьё: сильно ослабленное зрение</option><option value="sewBlind">Шитьё: зрение отсутствует</option><option value="sewReplacement">Шитьё: другой исполнитель</option>
+      <option value="hearNormal">Зов: нормальный слух</option><option value="hearWeak">Зов: ослабленный слух</option><option value="hearSevere">Зов: сильно ослабленный слух</option><option value="hearDeaf">Зов: слух отсутствует</option>
       <option value="tooth">Зуб: удаление и твёрдая пища</option><option value="toothRinse">Зуб: полоскание вместо удаления</option><option value="toothInfection">Зуб: боль и воспаление</option><option value="ages">Возрастные нормы еды и воды</option>
       <option value="wound" selected>Рана: осмотр и лечение</option><option value="woundWrong">Рана: ошибочная версия знахарки</option>
       <option value="care">Помощь есть</option><option value="absent">Помощница отсутствует</option>
       <option value="scarce">Мало воды</option><option value="hard">Только твёрдая пища</option><option value="noToilet">Нет туалета</option>
     </select>
     <label id="body-stock-mode"><input id="body-closed-stock" type="checkbox"> Ограниченный запас без пополнения</label>
+    <div id="body-hearing-setup" hidden>
+      <label for="body-call-volume">Громкость зова при новом запуске</label>
+      <select class="фильтр-ввод" id="body-call-volume"><option value="quiet">Тихий</option><option value="ordinary" selected>Обычный</option><option value="loud">Громкий</option></select>
+      <p class="мелко">Лежачий зовёт один раз в первые сутки. Помощница рядом, помех нет. Ранее уход ей неизвестен. Сравните громкости и категории слуха через «Начать расчёт».</p>
+    </div>
     <button class="кн" id="body-start" type="button">Начать расчёт</button>
     <button class="кн" id="body-day" type="button" disabled>Прожить сутки</button>
     <button class="кн" id="body-week" type="button" disabled>Прожить неделю</button>
@@ -1568,7 +1574,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="368f37b0037c9ba0239aefa53e52c31dc59a16d2ee7cd9a7be15447028845fac">
+<script data-body-runtime="f6ed5c47d948face0ecf8ab1f65c1ba0dcd2024df1cf07de32dd0f592ebd51a1">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -1735,6 +1741,69 @@ function сгенерироватьРод(сид) {
     return null;
   }
   return {LEVELS, LABELS, validate, setup, label, admits, fromDescription};
+});
+/* Согласованные категории слуха; близость и помехи задаются условиями опыта. */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory();
+  else root.NovgorHearing=factory();
+})(typeof globalThis==='object'?globalThis:this,function(){
+  'use strict';
+  const LEVELS=Object.freeze(['deaf','severe','weak','normal']);
+  const LABELS=Object.freeze({normal:'Нормальный',weak:'Ослабленный',severe:'Сильно ослабленный',deaf:'Отсутствует'});
+  const MINIMUM=Object.freeze({quiet:'normal',ordinary:'weak',loud:'severe'});
+  const VOLUMES=Object.freeze({quiet:'Тихий',ordinary:'Обычный',loud:'Громкий'});
+  const copy=x=>JSON.parse(JSON.stringify(x));
+  function validateLevel(level){if(level!==null&&!LEVELS.includes(level))throw Error('Неизвестная категория слуха');}
+  function label(level){validateLevel(level);return level===null?'Нет сведений':LABELS[level];}
+  function hears(level,volume,inRange=true,blocked=false){
+    validateLevel(level);if(!Object.hasOwn(MINIMUM,volume))throw Error('Неизвестная громкость');
+    return !!inRange&&!blocked&&level!==null&&LEVELS.indexOf(level)>=LEVELS.indexOf(MINIMUM[volume]);
+  }
+  function fromDescription(text){
+    if(/^нормальный$|^чутк/iu.test(text||''))return 'normal';
+    if(/^сильно ослабленный$/iu.test(text||''))return 'severe';
+    if(/^ослабленный$|туговат/iu.test(text||''))return 'weak';
+    if(/^отсутствует$|^глух/iu.test(text||''))return 'deaf';
+    return null;
+  }
+  function setup(s){
+    s.careCalls=copy(s.careCalls||[]).map(c=>({...c,processed:c.processed??false}));
+    for(const p of Object.values(s.people)){p.hearing=p.hearing??null;p.careRequests=copy(p.careRequests||[]);}
+  }
+  function validate(s){
+    if(!Array.isArray(s.careCalls))throw Error('Нет списка зовов');
+    const ids=new Set();
+    for(const c of s.careCalls){
+      if(typeof c.id!=='string'||!c.id||ids.has(c.id)||!s.people[c.patient]||!s.people[c.listener]||c.patient===c.listener||!Number.isInteger(c.day)||c.day<1||!Object.hasOwn(MINIMUM,c.volume)||typeof c.inRange!=='boolean'||typeof c.blocked!=='boolean'||typeof c.processed!=='boolean')throw Error('Некорректный зов');
+      ids.add(c.id);
+    }
+    for(const p of Object.values(s.people)){
+      validateLevel(p.hearing);if(!Array.isArray(p.careRequests))throw Error('Нет списка полученных просьб');
+      const patients=new Set();
+      for(const r of p.careRequests){
+        if(!s.people[r.patient]||r.patient===p.id||patients.has(r.patient)||!Number.isInteger(r.episodeStart)||r.episodeStart>r.day||!Number.isInteger(r.day)||r.day<1||!Object.hasOwn(MINIMUM,r.volume)||!Number.isInteger(r.seq)||r.seq<1||!s.events.some(e=>e.seq===r.seq&&e.day===r.day&&e.type==='CallHeard'&&e.people.includes(p.id)&&e.evidence?.patient===r.patient&&e.evidence.episodeStart===r.episodeStart&&e.evidence.volume===r.volume))throw Error('Некорректная полученная просьба');
+        patients.add(r.patient);
+      }
+    }
+  }
+  function request(p,patient){return patient.bedSince===null?null:p.careRequests.find(r=>r.patient===patient.id&&r.episodeStart===patient.bedSince)||null;}
+  function knowsCare(p,patient){return p.knows.includes(patient.id)||!!request(p,patient);}
+  function day(s,condition,emit,ledger){
+    for(const c of s.careCalls){
+      if(c.processed||c.day!==s.day)continue;c.processed=true;
+      const p=s.people[c.patient],listener=s.people[c.listener];
+      if(!p.present||!condition(p).alive||!condition(p).bed)continue;
+      const call=emit('CareCall',[p.id],p.name+': '+VOLUMES[c.volume].toLowerCase()+' зов о помощи',p.originSeq,{volume:c.volume});
+      ledger[p.id].sentCalls.push({seq:call,volume:c.volume});
+      if(!listener.present||!condition(listener).alive||!hears(listener.hearing,c.volume,c.inRange,c.blocked))continue;
+      const episodeStart=p.bedSince??s.day;
+      const seq=emit('CallHeard',[listener.id],listener.name+': получен зов о помощи от '+p.name,call,{patient:p.id,episodeStart,volume:c.volume});
+      const received={patient:p.id,episodeStart,day:s.day,seq,volume:c.volume};
+      listener.careRequests=listener.careRequests.filter(r=>r.patient!==p.id);listener.careRequests.push(received);
+      ledger[listener.id].receivedCalls.push(copy(received));
+    }
+  }
+  return {LEVELS,LABELS,MINIMUM,VOLUMES,label,hears,fromDescription,setup,validate,request,knowsCare,day};
 });
 /* Живой контур двора. Числа — условия прототипа; остальные пороги зрения — рабочая разметка. */
 (function(root,factory){
@@ -2248,12 +2317,12 @@ function сгенерироватьРод(сид) {
 /* Runtime телесного слоя. Предварительные параметры — не игровой баланс. */
 (function (root, factory) {
   const node=typeof module === 'object' && module.exports;
-  const api = factory(node?require('./medical.js'):root.NovgorMedical,node?require('./life.js'):root.NovgorLife,node?require('./dental.js'):root.NovgorDental,node?require('./vision.js'):root.NovgorVision,node?require('./work.js'):root.NovgorWork);
+  const api = factory(node?require('./medical.js'):root.NovgorMedical,node?require('./life.js'):root.NovgorLife,node?require('./dental.js'):root.NovgorDental,node?require('./vision.js'):root.NovgorVision,node?require('./work.js'):root.NovgorWork,node?require('./hearing.js'):root.NovgorHearing);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NovgorBody = api;
-})(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work) {
+})(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work,hearing) {
   'use strict';
-  const VERSION = 5;
+  const VERSION = 6;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -2309,7 +2378,7 @@ function сгенерироватьРод(сид) {
       lifeParameters:life.params(spec.lifeParameters),dentalParameters:dental.params(spec.dentalParameters),workParameters:work.parameters(spec.workParameters),
       medicalParameters: medical.params(spec.medicalParameters), seed: spec.seed ?? 1,
       people: {}, households: copy(spec.households), observer: copy(spec.observer || {household: 'А', present: true}),
-      observations: {}, events: [], nextSeq: 1, appliedImpacts: [], lastLedger: null};
+      observations: {}, events: [], nextSeq: 1, appliedImpacts: [], lastLedger: null,careCalls:copy(spec.careCalls||[])};
     if (!Number.isInteger(s.day) || s.day < 0) throw new Error('Некорректный день');
     for (const raw of spec.people) {
       if (s.people[raw.id]) throw new Error('Повтор жителя');
@@ -2323,7 +2392,7 @@ function сгенерироватьРод(сид) {
         need: raw.need || 0, bedSince: raw.bedSince ?? null, notice: {}, noticeSeq: {}, last: null};
       life.setup(s,p,raw);medical.setup(p);vision.setup(p); s.people[p.id] = p;
     }
-    work.setup(s);
+    work.setup(s);hearing.setup(s);
     validate(s);
     for (const p of Object.values(s.people)) {
       if (condition(s, p).bed && p.bedSince === null) p.bedSince = s.day;
@@ -2342,7 +2411,7 @@ function сгенерироватьРод(сид) {
     if (s.version !== VERSION || !Number.isInteger(s.day) || !Number.isInteger(s.nextSeq)) throw new Error('Неизвестный формат состояния');
     parameters(s.parameters);
     medical.params(s.medicalParameters);
-    life.params(s.lifeParameters);dental.params(s.dentalParameters);life.calendar(s);work.validate(s);
+    life.params(s.lifeParameters);dental.params(s.dentalParameters);life.calendar(s);work.validate(s);hearing.validate(s);
     if(!Number.isInteger(s.calendarDayAtStart))throw Error('Некорректная привязка календаря');
     if(s.observer.households!==undefined&&(!Array.isArray(s.observer.households)||new Set(s.observer.households).size!==s.observer.households.length||s.observer.households.some(id=>!s.households[id])))throw Error('Некорректная область наблюдения');
     for (const [id, h] of Object.entries(s.households)) {
@@ -2490,7 +2559,7 @@ function сгенерироватьРод(сид) {
       const order=[...h.careOrder].sort((a,b)=>Number(s.people[b].family===p.family)-Number(s.people[a].family===p.family));
       for(const task of ['drink','feed','warmth','turn','hygiene'])for(const id of order){
         const c=s.people[id],d=dayPeople[id];
-        if(id===p.id||!d||!c.careEligible||!d.canWorkAtStart||!c.knows.includes(p.id)||c.family!==p.family&&!c.permits.includes(p.id)||task==='turn'&&!c.canLift||task==='hygiene'&&!c.cleans)continue;
+        if(id===p.id||!d||!c.careEligible||!d.canWorkAtStart||!hearing.knowsCare(c,p)||c.family!==p.family&&!c.permits.includes(p.id)||task==='turn'&&!c.canLift||task==='hygiene'&&!c.cleans)continue;
         const time=s.parameters.careTime[task]/Math.max(0.000001,d.efficiencyAtStart);
         if(d.time+d.reservedCare+time>c.capacity+1e-10)continue;
         d.reservedCare=round(d.reservedCare+time);dayPeople[p.id].carePlan[task]={helper:id,time,released:false};break;
@@ -2507,7 +2576,7 @@ function сгенерироватьРод(сид) {
     const order = [...h.careOrder].sort((a, b) => Number(s.people[b].family === p.family) - Number(s.people[a].family === p.family));
     for (const id of order) {
       const c = s.people[id], d = dayPeople[id];
-      if (id === p.id || !d || !c.careEligible || !d.canWorkAtStart || !c.knows.includes(p.id)) continue;
+      if (id === p.id || !d || !c.careEligible || !d.canWorkAtStart || !hearing.knowsCare(c,p)) continue;
       if (c.family !== p.family && !c.permits.includes(p.id)) {failures.add('круг помощи закончился отказом'); continue;}
       if (task === 'turn' && !c.canLift) {failures.add('помощница не может повернуть больного'); continue;}
       if (task === 'hygiene' && !c.cleans) {failures.add('отказались выносить за больным'); continue;}
@@ -2519,8 +2588,9 @@ function сгенерироватьРод(сид) {
         if(start+time*work.clockScale>1+1e-10){failures.add('помощь не успела до конца дня');continue;}
         d.careClock=round(start+time*work.clockScale);result.finishedAt=d.careClock;
       }
-      d.time = round(d.time + time); d.helped.push({patient: p.id, task, time});
-      dayPeople[p.id].care.push({helper: id, task, time}); result.status='done'; return true;
+      const request=!c.knows.includes(p.id)&&hearing.request(c,p),cause=request?{requestSeq:request.seq}:{};
+      d.time = round(d.time + time); d.helped.push({patient: p.id, task, time,...cause});
+      dayPeople[p.id].care.push({helper: id, task, time,...cause}); result.status='done'; return true;
     }
     for (const failure of failures) reasons.add(failure);
     result.reason=[...failures].join('; ') || 'нет доступной помощи';
@@ -2552,13 +2622,14 @@ function сгенерироватьРод(сид) {
       const needs=life.needs(s,p);
       const d = {day:s.day, observed:visible(s,p),
         foodDemand:needs.foodDemand,waterDemand:needs.waterDemand,
-        food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{}, production:[],reservedCare:0,carePlan:{},careClock:0,workClock:0,
+        food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{}, production:[],reservedCare:0,carePlan:{},careClock:0,workClock:0,sentCalls:[],receivedCalls:[],
         canEat: !c.bed, canDrink: !c.bed, bed: c.bed, bedLongEnough,
         canWorkAtStart: c.canWork, efficiencyAtStart: efficiency(s, p),
         foodReason: '', waterReason: '', careReasons: [], toileting: '', toiletUsed:false, toiletPending:false, toiletReason:'',
         fullCare: false, beforeBand: band(p), beforeBed:previousConditions[p.id].bed};
       ledger.people[p.id] = d;
     }
+    hearing.day(s,p=>condition(s,p),(...args)=>event(s,...args),ledger.people);
     for (const [hid, h] of Object.entries(s.households)) {
       const people = Object.values(s.people).filter(p => p.household === hid && ledger.people[p.id]);
       ledger.households[hid] = {foodBefore: sum(h.food.map(f => f.amount * f.nutrition)), waterBefore: h.water, potBefore: h.pot.amount, wasteRemoved: 0};
@@ -2686,6 +2757,10 @@ function сгенерироватьРод(сид) {
     // Helpers may act for a patient later in iteration order. Snapshot only the completed day.
     for(const p of Object.values(s.people)) {
       const d=ledger.people[p.id];if(!d)continue;
+      for(const seq of new Set(d.helped.filter(r=>r.requestSeq).map(r=>r.requestSeq))){
+        const helped=d.helped.filter(r=>r.requestSeq===seq),patient=helped[0].patient,time=round(sum(helped.map(r=>r.time)));
+        event(s,'CallCarePerformed',[p.id,patient],p.name+': выполнен уход за '+s.people[patient].name+'; затрачено '+round(time*100)+'% дня',seq,{helper:p.id,patient,tasks:helped.map(r=>r.task),time});
+      }
       p.last={...copy(d),remainingTime:round(Math.max(0,p.capacity-d.time)),
         availableWork:condition(s,p).canWork?round(Math.max(0,p.capacity-d.time)*efficiency(s,p)):0};
     }
@@ -2712,7 +2787,8 @@ function сгенерироватьРод(сид) {
       const careItems=d?.bedLongEnough?['drink','feed','warmth','turn','hygiene'].map(task=>({task,
         ...(copy(d.careTasks?.[task]||legacyCare(task))),
         helpers:d.care.filter(x=>x.task===task).map(x=>({id:x.helper,name:s.people[x.helper].name}))})):[];
-      s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),age:life.age(s,p),teeth:dental.knownCount(s,p),vision:p.vision,
+      s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),age:life.age(s,p),teeth:dental.knownCount(s,p),vision:p.vision,hearing:p.hearing,
+        calls:d&&Array.isArray(d.sentCalls)&&Array.isArray(d.receivedCalls)?{day:d.day,sent:copy(d.sentCalls),received:copy(d.receivedCalls)}:null,
         production:work.project(s,p,d,previous?.production,c),
         bed: c.bed, pain: ['нет', 'терпимая', 'сильная', 'невыносимая'][c.pain],
         workReason:!c.alive?'dead':c.bed?'bed':life.work(s,p)<=0?'age':c.pain>=2?'pain':null,
@@ -2756,7 +2832,12 @@ function сгенерироватьРод(сид) {
       for(const h of Object.values(s.households))h.work=null;
       for(const o of Object.values(s.observations)){o.vision=null;o.production=null;}
     }
-    if(s.version===4)s.version=VERSION;
+    if(s.version===4)s.version=5;
+    if(s.version===5){
+      s.version=VERSION;s.careCalls=[];
+      for(const p of Object.values(s.people)){p.hearing=null;p.careRequests=[];}
+      for(const o of Object.values(s.observations)){o.hearing=null;o.calls=null;}
+    }
     validate(s);
     if(Object.values(s.observations).some(o=>!('needs' in o)||!('intake' in o)||o.care&&!Array.isArray(o.care.items))) {
       // Rebuild only observations available now. Never reconstruct stale daily facts from truth.
@@ -2778,6 +2859,8 @@ function сгенерироватьРод(сид) {
 })(typeof globalThis === 'object' ? globalThis : this, function (body,economy) {
   'use strict';
   const labels = {sewNormal:'Шитьё: нормальное зрение',sewWeak:'Шитьё: ослабленное зрение',sewSevere:'Шитьё: сильно ослабленное зрение',sewBlind:'Шитьё: зрение отсутствует',sewReplacement:'Шитьё: другой исполнитель',tooth:'Зуб: удаление и твёрдая пища',toothRinse:'Зуб: полоскание вместо удаления',toothInfection:'Зуб: боль и воспаление',ages:'Возрастные нормы еды и воды',wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
+  const hearingLevels={hearNormal:'normal',hearWeak:'weak',hearSevere:'severe',hearDeaf:'deaf'};
+  Object.assign(labels,{hearNormal:'Зов: нормальный слух',hearWeak:'Зов: ослабленный слух',hearSevere:'Зов: сильно ослабленный слух',hearDeaf:'Зов: слух отсутствует'});
   function make(kind = 'care', names = {}) {
     if (!Object.hasOwn(labels, kind)) throw new Error('Неизвестные начальные условия');
     const spec = {
@@ -2794,6 +2877,10 @@ function сгенерироватьРод(сид) {
         latrineAccessible: kind !== 'noToilet', pot: {amount: 0, capacity: 3, accessible: true},
         wasteDestination: true, waste: 0, careOrder: ['p2']}}
     };
+    if(Object.hasOwn(hearingLevels,kind)){
+      spec.people[1].hearing=hearingLevels[kind];spec.people[1].knows=[];
+      spec.careCalls=[{id:'initial-care-call',patient:'p1',listener:'p2',day:1,volume:'ordinary',inRange:true,blocked:false}];
+    }
     if(kind==='wound'||kind==='woundWrong') {
       spec.people[0].illnesses=[{id:'leg-complication',cause:'wound-infection',startedDay:-2,phase:'manifest',severity:0.5,daysInPhase:0,origin:'leg'}];
       spec.people.push({id:'p3',name:names.p3||'Ведана',family:'семья-А',household:'А',knows:['p1','p2','p6'],
@@ -2829,6 +2916,8 @@ function сгенерироватьРод(сид) {
   // make() оставляет конечные запасы для проверок самого runtime.
   function createTrial(kind = 'care', names = {}, options = {}) {
     const spec=make(kind,names);
+    if(spec.careCalls)spec.careCalls[0].volume=options.callVolume||'ordinary';
+    for(const p of spec.people)if(Object.hasOwn(options.hearings||{},p.id)&&!(Object.hasOwn(hearingLevels,kind)&&p.id==='p2'))p.hearing=options.hearings[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.visions||{},p.id)&&!kind.startsWith('sew'))p.vision=options.visions[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.ages||{},p.id))p.ageYears=options.ages[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.maxTextures||{},p.id)) {
@@ -2960,6 +3049,7 @@ function обновитьТело() {
       card.полоса = card.пол==="ж" ? ({крепок:"крепка",ослаб:"ослабла",умер:"умерла"}[o.band] || o.band) : o.band;
       card.боль=o.pain;card.слёг=o.bed;
       card.зрение=NovgorVision.label(o.vision??null);
+      card.слух=NovgorHearing.label(o.hearing??null);
       card.состояния=[o.hunger&&{тип:"голод",сила_словами:o.hunger},o.thirst&&{тип:"жажда",сила_словами:o.thirst}].filter(Boolean);
       card.признаки={на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
       card.телесная_сводка=o;
@@ -2983,6 +3073,7 @@ function обновитьТело() {
     card.телесная_сводка = o;
   }
   const типы = {HarvestLost:"УрожайПотерян",WorkQueued:"РаботаПоставлена",WorkPerformed:"РаботаИсполнена",WorkWaiting:"РаботаЖдёт",DentalAttack:"ЗубнаяБоль",DentalFlare:"ЗубнаяБоль",DentalQuiet:"ЗубнаяБоль",DentalExtraction:"ЗубУдалён",InitialCondition:"СостояниеИзвестно",InjuryKnown:"Рана",ExamRequested:"ОсмотрПоручен",MedicalExam:"Гипотеза",TreatmentPerformed:"СредствоГотово",MedicalSignsChanged:"ПризнакиИзменились",IllnessCourse:"ТечениеБолезни",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
+  Object.assign(типы,{CareCall:'ЗовОПомощи',CallHeard:'ЗовПолучен',CallCarePerformed:'УходВыполнен'});
   for (const e of s.events) {
     if (!типы[e.type]) continue;
     out.журнал.push({seq:1000000+e.seq,день:b.день+e.day,тип:типы[e.type],участники:e.people,
@@ -3010,12 +3101,13 @@ function начатьПоселение(poor=false){
   const raw=Object.entries(base.пешки).map(([id,p])=>{
     const cap=p.dev?.предел_здоровья??1,health=Math.min(cap,p.dev?.здоровье??cap);
     const text=p.зубы_допуск||'',maxTexture=/любая/.test(text)?3:/плотн/.test(text)?2:/мягк/.test(text)?1:/жидк/.test(text)?0:3;
-    return {id,name:p.имя,sex:p.пол,ageYears:p.возраст,household:p.двор,health,cap,vision:NovgorVision.fromDescription(p.зрение),
+    return {id,name:p.имя,sex:p.пол,ageYears:p.возраст,household:p.двор,health,cap,vision:NovgorVision.fromDescription(p.зрение),hearing:NovgorHearing.fromDescription(p.слух),
       maxTexture,present:!p.выход,bed:!!p.слёг,pain:/невыносим/.test(p.боль||'')?3:/^сильн/.test(p.боль||'')?2:/терпим/.test(p.боль||'')?1:0,sews:['p2','p5','p6'].includes(id)};
   });
   ТЕЛО.base=base;ТЕЛО.kind=poor?'settlementPoor':'settlement';
   ТЕЛО.state=NovgorBodyScenarios.createSettlement(raw,{poorVision:poor,seed:base.сид??1});
   $("body-scenario").value=ТЕЛО.kind;$("body-controls").open=true;
+  настроитьЗов();
   if(poor){УИ.кто='p2';УИ.вкладка='Работа';}
   обновитьТело();for(const id of ['body-day','body-week','body-stop'])$(id).disabled=false;УИ.стек=[];нарисовать();
 }
@@ -3035,13 +3127,17 @@ function начатьТело() {
     else if(/жидк/.test(text))maxTextures[id]=0;
   }
   ТЕЛО.base=base; ТЕЛО.kind=kind;
+  if(kind.startsWith('hear'))$("body-controls").open=true;
   // В возрастном опыте сравниваются явно заданные 4, 10 и 17 лет.
   const visions=Object.fromEntries(Object.entries(base.пешки).map(([id,p])=>[id,NovgorVision.fromDescription(p.зрение)]));
-  ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked,maxTextures,visions,ages:kind==='ages'?{}:ages});
+  const hearings=Object.fromEntries(Object.entries(base.пешки).map(([id,p])=>[id,NovgorHearing.fromDescription(p.слух)]));
+  ТЕЛО.state=NovgorBodyScenarios.createTrial(kind,names,{closedStock:$("body-closed-stock").checked,maxTextures,visions,hearings,callVolume:$("body-call-volume").value,ages:kind==='ages'?{}:ages});
+  настроитьЗов();
   обновитьТело();
   for (const id of ["body-day","body-week","body-stop","body-soft-food"]) $(id).disabled=false;
-  УИ.кто=kind==='ages'?"p9":kind.startsWith('sew')?"p2":"p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
+  УИ.кто=kind==='ages'?"p9":kind.startsWith('sew')||kind.startsWith('hear')?"p2":"p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
 }
+function настроитьЗов(){ $("body-hearing-setup").hidden=!$("body-scenario").value.startsWith('hear'); }
 function потребностиСнимка(п) {
   const day=п.сведения_на??п.выход?.известно_на??тек().день;
   const alive=!/^умер/.test(п.полоса||'');
@@ -3171,6 +3267,9 @@ function нарисоватьМедицину(к) {
   const vision=э("div","стр");vision.id="health-vision";
   vision.textContent="Зрение: "+NovgorVision.label(o?(o.vision??null):NovgorVision.fromDescription(п.зрение))+".";
   box.appendChild(vision);
+  const hearing=э("div","стр");hearing.id="health-hearing";
+  hearing.textContent="Слух: "+NovgorHearing.label(o?(o.hearing??null):NovgorHearing.fromDescription(п.слух))+".";
+  box.appendChild(hearing);
   if(injury)box.appendChild(э("p","",`${экр(деньТ(ТЕЛО.base.день+injury.day))}: ${экр(injury.event)}.`));
   if(!o){
     const events=досье(УИ.кто).filter(e=>видимоИгроку(e)&&["ПолосаЗдоровья","Слёг","Поправилась"].includes(e.тип)).slice(0,2);
@@ -3194,6 +3293,7 @@ function нарисоватьМедицину(к) {
   else{const blocks=неБерётся(п);if(blocks.length)box.appendChild(э("div","health-impact",blocks.slice(0,2).map(x=>экр(x.что+": "+x.причина)).join("<br>")));}
   к.appendChild(box);
   const examService=o&&ТЕЛО.state&&Object.values(ТЕЛО.state.people).some(c=>c.id!==УИ.кто&&c.healer);
+  if(ТЕЛО.kind?.startsWith('hear'))нарисоватьЗов(к,o);
   if(med&&(injury||med.lastExam||med.pendingExam||examService)){
     const treatment=э("section","health-treatment");treatment.id="health-treatment";
     if(med.lastExam){const ex=med.lastExam;
@@ -3212,6 +3312,24 @@ function нарисоватьМедицину(к) {
     treatment.appendChild(э("p","мелко","Выявлено тогда: "+ex.собрано.map(экр).join(", ")));
     к.appendChild(treatment);
   }
+}
+function нарисоватьЗов(к,o){
+  const box=э('section','health-case');box.id='body-hearing';
+  box.appendChild(э('h2','','Зов и помощь'));
+  if(!o||o.stale){box.appendChild(э('p','','Нет текущих сведений о зове и помощи.'));к.appendChild(box);return;}
+  if(ТЕЛО.state.day===0){box.appendChild(э('p','','Сутки ещё не прожиты; зов не исполнялся.'));к.appendChild(box);return;}
+  if(!o.calls||o.calls.day!==ТЕЛО.state.day){box.appendChild(э('p','','Нет сведений о звуке за текущие сутки.'));к.appendChild(box);return;}
+  for(const call of o.calls.sent||[])box.appendChild(э('p','',экр(NovgorHearing.VOLUMES[call.volume]+' зов о помощи.')));
+  for(const call of o.calls.received||[])box.appendChild(э('p','',экр('Получена просьба об уходе от '+пеш(call.patient).имя+' ('+NovgorHearing.VOLUMES[call.volume].toLowerCase()+' зов).')));
+  if(!o.calls.received?.length&&!o.calls.sent?.length)box.appendChild(э('p','','Новых просьб по звуку за эти сутки не получено.'));
+  if(o.calls.sent?.length&&o.care?.needed)box.appendChild(э('p','',o.care.full?'Уход получен полностью.':'Уход получен не полностью.'));
+  const tasks={drink:'питьё',feed:'еда',warmth:'тепло',turn:'поворот',hygiene:'гигиена'},help=o.assistance||[];
+  if(help.length){
+    for(const patient of new Set(help.map(a=>a.patient))){const rows=help.filter(a=>a.patient===patient),time=rows.reduce((n,a)=>n+a.time,0);
+      box.appendChild(э('p','',экр('Уход за '+пеш(patient).имя+': '+rows.map(a=>tasks[a.task]).join(', ')+'. Затрачено '+new Intl.NumberFormat('ru-RU',{style:'percent',maximumFractionDigits:1}).format(time)+' рабочего дня.')));
+    }
+  }else if(!o.calls.sent?.length)box.appendChild(э('p','','Уход за другими жителями за эти сутки не выполнялся.'));
+  к.appendChild(box);
 }
 const экр = т => String(т).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const э = (тег, кл, html) => { const e = document.createElement(тег); if (кл) e.className = кл; if (html !== undefined) e.innerHTML = html; return e; };
@@ -3336,6 +3454,8 @@ function кнопкаОсмотра(к) {
 
 // Служебные параметры остаются в диагностике. В игровом тексте нет ссылок на документы.
 function названиеСобытия(тип){
+  const sound={ЗовОПомощи:'Зов',ЗовПолучен:'Просьба получена',УходВыполнен:'Уход'};
+  if(sound[тип])return sound[тип];
   return ({УрожайПотерян:"Урожай",РаботаПоставлена:"Задача",РаботаИсполнена:"Работа",РаботаЖдёт:"Работа ждёт",Рана:"Травма",ОсмотрПоручен:"Осмотр",ПризнакиИзменились:"Самочувствие",Встал:"Самочувствие",Умер:"Смерть",ПостройкаВстала:"Стройка",ЗаёмДан:"Заём",ДитяСлабо:"Самочувствие",Гипотеза:"Осмотр",СредствоГотово:"Лечение",ЕдаПриготовлена:"Готовка",СостояниеДавит:"Самочувствие",ПолосаЗдоровья:"Самочувствие",РешилСтроить:"Выход",ВозвратЗатребован:"Возврат вещи",ПользуетсяНеотданным:"Чужая вещь",РешилПопробовать:"Смена лечения",УходНеполон:"Уход",ЗаёмВозвращён:"Возврат вещи",ДобычаПринесена:"Промысел",Поправилась:"Выздоровление",ТравыСобраны:"Сбор трав"})[тип]||"Событие";
 }
 function чистыйТекст(т) {
@@ -3475,7 +3595,7 @@ const РЕНДЕР = {
     if (откр.length) { к.appendChild(э("h3","","Выявлено при осмотре"));
       for (const пр of откр) к.appendChild(э("div","стр",экр(пр))); }
     const limitations=[];
-    if(/туговат|глух|плох.*слыш/i.test(п.слух||""))limitations.push("Слух: "+п.слух);
+    if(/туговат|глух|ослаблен|отсутствует|плох.*слыш/i.test(п.слух||""))limitations.push("Слух: "+п.слух);
     if(п.речь&&п.речь!=="говорит")limitations.push("Речь: "+п.речь);
     for(const x of п.хронический_фон||[])limitations.push("Жалоба: "+x);
     if(limitations.length){к.appendChild(э("h3","","Длительные ограничения и жалобы"));for(const x of limitations)к.appendChild(э("div","стр",экр(x)));}
@@ -3626,7 +3746,7 @@ const РЕНДЕР = {
       ф.appendChild(b);
     }
     к.appendChild(ф);
-    const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние|Рана|Признак|Осмотр|^Встал$|Умер|Болезн|Уход|Зуб/.test(т) ? "тело" :
+    const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние|Рана|Признак|Осмотр|^Встал$|Умер|Болезн|Уход|Зуб|Зов/.test(т) ? "тело" :
       /Заём|Вещь|Пользуется|Возврат|Пропажа/.test(т) ? "вещи" :
       /Урожай|Работа|Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход/.test(т) ? "работы" : "люди";
     let список = досье(УИ.кто);
@@ -3834,6 +3954,7 @@ window.addEventListener("resize", () => { if (УИ.б3) NovgorB3Interface.fitLis
 $("кн-игрок").addEventListener("click", ()=>{ УИ.режим="игрок"; нарисовать(); });
 $("кн-дев").addEventListener("click", ()=>{ УИ.режим="дев"; нарисовать(); });
 $("body-start").addEventListener("click", начатьТело);
+$("body-scenario").addEventListener("change",настроитьЗов);
 $("body-day").addEventListener("click", ()=>{NovgorBodyScenarios.advanceTrial(ТЕЛО.state);обновитьТело();нарисовать();});
 $("body-week").addEventListener("click", ()=>{NovgorBodyScenarios.advanceTrial(ТЕЛО.state,7);обновитьТело();нарисовать();});
 $("body-soft-food").addEventListener("click",()=>{
@@ -3870,7 +3991,8 @@ if (location.hash === "#b3") {
   УИ.б3 = true; УИ.кто = "girl"; УИ.вкладка = "Знания";
   $("снимки-выбор").querySelectorAll("button").forEach(b => { b.classList.remove("вкл"); b.setAttribute("aria-pressed", "false"); });
 }
-if(location.hash === "#vision")начатьПоселение(true);
+if(location.hash === "#hearing"){$("body-scenario").value='hearNormal';начатьТело();}
+else if(location.hash === "#vision")начатьПоселение(true);
 else if(location.hash!=="#b3"&&!new URLSearchParams(location.search).has("snapshot"))начатьПоселение(false);
 нарисовать();
 </script>
