@@ -154,7 +154,7 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
       <option value="settlement">Жизнь поселения</option><option value="settlementPoor">Поселение: ухудшилось зрение</option>
       <option value="sewNormal">Шитьё: нормальное зрение</option><option value="sewWeak">Шитьё: ослабленное зрение</option><option value="sewSevere">Шитьё: сильно ослабленное зрение</option><option value="sewBlind">Шитьё: зрение отсутствует</option><option value="sewReplacement">Шитьё: другой исполнитель</option>
       <option value="hearNormal">Зов: нормальный слух</option><option value="hearWeak">Зов: ослабленный слух</option><option value="hearSevere">Зов: сильно ослабленный слух</option><option value="hearDeaf">Зов: слух отсутствует</option>
-      <option value="speechCommon">Речь: общий язык</option><option value="speechForeign">Речь: незнакомый язык</option><option value="speechChild">Ребёнок: плач и помощь</option><option value="speechChildHealthy">Ребёнок: плач без лежачего состояния</option><option value="speechMoan">Без слов: стон</option><option value="speechSilent">Голос отсутствует</option><option value="speechNoContact">Обращение: контакт недоступен</option>
+      <option value="speechCommon">Речь: общий язык</option><option value="speechCommonNoContact">Общий язык: контакт недоступен</option><option value="speechForeign">Речь: незнакомый язык</option><option value="speechChild">Ребёнок: плач и помощь</option><option value="speechChildHealthy">Ребёнок: плач без лежачего состояния</option><option value="speechMoan">Без слов: стон</option><option value="speechSilent">Голос отсутствует</option><option value="speechNoContact">Обращение: контакт недоступен</option>
       <option value="tooth">Зуб: удаление и твёрдая пища</option><option value="toothRinse">Зуб: полоскание вместо удаления</option><option value="toothInfection">Зуб: боль и воспаление</option><option value="ages">Возрастные нормы еды и воды</option>
       <option value="wound" selected>Рана: осмотр и лечение</option><option value="woundWrong">Рана: ошибочная версия знахарки</option>
       <option value="care">Помощь есть</option><option value="absent">Помощница отсутствует</option>
@@ -1575,7 +1575,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="edca135b67f9950bf035b62b655905f4ce4dab939853b19b3faa24deba1ba5f3">
+<script data-body-runtime="aa3ccce32b09a667a9668e5119fc56dd6ae57fd22f69ffdb7632a33f6d4e2612">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -1779,7 +1779,7 @@ function сгенерироватьРод(сид) {
     if(!Array.isArray(s.careCalls))throw Error('Нет списка зовов');
     const ids=new Set();
     for(const c of s.careCalls){
-      if(typeof c.id!=='string'||!c.id||ids.has(c.id)||!s.people[c.patient]||!s.people[c.listener]||c.patient===c.listener||!Number.isInteger(c.day)||c.day<1||!Object.hasOwn(MINIMUM,c.volume)||typeof c.inRange!=='boolean'||typeof c.blocked!=='boolean'||typeof c.processed!=='boolean'||!Object.hasOwn(KINDS,c.kind)||typeof c.contactAvailable!=='boolean'||c.language!==null&&(typeof c.language!=='string'||!c.language))throw Error('Некорректный зов');
+      if(typeof c.id!=='string'||!c.id||ids.has(c.id)||!s.people[c.patient]||!s.people[c.listener]||c.patient===c.listener||!Number.isInteger(c.day)||c.day<1||!Object.hasOwn(MINIMUM,c.volume)||typeof c.inRange!=='boolean'||typeof c.blocked!=='boolean'||typeof c.processed!=='boolean'||!Object.hasOwn(KINDS,c.kind)||![true,false,null].includes(c.contactAvailable)||c.language!==null&&(typeof c.language!=='string'||!c.language))throw Error('Некорректный зов');
       ids.add(c.id);
     }
     for(const p of Object.values(s.people)){
@@ -1801,6 +1801,14 @@ function сгенерироватьРод(сид) {
   }
   function request(p,patient){return patient.bedSince===null?null:p.careRequests.find(r=>r.patient===patient.id&&r.episodeStart===patient.bedSince)||null;}
   function knowsCare(p,patient){return p.knows.includes(patient.id)||!!request(p,patient);}
+  // Это заданная доступность пары, а не знание, возникающее из услышанных слов.
+  // Без нового условия прежние входы планового ухода сохраняют доступность.
+  function contact(s,helper,patient){
+    let latest=null;
+    for(const c of s.careCalls)if(c.patient===patient.id&&c.listener===helper.id&&c.day<=s.day&&c.contactAvailable!==null&&(!latest||c.day>=latest.day))latest=c;
+    return latest?latest.contactAvailable:true;
+  }
+  function checkedToday(s,helper,patient){return helper.attentionTasks.some(t=>t.patient===patient.id&&t.status==='checked'&&t.checkedDay===s.day&&s.events.some(e=>e.seq===t.checkedSeq&&e.evidence?.needsCare===false))&&patient.bedSince===null;}
   function canSend(p,c){return !!(p.voice===true&&(c.kind!=='words'||p.speech===true&&p.languages?.includes(c.language))); }
   function understands(listener,c){return c.kind==='words'&&listener.languages?.includes(c.language)===true;}
   function eligible(s,p,patient){return s.households[patient.household].careOrder.includes(p.id)&&p.careEligible&&(p.family===patient.family||p.permits.includes(patient.id));}
@@ -1824,12 +1832,12 @@ function сгенерироватьРод(сид) {
       if(!listener.present||!condition(listener).alive||!hears(listener.hearing,c.volume,c.inRange,c.blocked))continue;
       const understood=understands(listener,c),episodeStart=p.bedSince??s.day;
       const seq=emit('CallHeard',[listener.id],listener.name+': '+(understood?'получен зов о помощи':'услышано обращение')+'. Источник: '+p.name,call,{patient:p.id,episodeStart,kind:c.kind,language:c.kind==='words'?c.language:null,understood,volume:c.volume});
-      const received={patient:p.id,day:s.day,seq,kind:c.kind,volume:c.volume,understood};
+      const received={patient:p.id,day:s.day,seq,kind:c.kind,volume:c.volume,understood,careKnown:condition(p).bed&&knowsCare(listener,p)};
       ledger[listener.id].receivedCalls.push(copy(received));
       if(understood){
         const meaning=emit('WordsUnderstood',[listener.id],listener.name+': понята просьба об уходе. Источник: '+p.name,seq,{patient:p.id,episodeStart,language:c.language,volume:c.volume});
         if(condition(p).bed)receiveRequest(listener,p,s,c,meaning);
-      }else if(eligible(s,listener,p))listener.attentionTasks.push({patient:p.id,seq,day:s.day,kind:c.kind,volume:c.volume,contactAvailable:c.contactAvailable,status:'pending'});
+      }else if(eligible(s,listener,p)&&!(condition(p).bed&&knowsCare(listener,p))&&!checkedToday(s,listener,p)&&!listener.attentionTasks.some(t=>t.patient===p.id&&t.status==='pending'))listener.attentionTasks.push({patient:p.id,seq,day:s.day,kind:c.kind,volume:c.volume,contactAvailable:c.contactAvailable===true,status:'pending'});
     }
   }
   function attentionDay(s,hid,condition,emit,ledger){
@@ -1837,9 +1845,12 @@ function сгенерироватьРод(сид) {
     for(const id of order){
       const helper=s.people[id],d=ledger[id];
       if(!d||!d.canWorkAtStart||d.efficiencyAtStart<=0)continue;
+      const resolved=new Set(),seen=new Set();
       for(const t of helper.attentionTasks.filter(t=>t.status==='pending')){
         const patient=s.people[t.patient];
-        if(!eligible(s,helper,patient)||!patient.present||!condition(patient).alive||!t.contactAvailable)continue;
+        if(seen.has(patient.id))continue;seen.add(patient.id);
+        if(condition(patient).bed&&knowsCare(helper,patient)||checkedToday(s,helper,patient)){resolved.add(patient.id);continue;}
+        if(!eligible(s,helper,patient)||!patient.present||!condition(patient).alive||!contact(s,helper,patient))continue;
         const time=s.parameters.attentionTime/Math.max(0.000001,d.efficiencyAtStart);
         if(d.time+time>helper.capacity+1e-10)continue;
         const found=condition(patient).bed,episodeStart=patient.bedSince??s.day;
@@ -1847,10 +1858,14 @@ function сгенерироватьРод(сид) {
         d.time=round(d.time+time);d.attention.push({patient:patient.id,seq,heardSeq:t.seq,time,needsCare:found});
         t.status='checked';t.checkedSeq=seq;t.checkedDay=s.day;
         if(found)receiveRequest(helper,patient,s,t,seq);
+        resolved.add(patient.id);
       }
+      // Звук остаётся в events; ожидания, покрытые одной проверкой/известным уходом,
+      // не требуют ещё одного платного действия и не переносятся в новый эпизод.
+      helper.attentionTasks=helper.attentionTasks.filter(t=>t.status!=='pending'||!resolved.has(t.patient));
     }
   }
-  return {LEVELS,LABELS,MINIMUM,VOLUMES,KINDS,label,hears,fromDescription,setup,validate,request,knowsCare,canSend,understands,day,attentionDay};
+  return {LEVELS,LABELS,MINIMUM,VOLUMES,KINDS,label,hears,fromDescription,setup,validate,request,knowsCare,contact,canSend,understands,day,attentionDay};
 });
 /* Живой контур двора. Числа — условия прототипа; остальные пороги зрения — рабочая разметка. */
 (function(root,factory){
@@ -2411,7 +2426,7 @@ function сгенерироватьРод(сид) {
   else root.NovgorBody = api;
 })(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work,hearing) {
   'use strict';
-  const VERSION = 7;
+  const VERSION = 8;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -2550,8 +2565,9 @@ function сгенерироватьРод(сид) {
       const publicSigns=medical.visible(p), known=p.sources.filter(x=>x.observed&&(x.untilDay===null||x.untilDay>=s.day));
       const signKey=publicSigns.map(x=>x.id).sort().join('|');
       if(!m.requested&&!ctx&&(!m.plan||s.day>m.plan.reviewUntil)){m.plan=null;continue;}
-      const healers=people.filter(c=>c.id!==p.id&&c.healer&&c.knows.includes(p.id)&&ledger[c.id].canWorkAtStart);
-      if(!healers.length){d.medicalReason='нет доступной знахарки';continue;}
+      const candidates=people.filter(c=>c.id!==p.id&&c.healer&&c.knows.includes(p.id)&&ledger[c.id].canWorkAtStart);
+      const healers=candidates.filter(c=>hearing.contact(s,c,p));
+      if(!healers.length){d.medicalReason=candidates.length?'нет доступного контакта со знахаркой':'нет доступной знахарки';continue;}
       const c=healers[0],cd=ledger[c.id],h=s.households[p.household];
       const examNeeded=m.requested||!m.plan||m.plan.healerId!==c.id||(ctx&&m.plan.signKey!==signKey);
       if(examNeeded) {
@@ -2650,7 +2666,7 @@ function сгенерироватьРод(сид) {
       const order=[...h.careOrder].sort((a,b)=>Number(s.people[b].family===p.family)-Number(s.people[a].family===p.family));
       for(const task of ['drink','feed','warmth','turn','hygiene'])for(const id of order){
         const c=s.people[id],d=dayPeople[id];
-        if(id===p.id||!d||!c.careEligible||!d.canWorkAtStart||!hearing.knowsCare(c,p)||c.family!==p.family&&!c.permits.includes(p.id)||task==='turn'&&!c.canLift||task==='hygiene'&&!c.cleans)continue;
+        if(id===p.id||!d||!c.careEligible||!d.canWorkAtStart||!hearing.knowsCare(c,p)||!hearing.contact(s,c,p)||c.family!==p.family&&!c.permits.includes(p.id)||task==='turn'&&!c.canLift||task==='hygiene'&&!c.cleans)continue;
         const time=s.parameters.careTime[task]/Math.max(0.000001,d.efficiencyAtStart);
         if(d.time+d.reservedCare+time>c.capacity+1e-10)continue;
         d.reservedCare=round(d.reservedCare+time);dayPeople[p.id].carePlan[task]={helper:id,time,released:false};break;
@@ -2671,6 +2687,7 @@ function сгенерироватьРод(сид) {
       if (c.family !== p.family && !c.permits.includes(p.id)) {failures.add('круг помощи закончился отказом'); continue;}
       if (task === 'turn' && !c.canLift) {failures.add('помощница не может повернуть больного'); continue;}
       if (task === 'hygiene' && !c.cleans) {failures.add('отказались выносить за больным'); continue;}
+      if (!hearing.contact(s,c,p)) {failures.add('нет доступного контакта');d.blockedContacts.push(p.id);continue;}
       const time = s.parameters.careTime[task] / Math.max(0.000001, d.efficiencyAtStart);
       if (d.time + time + (economy?d.reservedCare:0) > c.capacity + 1e-10) {failures.add('у помощниц не осталось времени'); continue;}
       if(economy){
@@ -2713,7 +2730,7 @@ function сгенерироватьРод(сид) {
       const needs=life.needs(s,p);
       const d = {day:s.day, observed:visible(s,p),
         foodDemand:needs.foodDemand,waterDemand:needs.waterDemand,
-        food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{}, production:[],reservedCare:0,carePlan:{},careClock:0,workClock:0,sentCalls:[],receivedCalls:[],signalAttempts:[],attention:[],
+        food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{}, production:[],reservedCare:0,carePlan:{},careClock:0,workClock:0,sentCalls:[],receivedCalls:[],signalAttempts:[],attention:[],blockedContacts:[],
         canEat: !c.bed, canDrink: !c.bed, bed: c.bed, bedLongEnough,
         canWorkAtStart: c.canWork, efficiencyAtStart: efficiency(s, p),
         foodReason: '', waterReason: '', careReasons: [], toileting: '', toiletUsed:false, toiletPending:false, toiletReason:'',
@@ -2881,7 +2898,7 @@ function сгенерироватьРод(сид) {
         helpers:d.care.filter(x=>x.task===task).map(x=>({id:x.helper,name:s.people[x.helper].name}))})):[];
       s.observations[p.id] = {day: s.day, dailyDay:d?.day ?? null, source: 'наблюдение во дворе', alive: c.alive, band: band(p),age:life.age(s,p),teeth:dental.knownCount(s,p),vision:p.vision,hearing:p.hearing,
         communication:{voice:p.voice,speech:p.speech,languages:copy(p.languages)},
-        calls:d&&Array.isArray(d.sentCalls)&&Array.isArray(d.receivedCalls)?{day:d.day,sent:copy(d.sentCalls),received:copy(d.receivedCalls),attempts:copy(d.signalAttempts||[]),attention:copy(d.attention||[])}:null,
+        calls:d&&Array.isArray(d.sentCalls)&&Array.isArray(d.receivedCalls)?{day:d.day,sent:copy(d.sentCalls),received:copy(d.receivedCalls),attempts:copy(d.signalAttempts||[]),attention:copy(d.attention||[]),blockedContacts:[...new Set(d.blockedContacts||[])]}:null,
         production:work.project(s,p,d,previous?.production,c),
         bed: c.bed, pain: ['нет', 'терпимая', 'сильная', 'невыносимая'][c.pain],
         workReason:!c.alive?'dead':c.bed?'bed':life.work(s,p)<=0?'age':c.pain>=2?'pain':null,
@@ -2932,10 +2949,17 @@ function сгенерироватьРод(сид) {
       for(const o of Object.values(s.observations)){o.hearing=null;o.calls=null;}
     }
     if(s.version===6){
-      s.version=VERSION;s.parameters=parameters(s.parameters);
+      s.version=7;s.parameters=parameters(s.parameters);
       for(const p of Object.values(s.people)){p.voice=null;p.speech=null;p.languages=null;p.attentionTasks=[];}
-      for(const c of s.careCalls){c.kind='words';c.language=null;c.contactAvailable=false;}
+      for(const c of s.careCalls){c.kind='words';c.language=null;c.contactAvailable=null;}
       for(const o of Object.values(s.observations))o.communication=null;
+    }
+    if(s.version===7){
+      s.version=VERSION;
+      // Старая миграция 6→7 записывала false без физического запрета.
+      // Снимаем только этот служебный false, подтверждённый старым событием;
+      // новый отказ с understood/kind сохраняется, неизвестное не угадываем.
+      for(const c of s.careCalls)if(c.processed&&c.contactAvailable===false&&c.kind==='words'&&c.language===null&&s.events.some(e=>e.day===c.day&&e.type==='CallHeard'&&e.people.includes(c.listener)&&e.evidence?.patient===c.patient&&e.evidence.volume===c.volume&&!Object.hasOwn(e.evidence,'understood')&&s.events.some(parent=>parent.seq===e.parent&&parent.day===c.day&&parent.type==='CareCall'&&parent.people.includes(c.patient)&&parent.evidence?.volume===c.volume&&!Object.hasOwn(parent.evidence,'kind'))))c.contactAvailable=null;
     }
     validate(s);
     if(Object.values(s.observations).some(o=>!('needs' in o)||!('intake' in o)||o.care&&!Array.isArray(o.care.items))) {
@@ -2960,8 +2984,8 @@ function сгенерироватьРод(сид) {
   const labels = {sewNormal:'Шитьё: нормальное зрение',sewWeak:'Шитьё: ослабленное зрение',sewSevere:'Шитьё: сильно ослабленное зрение',sewBlind:'Шитьё: зрение отсутствует',sewReplacement:'Шитьё: другой исполнитель',tooth:'Зуб: удаление и твёрдая пища',toothRinse:'Зуб: полоскание вместо удаления',toothInfection:'Зуб: боль и воспаление',ages:'Возрастные нормы еды и воды',wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
   const hearingLevels={hearNormal:'normal',hearWeak:'weak',hearSevere:'severe',hearDeaf:'deaf'};
   Object.assign(labels,{hearNormal:'Зов: нормальный слух',hearWeak:'Зов: ослабленный слух',hearSevere:'Зов: сильно ослабленный слух',hearDeaf:'Зов: слух отсутствует'});
-  const speechKinds=['speechCommon','speechForeign','speechChild','speechChildHealthy','speechMoan','speechSilent','speechNoContact'];
-  Object.assign(labels,{speechCommon:'Речь: общий язык',speechForeign:'Речь: незнакомый язык',speechChild:'Ребёнок: плач и помощь',speechChildHealthy:'Ребёнок: плач без лежачего состояния',speechMoan:'Без слов: стон',speechSilent:'Голос отсутствует',speechNoContact:'Обращение: контакт недоступен'});
+  const speechKinds=['speechCommon','speechCommonNoContact','speechForeign','speechChild','speechChildHealthy','speechMoan','speechSilent','speechNoContact'];
+  Object.assign(labels,{speechCommon:'Речь: общий язык',speechCommonNoContact:'Общий язык: контакт недоступен',speechForeign:'Речь: незнакомый язык',speechChild:'Ребёнок: плач и помощь',speechChildHealthy:'Ребёнок: плач без лежачего состояния',speechMoan:'Без слов: стон',speechSilent:'Голос отсутствует',speechNoContact:'Обращение: контакт недоступен'});
   function make(kind = 'care', names = {}) {
     if (!Object.hasOwn(labels, kind)) throw new Error('Неизвестные начальные условия');
     const spec = {
@@ -2986,6 +3010,7 @@ function сгенерироватьРод(сид) {
     if(speechKinds.includes(kind)){
       const p=spec.people[0],c=spec.careCalls[0];
       if(kind==='speechForeign')p.languages=['other'],c.language='other';
+      if(kind==='speechCommonNoContact')c.contactAvailable=false;
       if(kind==='speechSilent')p.voice=false;
       if(kind==='speechMoan')p.speech=false,c.kind='moan',c.language=null;
       if(kind.startsWith('speechChild')){p.id='p9';p.name=names.p9||'Малуша';p.sex='ж';p.ageYears=3;p.speech=false;p.languages=[];c.patient='p9';c.kind='cry';c.language=null;c.volume='loud';if(p.sources[0]?.observed)p.sources[0].observed.event='повредила ногу; не может встать';}
@@ -3445,7 +3470,12 @@ function нарисоватьЗов(к,o){
   }
   const fmt=n=>new Intl.NumberFormat('ru-RU',{style:'percent',maximumFractionDigits:1}).format(n);
   for(const a of o.calls.attention||[])box.appendChild(э('p','',экр('Проверено состояние: '+пеш(a.patient).имя+'. '+(a.needsCare?'Обнаружена нужда в помощи лежачему; создана просьба об уходе.':'Лежачего ограничения не обнаружено; просьба об уходе не создана.')+' На проверку затрачено '+fmt(a.time)+' рабочего дня.')));
-  if((o.calls.received||[]).some(c=>!c.understood)&&!o.calls.attention?.length)box.appendChild(э('p','','Проверка источника обращения не выполнена.'));
+  for(const patient of new Set((o.calls.received||[]).filter(c=>c.understood===false).map(c=>c.patient))){
+    if(o.calls.attention?.some(a=>a.patient===patient))continue;
+    const known=o.calls.received.some(c=>c.patient===patient&&(c.careKnown||c.understood===true));
+    box.appendChild(э('p','',экр(known?'Повторная проверка не требуется: нужда в уходе уже известна. Источник: '+пеш(patient).имя+'.':'Проверка источника обращения не выполнена. Источник: '+пеш(patient).имя+'.')));
+  }
+  for(const patient of o.calls.blockedContacts||[])box.appendChild(э('p','',экр('Нужда в уходе известна. Контакт недоступен: '+пеш(patient).имя+'. Физический уход не выполнен.')));
   if(!o.calls.received?.length&&!o.calls.sent?.length)box.appendChild(э('p','','Новых просьб по звуку за эти сутки не получено.'));
   if(o.calls.sent?.length&&o.care?.needed)box.appendChild(э('p','',o.care.full?'Уход получен полностью.':'Уход получен не полностью.'));
   const tasks={drink:'питьё',feed:'еда',warmth:'тепло',turn:'поворот',hygiene:'гигиена'},help=o.assistance||[];
