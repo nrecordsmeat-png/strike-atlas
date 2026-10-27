@@ -1574,7 +1574,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="f6ed5c47d948face0ecf8ab1f65c1ba0dcd2024df1cf07de32dd0f592ebd51a1">
+<script data-body-runtime="cb95295c14bcfb4861d1985b45a87b75b71c40d24c91496116aaa85a8bae5815">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -1851,6 +1851,7 @@ function сгенерироватьРод(сид) {
       if(!Number.isInteger(j.quantity)||j.quantity<1||!Number.isInteger(j.completed)||j.completed<0||j.completed>j.quantity||!Array.isArray(j.items)||!Number.isInteger(j.nextItem)||j.nextItem<1)throw Error('Некорректный объём дела');
       if(!['pending','waiting','partial','done','failed'].includes(j.status)||typeof j.reason!=='string'||j.items.length+j.completed>j.quantity||!Array.isArray(j.workers))throw Error('Некорректный итог дела');
       if(open(j)){if(active.has(j.workId))throw Error('Дублированное живое дело');active.add(j.workId);}
+      if(j.workId===IDS.cook&&(j.targetMeals!==undefined||j.mealsCompleted!==undefined)&&(!Number.isInteger(j.targetMeals)||j.targetMeals<1||!Number.isInteger(j.mealsCompleted)||j.mealsCompleted<0||j.mealsCompleted>j.targetMeals))throw Error('Некорректный объём готовой еды');
       const ids=new Set();for(const item of j.items){
         if(!Number.isInteger(item.id)||ids.has(item.id)||!Number.isFinite(item.effort)||item.effort<=0||!Number.isFinite(item.progress)||item.progress<0||item.progress>=item.effort||typeof item.method!=='string'||!item.inputs)throw Error('Некорректное вложение труда');ids.add(item.id);
         for(const n of Object.values(item.inputs))if(!Number.isFinite(n)||n<0)throw Error('Некорректное вложение материала');
@@ -1859,7 +1860,7 @@ function сгенерироватьРод(сид) {
     const reserved=w.jobs.filter(j=>j.workId===IDS.store).reduce((n,j)=>n+j.items.length,0);
     if(e.grain+reserved>w.bags*e.rules.bagCapacity)throw Error('Переполнены мешки');
   }
-  function inputs(s,hid,id){
+  function inputs(s,hid,id,limit=Infinity){
     const h=s.households[hid],w=h.work,e=w.economy,k=e.rules;
     if(id===IDS.bag)return {ok:w.needles>0&&w.cloth>=s.workParameters.clothPerBag,reason:!w.needles?'Нет иглы':'Нет полотна',effort:s.workParameters.bagEffort,method:'шить мешок',take:{cloth:s.workParameters.clothPerBag}};
     if(id===IDS.harvest)return {ok:e.field>0,reason:'Урожая на участке больше нет',effort:k.harvestEffort,method:'собрать на месте уборки',take:{field:1}};
@@ -1870,11 +1871,19 @@ function сгенерироватьРод(сид) {
       const reserved=w.jobs.filter(j=>j.workId===IDS.store).reduce((n,j)=>n+j.items.length,0);
       return {ok:e.loose>0&&e.grain+reserved<w.bags*k.bagCapacity,reason:e.loose<=0?'Урожай ещё не собран':'Нет свободной вместимости мешков',effort:k.storeEffort,method:'принести и засыпать в мешок',take:{loose:1}};
     }
-    const fromStore=e.grain>=k.mealBatch,fromHeap=e.loose>=k.mealBatch;
-    const water=h.water+EPS>=k.mealWater+(e.drinkReserve||0);
-    return {ok:(fromStore||fromHeap)&&water&&e.heatedDay===s.day&&e.tools.pot>0,
-      reason:!e.tools.pot?'Нет горшка':e.heatedDay!==s.day?'Очаг не растоплен':!water?'Нет воды сверх питьевой нормы':!fromStore&&!fromHeap?'Не хватает гороха для готовки':'',
-      effort:k.cookEffort+(fromStore?0:k.looseCarryEffort),method:fromStore?'взять горох из запаса и сварить':'принести горох из кучи и сварить',take:{[fromStore?'grain':'loose']:k.mealBatch,water:k.mealWater}};
+    // Решение ГД 27.10.2026: партия меньше полной допустима; вода и труд готовки
+    // уменьшаются пропорционально. Перенос из кучи пропорционально не уменьшается.
+    const fromStore=e.grain>=k.mealBatch||e.grain>0&&e.loose<k.mealBatch&&e.grain>=e.loose;
+    const batch=Math.min(k.mealBatch,limit,fromStore?e.grain:e.loose);
+    const share=batch/k.mealBatch,needWater=round(k.mealWater*share);
+    const water=batch>0&&h.water+EPS>=needWater+(e.drinkReserve||0);
+    return {ok:batch>0&&water&&e.heatedDay===s.day&&e.tools.pot>0,
+      reason:!e.tools.pot?'Нет горшка':batch<1?'Гороха для готовки не осталось':!water?'Нет воды сверх питьевой нормы':e.heatedDay!==s.day?'Очаг не растоплен':'',
+      effort:round(k.cookEffort*share)+(fromStore?0:k.looseCarryEffort),method:fromStore?'взять горох из запаса и сварить':'принести горох из кучи и сварить',take:{[fromStore?'grain':'loose']:batch,water:needWater}};
+  }
+  function jobInputs(s,hid,j){
+    const reserved=j.workId===IDS.cook?j.items.reduce((n,i)=>n+(i.inputs.grain??i.inputs.loose),0):0;
+    return inputs(s,hid,j.workId,j.workId===IDS.cook?j.targetMeals-j.mealsCompleted-reserved:Infinity);
   }
   function debit(h,take){for(const [key,n]of Object.entries(take)){
     if(key==='water')h.water=round(h.water-n);
@@ -1889,8 +1898,13 @@ function сгенерироватьРод(сид) {
     if(j.workId===IDS.water){h.water=round(h.water+1);e.waterReadyAt=Math.max(e.waterReadyAt,at);}
     if(j.workId===IDS.fuel)e.fuel++;
     if(j.workId===IDS.heat){e.heatedDay=s.day;e.heatedAt=at;}
-    if(j.workId===IDS.cook){h.food.push({id:'meal-'+hid+'-'+j.id+'-'+item.id,name:'гороховая каша',amount:k.mealBatch,nutrition:1,quality:1,texture:0,producedDay:s.day,readyAt:at});e.foodReadyAt=Math.max(e.foodReadyAt,at);}
+    if(j.workId===IDS.cook){h.food.push({id:'meal-'+hid+'-'+j.id+'-'+item.id,name:'гороховая каша',amount:item.inputs.grain??item.inputs.loose,nutrition:1,quality:1,texture:0,producedDay:s.day,readyAt:at});e.foodReadyAt=Math.max(e.foodReadyAt,at);}
     j.completed++;j.items.splice(j.items.indexOf(item),1);
+    if(j.workId===IDS.cook){
+      j.mealsCompleted+=item.inputs.grain??item.inputs.loose;
+      const reserved=j.items.reduce((n,i)=>n+(i.inputs.grain??i.inputs.loose),0);
+      if(j.completed+j.items.length===j.quantity&&j.mealsCompleted+reserved<j.targetMeals)j.quantity++;
+    }
   }
   function plan(s,hid,ledger,emit){
     const h=s.households[hid],w=h.work,e=w.economy,k=e.rules;if(e.planDay===s.day)return;e.planDay=s.day;e.waterReadyAt=0;e.foodReadyAt=0;e.demandBlocks=[];
@@ -1898,10 +1912,13 @@ function сгенерироватьРод(сид) {
     const foodNeed=people.reduce((n,p)=>n+ledger[p.id].foodDemand,0),waterNeed=people.reduce((n,p)=>n+ledger[p.id].waterDemand,0);
     e.drinkReserve=waterNeed;e.foodNeed=foodNeed;
     const readyFood=h.food.reduce((n,f)=>n+f.amount*f.nutrition,0);
+    // Старые сохранения хранят число полных замесов; их оплаченные входы не меняются.
+    for(const j of w.jobs.filter(j=>j.workId===IDS.cook)){j.targetMeals??=j.quantity*k.mealBatch;j.mealsCompleted??=j.completed*k.mealBatch;}
     const pending=id=>w.jobs.find(j=>j.workId===id&&open(j));
     const hasOwner=id=>{const p=s.people[e.owners[id]];if(p.health>0&&p.present)return true;e.demandBlocks.push({workId:id,owner:p.id});return false;};
     const ensure=(id,n,source)=>{if(n<1||pending(id)||!hasOwner(id))return;const owner=e.owners[id];
       const j={id:hid+'-work-'+e.nextTask++,workId:id,owner,quantity:n,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],source};
+      if(id===IDS.cook){j.targetMeals=n*k.mealBatch;j.mealsCompleted=0;}
       j.originSeq=emit('WorkQueued',[owner],s.people[owner].name+': '+ACTIONS[id].title.toLowerCase()+' — нужно '+n,null,{jobId:j.id,workId:id,quantity:n,source});w.jobs.push(j);
     };
     if(e.deadline!==null&&s.day>e.deadline){
@@ -1910,13 +1927,19 @@ function сгенерироватьРод(сид) {
       for(const j of unfinished){j.items=[];j.status='failed';j.reason='Окно уборки закончилось';}
     }
     ensure(IDS.cook,Math.ceil(Math.max(0,foodNeed*(1+k.foodDays)-readyFood)/k.mealBatch),'дневной рацион и запас');
-    const cook=pending(IDS.cook),cookUnits=cook?cook.quantity-cook.completed-cook.items.length:0;
-    const grainTarget=Math.max(Math.ceil(foodNeed*k.grainDays),cookUnits*k.mealBatch);
+    const cook=pending(IDS.cook),cookMeals=cook?Math.max(0,cook.targetMeals-cook.mealsCompleted-cook.items.reduce((n,i)=>n+(i.inputs.grain??i.inputs.loose),0)):0;
+    const grainTarget=Math.max(Math.ceil(foodNeed*k.grainDays),cookMeals);
     const reserved=w.jobs.filter(j=>j.workId===IDS.store).reduce((n,j)=>n+j.items.length,0);
     ensure(IDS.store,Math.max(0,grainTarget-e.grain-reserved),'запас под рацион');
     ensure(IDS.bag,Math.max(0,Math.ceil(grainTarget/k.bagCapacity)-w.bags),'тара под запас');
-    ensure(IDS.water,Math.ceil(Math.max(0,waterNeed*(1+k.waterDays)+cookUnits*k.mealWater-h.water)),'пополнить запас воды');
-    if(cook&&e.heatedDay!==s.day&&(!e.background||!open(e.background))&&hasOwner(IDS.heat))e.background={id:hid+'-heat-'+s.day,workId:IDS.heat,owner:e.owners[IDS.heat],quantity:1,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],originSeq:s.people[e.owners[IDS.heat]].originSeq,background:true};
+    ensure(IDS.water,Math.ceil(Math.max(0,waterNeed*(1+k.waterDays)+cookMeals*k.mealWater/k.mealBatch-h.water)),'пополнить запас воды');
+    // Фон может ждать сегодняшнюю уборку; запуск ниже требует уже доступных входов.
+    // Отопление при холоде остаётся заглушкой: тепловой модели пока нет.
+    const harvesting=w.jobs.some(j=>j.workId===IDS.harvest&&open(j)&&j.items.length);
+    const cookSupplies=!!cook&&e.tools.pot>0&&(cook.items.length>0||e.grain>0||e.loose>0||e.field>0||harvesting);
+    if(e.background&&open(e.background)&&!cookSupplies&&!e.background.items.length){e.background.status='failed';e.background.reason='Готовка невозможна — топка не нужна';}
+    if(!cookSupplies)for(const j of w.jobs.filter(j=>j.workId===IDS.fuel&&open(j)&&!j.items.length)){j.status='failed';j.reason='Топка не нужна';}
+    if(cookSupplies&&e.heatedDay!==s.day&&(!e.background||!open(e.background))&&hasOwner(IDS.heat))e.background={id:hid+'-heat-'+s.day,workId:IDS.heat,owner:e.owners[IDS.heat],quantity:1,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],originSeq:s.people[e.owners[IDS.heat]].originSeq,background:true};
     const heat=e.background&&open(e.background)?e.background:null,heatUnits=heat?heat.quantity-heat.completed-heat.items.length:0;
     ensure(IDS.fuel,Math.max(0,heatUnits*k.heatingFuel-e.fuel),'топка');
     if(e.deadline===null||s.day<=e.deadline)ensure(IDS.harvest,e.field,'готовый к уборке участок');
@@ -1940,14 +1963,32 @@ function сгенерироватьРод(сид) {
     const clocks=new Map(workers.map(p=>[p.id,ledger[p.id].time*CLOCK_SCALE])),busy=new Set(),events=[],running=new Set(),tools={needle:0,pot:0,axe:0};
     for(const j of all)if(open(j)){j.workers=[];j.day=s.day;j.reason='';}
     const bg=e.background&&open(e.background)?e.background:null;
+    let now=0,iterations=0;
+    const allowed=(p,id)=>admission(p,condition(p),id).allowed&&ledger[p.id].canWorkAtStart&&ledger[p.id].efficiencyAtStart>EPS;
+    const remaining=p=>{
+      const ev=events.find(ev=>ev.p.id===p.id),d=ledger[p.id];
+      return Math.max(0,Math.min(p.capacity-d.time-(ev?.time||0)-(d.reservedCare||0),(WORK_END-Math.max(now,clocks.get(p.id),ev?.end||0))/CLOCK_SCALE));
+    };
+    const cook=w.jobs.find(j=>j.workId===IDS.cook&&open(j));
+    const cookRoom=helper=>workers.some(p=>allowed(p,IDS.cook)&&remaining(p)>(helper?.id===p.id?(bg.items[0]?bg.items[0].effort-bg.items[0].progress:e.rules.heatEffort)/ledger[p.id].efficiencyAtStart:0)+EPS);
+    const cookReady=()=>{
+      if(!cook||e.tools.pot<1)return false;
+      // Недоваренный замес уже оплатил воду и горох.
+      if(cook.items.length)return cookRoom(null);
+      const r=jobInputs(s,hid,cook);
+      return (r.take.grain??r.take.loose)>0&&h.water+EPS>=r.take.water+(e.drinkReserve||0)&&cookRoom(null);
+    };
+    const heatRoom=p=>allowed(p,IDS.heat)&&remaining(p)+EPS>=(bg.items[0]?bg.items[0].effort-bg.items[0].progress:e.rules.heatEffort)/ledger[p.id].efficiencyAtStart&&cookRoom(p);
+    const heatNeeded=()=>!!bg&&e.heatedDay!==s.day&&cookReady()&&workers.some(heatRoom);
     if(bg){
       const rank=p=>condition(p).ageYears!==null&&condition(p).ageYears<14?0:p.sex==='ж'?1:2;
-      const candidates=workers.filter(p=>admission(p,condition(p),bg.workId).allowed&&ledger[p.id].efficiencyAtStart>EPS).sort((a,b)=>rank(a)-rank(b)||w.order.indexOf(a.id)-w.order.indexOf(b.id));
+      const candidates=workers.filter(heatRoom).sort((a,b)=>rank(a)-rank(b)||w.order.indexOf(a.id)-w.order.indexOf(b.id));
       bg.helper=null;
-      const supplyable=e.fuel>=e.rules.heatingFuel||inputs(s,hid,IDS.fuel).ok&&workers.some(p=>admission(p,condition(p),IDS.fuel).allowed&&p.capacity-ledger[p.id].time-(ledger[p.id].reservedCare||0)>EPS);
+      const waterPossible=cook?.items.length||h.water>=(e.drinkReserve||0)+e.rules.mealWater/e.rules.mealBatch||workers.some(p=>allowed(p,IDS.water)&&remaining(p)>EPS);
+      const harvestPossible=cook?.items.length||e.grain>0||e.loose>0||workers.some(p=>allowed(p,IDS.harvest)&&remaining(p)>EPS);
+      const supplyable=waterPossible&&harvestPossible&&cookRoom(null)&&(e.fuel>=e.rules.heatingFuel||(w.jobs.some(j=>j.workId===IDS.fuel&&open(j)&&j.items.length)||inputs(s,hid,IDS.fuel).ok)&&workers.some(p=>allowed(p,IDS.fuel)&&remaining(p)>EPS));
       if(supplyable)for(const p of candidates){const d=ledger[p.id],need=(bg.items[0]?bg.items[0].effort-bg.items[0].progress:e.rules.heatEffort)/d.efficiencyAtStart;if(need<=p.capacity-d.time-(d.reservedCare||0)+EPS){d.reservedBackground=need;bg.helper=p.id;break;}}
     }
-    let now=0,iterations=0;
     while(now<WORK_END-EPS){
       if(++iterations>20000)throw Error('День хозяйства не завершился');
       // Сначала все завершения момента, затем новые старты: выпуск не существует заранее.
@@ -1955,15 +1996,16 @@ function сгенерироватьРод(сид) {
         const at=events.indexOf(ev);events.splice(at,1);busy.delete(ev.p.id);running.delete(ev.item);if(ev.tool)tools[ev.tool]--;
         const d=ledger[ev.p.id];ev.item.progress=round(ev.item.progress+ev.effort);d.time=round(d.time+ev.time);clocks.set(ev.p.id,ev.end);d.workClock=ev.end;
         const done=ev.item.progress>=ev.item.effort-EPS;
-        d.production.push({jobId:ev.j.id,workId:ev.j.workId,time:ev.time,effort:ev.effort,bags:done&&ev.j.workId===IDS.bag?1:0,units:done?1:0,start:ev.start,end:ev.end,method:ev.item.method});
+        d.production.push({jobId:ev.j.id,workId:ev.j.workId,time:ev.time,effort:ev.effort,bags:done&&ev.j.workId===IDS.bag?1:0,units:done?1:0,meals:done&&ev.j.workId===IDS.cook?ev.item.inputs.grain??ev.item.inputs.loose:0,start:ev.start,end:ev.end,method:ev.item.method});
         if(done)finish(s,hid,ev.j,ev.item,ev.end);
         if(!ev.j.workers.includes(ev.p.id))ev.j.workers.push(ev.p.id);
       }
       let started=false;
       const jobs=all.filter(open).sort((a,b)=>priority(s,hid,b)-priority(s,hid,a)||all.indexOf(a)-all.indexOf(b));
       for(const j of jobs){
+        if([IDS.heat,IDS.fuel].includes(j.workId)&&(!heatNeeded()||j.workId===IDS.fuel&&e.fuel>=e.rules.heatingFuel)){j.reason='Нет выполнимой готовки для топки';continue;}
         while(j.completed+j.items.filter(item=>running.has(item)).length<j.quantity){
-          const candidates=workers.filter(p=>!busy.has(p.id)&&clocks.get(p.id)<=now+EPS&&admission(p,condition(p),j.workId).allowed&&ledger[p.id].canWorkAtStart&&ledger[p.id].efficiencyAtStart>EPS&&p.capacity-ledger[p.id].time-(ledger[p.id].reservedCare||0)-(j.background?0:ledger[p.id].reservedBackground||0)>EPS&&WORK_END-(j.background?0:ledger[p.id].reservedBackground||0)*CLOCK_SCALE-now>EPS&&(!j.background||!bg?.helper||bg.helper===p.id))
+          const candidates=workers.filter(p=>!busy.has(p.id)&&clocks.get(p.id)<=now+EPS&&admission(p,condition(p),j.workId).allowed&&ledger[p.id].canWorkAtStart&&ledger[p.id].efficiencyAtStart>EPS&&p.capacity-ledger[p.id].time-(ledger[p.id].reservedCare||0)-(j.background?0:ledger[p.id].reservedBackground||0)>EPS&&WORK_END-(j.background?0:ledger[p.id].reservedBackground||0)*CLOCK_SCALE-now>EPS&&(!j.background||heatRoom(p)&&(!bg?.helper||bg.helper===p.id)))
             .sort((a,b)=>ledger[a.id].time-ledger[b.id].time||w.order.indexOf(a.id)-w.order.indexOf(b.id));
           const p=candidates[0];if(!p)break;
           const tool=ACTIONS[j.workId].tool,available=tool==='needle'?w.needles:e.tools[tool];
@@ -1973,7 +2015,7 @@ function сгенерироватьРод(сид) {
           if(item&&j.workId===IDS.cook&&e.heatedDay!==s.day){j.reason='Очаг не растоплен';break;}
           if(!item){
             if(j.completed+j.items.length>=j.quantity)break;
-            const recipe=inputs(s,hid,j.workId);if(!recipe.ok){j.reason=recipe.reason;break;}
+            const recipe=jobInputs(s,hid,j);if(!recipe.ok){j.reason=recipe.reason;break;}
             item={id:j.nextItem++,progress:0,effort:recipe.effort,method:recipe.method,inputs:copy(recipe.take)};debit(h,recipe.take);j.items.push(item);
           }
           const d=ledger[p.id];if(j.background)d.reservedBackground=0;
@@ -1988,13 +2030,13 @@ function сгенерироватьРод(сид) {
     // Завершения ровно на границе дня тоже создают выход, но не кормят раньше этой границы.
     for(const ev of events){
       const d=ledger[ev.p.id];ev.item.progress=round(ev.item.progress+ev.effort);d.time=round(d.time+ev.time);d.workClock=ev.end;
-      const done=ev.item.progress>=ev.item.effort-EPS;d.production.push({jobId:ev.j.id,workId:ev.j.workId,time:ev.time,effort:ev.effort,bags:done&&ev.j.workId===IDS.bag?1:0,units:done?1:0,start:ev.start,end:ev.end,method:ev.item.method});
+      const done=ev.item.progress>=ev.item.effort-EPS;d.production.push({jobId:ev.j.id,workId:ev.j.workId,time:ev.time,effort:ev.effort,bags:done&&ev.j.workId===IDS.bag?1:0,units:done?1:0,meals:done&&ev.j.workId===IDS.cook?ev.item.inputs.grain??ev.item.inputs.loose:0,start:ev.start,end:ev.end,method:ev.item.method});
       if(done)finish(s,hid,ev.j,ev.item,ev.end);if(!ev.j.workers.includes(ev.p.id))ev.j.workers.push(ev.p.id);
     }
     for(const j of all.filter(j=>j.day===s.day&&j.status!=='failed')){
       const produced=j.completed-before.get(j.id);j.status=!open(j)?'done':j.workers.length?'partial':'waiting';
       if(!open(j))j.reason='';
-      else if(!j.reason){const recipe=inputs(s,hid,j.workId);j.reason=!recipe.ok?recipe.reason:workers.some(p=>admission(p,condition(p),j.workId).allowed)?'Не хватило времени': 'Нет допустимого исполнителя';}
+      else if(!j.reason){const recipe=jobInputs(s,hid,j);j.reason=!recipe.ok?recipe.reason:workers.some(p=>admission(p,condition(p),j.workId).allowed)?'Не хватило времени': 'Нет допустимого исполнителя';}
       if(j.workers.length){
         const runs=workers.flatMap(p=>ledger[p.id].production.filter(r=>r.jobId===j.id).map(r=>({person:p.id,...copy(r)})));
         const seq=emit('WorkPerformed',[...new Set([j.owner,...j.workers])],ACTIONS[j.workId].title+': выполнено '+produced+'; '+(open(j)?j.reason.toLowerCase():'готово'),j.originSeq,{jobId:j.id,workId:j.workId,units:produced,workers:copy(j.workers),background:!!j.background,runs});
@@ -3024,13 +3066,13 @@ function сводкаГотовки(s,hid){
   if(!current.length)return 'Нет сведений о готовке за текущие сутки.';
   const w=current[0].production,id=NovgorEconomy.IDS.cook,batch=s.households[hid].work.economy.rules.mealBatch;
   const fmt=n=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(n);
-  const cooked=current.reduce((n,o)=>n+o.production.daily.filter(r=>r.workId===id).reduce((sum,r)=>sum+(r.units||0)*batch,0),0);
+  const cooked=current.reduce((n,o)=>n+o.production.daily.filter(r=>r.workId===id).reduce((sum,r)=>sum+(r.meals??(r.units||0)*batch),0),0);
   const job=w.queue.find(j=>j.workId===id&&j.completed<j.quantity),blocked=w.demandBlocks?.find(b=>b.title===NovgorEconomy.ACTIONS[id].title);
   let text=cooked?'Сегодня приготовлено '+fmt(cooked)+' суточных рационов взрослого.':job||blocked?'Сегодня готовой еды не получено.':'Сегодня готовка не требовалась.';
   if(job){
     const reason=job.lastRun?.day===s.day?job.lastRun.reason:'';
     text+=reason?' Готовка: '+reason+'.':' Нет текущих сведений о причине простоя готовки.';
-    if(reason==='Не хватает гороха для готовки')text+=' На одну готовку нужно '+fmt(batch)+' ед. гороха; в мешках — '+fmt(w.stock.grain)+', на месте уборки — '+fmt(w.stock.loose)+'.';
+    if(reason==='Гороха для готовки не осталось')text+=' В мешках — '+fmt(w.stock.grain)+', на месте уборки — '+fmt(w.stock.loose)+', на огороде — '+fmt(w.stock.field)+'.';
   }else if(blocked)text+=' Новый объём готовки не назначен: '+blocked.owner+' не может принять решение.';
   return text;
 }
