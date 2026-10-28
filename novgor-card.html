@@ -152,6 +152,7 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
     <label for="body-scenario">Условия</label>
     <select class="фильтр-ввод" id="body-scenario" style="width:min(260px,100%)">
       <option value="settlement">Жизнь поселения</option><option value="settlementPoor">Поселение: ухудшилось зрение</option>
+      <option value="cogNormal">Планирование: доступно</option><option value="cogBackup">Планирование: решение подхватывает другой</option><option value="cogBlocked">Планирование: нет допустимой замены</option><option value="cogAssigned">Планирование: прежнее поручение выполняется</option>
       <option value="sewNormal">Шитьё: нормальное зрение</option><option value="sewWeak">Шитьё: ослабленное зрение</option><option value="sewSevere">Шитьё: сильно ослабленное зрение</option><option value="sewBlind">Шитьё: зрение отсутствует</option><option value="sewReplacement">Шитьё: другой исполнитель</option>
       <option value="hearNormal">Зов: нормальный слух</option><option value="hearWeak">Зов: ослабленный слух</option><option value="hearSevere">Зов: сильно ослабленный слух</option><option value="hearDeaf">Зов: слух отсутствует</option>
       <option value="speechCommon">Речь: общий язык</option><option value="speechCommonNoContact">Общий язык: контакт недоступен</option><option value="speechForeign">Речь: незнакомый язык</option><option value="speechChild">Ребёнок: плач и помощь</option><option value="speechChildHealthy">Ребёнок: плач без лежачего состояния</option><option value="speechMoan">Без слов: стон</option><option value="speechSilent">Голос отсутствует</option><option value="speechNoContact">Обращение: контакт недоступен</option>
@@ -1576,7 +1577,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="decba48fad18f972d5b8261fd547264def68bcd3af3babf41e000f321aee39ab">
+<script data-body-runtime="001876221da8c917215a1b4f0e915f4e862398f5ee6f9dda35c7c8fc845592a3">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -1906,18 +1907,23 @@ function сгенерироватьРод(сид) {
   }
   function setup(w){
     const e=w.economy;e.rules=parameters(e.rules);
+    e.planningBackups=copy(e.planningBackups||{});e.planningToday=copy(e.planningToday||[]);
     e.tools={pot:1,axe:1,...e.tools};
     e.background=e.background??null;e.crop='горох';
     Object.assign(e,{nextTask:e.nextTask??1,planDay:e.planDay??null,executedDay:e.executedDay??null,deadline:e.deadline??null,
       heatedDay:e.heatedDay??null,fieldLost:e.fieldLost??0,waterReadyAt:e.waterReadyAt??0,foodReadyAt:e.foodReadyAt??0});
   }
   function open(j){return j.status!=='failed'&&j.completed<j.quantity;}
+  function canPlan(p,day){return p.health>0&&!p.sources.some(x=>x.preventsPlanning===true&&(x.untilDay===null||x.untilDay>=day));}
   function validate(s,hid){
     const w=s.households[hid].work,e=w.economy;parameters(e.rules);
     for(const key of ['field','loose','grain','fuel','wood','fieldLost','nextTask'])if(!Number.isInteger(e[key])||e[key]<0)throw Error('Некорректный запас хозяйства: '+key);
     for(const key of ['pot','axe'])if(!Number.isInteger(e.tools?.[key])||e.tools[key]<0)throw Error('Некорректный инструмент хозяйства');
     for(const key of ['planDay','executedDay','heatedDay','deadline'])if(e[key]!==null&&(!Number.isInteger(e[key])||e[key]<0))throw Error('Некорректный день хозяйства');
     if(!e.owners||Object.values(e.owners).some(id=>!s.people[id]||s.people[id].household!==hid))throw Error('Нет носителя решения');
+    if(!e.planningBackups||typeof e.planningBackups!=='object'||Array.isArray(e.planningBackups)||!Array.isArray(e.planningToday))throw Error('Некорректный подхват решений');
+    for(const [workId,ids]of Object.entries(e.planningBackups))if(!ACTIONS[workId]||!Array.isArray(ids)||new Set(ids).size!==ids.length||ids.some(id=>!s.people[id]||s.people[id].household!==hid||id===e.owners[workId]))throw Error('Некорректный круг подхвата решений');
+    for(const r of e.planningToday)if(!ACTIONS[r.workId]||!s.people[r.nominalOwner]||s.people[r.nominalOwner].household!==hid||!['created','blocked'].includes(r.status)||(r.status==='created'?(!s.people[r.owner]||s.people[r.owner].household!==hid):r.owner!==null)||!Number.isInteger(r.seq)||r.seq<1||!Array.isArray(r.attempts)||r.attempts.some(a=>!s.people[a.person]||s.people[a.person].household!==hid||!['dead','absent','planning'].includes(a.reason)))throw Error('Некорректное наблюдение решения');
     const seen=new Set(),active=new Set();
     if(w.jobs.some(j=>ACTIONS[j.workId]?.background))throw Error('Фон не создаёт задачу очереди');
     for(const j of [...w.jobs,...(e.background?[e.background]:[])]){
@@ -1981,7 +1987,7 @@ function сгенерироватьРод(сид) {
     }
   }
   function plan(s,hid,ledger,emit){
-    const h=s.households[hid],w=h.work,e=w.economy,k=e.rules;if(e.planDay===s.day)return;e.planDay=s.day;e.waterReadyAt=0;e.foodReadyAt=0;e.demandBlocks=[];
+    const h=s.households[hid],w=h.work,e=w.economy,k=e.rules;if(e.planDay===s.day)return;e.planDay=s.day;e.waterReadyAt=0;e.foodReadyAt=0;e.demandBlocks=[];e.planningToday=[];
     const people=Object.values(s.people).filter(p=>p.household===hid&&ledger[p.id]);
     const foodNeed=people.reduce((n,p)=>n+ledger[p.id].foodDemand,0),waterNeed=people.reduce((n,p)=>n+ledger[p.id].waterDemand,0);
     e.drinkReserve=waterNeed;e.foodNeed=foodNeed;
@@ -1989,11 +1995,22 @@ function сгенерироватьРод(сид) {
     // Старые сохранения хранят число полных замесов; их оплаченные входы не меняются.
     for(const j of w.jobs.filter(j=>j.workId===IDS.cook)){j.targetMeals??=j.quantity*k.mealBatch;j.mealsCompleted??=j.completed*k.mealBatch;}
     const pending=id=>w.jobs.find(j=>j.workId===id&&open(j));
-    const hasOwner=id=>{const p=s.people[e.owners[id]];if(p.health>0&&p.present)return true;e.demandBlocks.push({workId:id,owner:p.id});return false;};
-    const ensure=(id,n,source)=>{if(n<1||pending(id)||!hasOwner(id))return;const owner=e.owners[id];
-      const j={id:hid+'-work-'+e.nextTask++,workId:id,owner,quantity:n,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],source};
+    const chooseOwner=id=>{
+      const nominalOwner=e.owners[id],attempts=[];
+      for(const pid of [nominalOwner,...(e.planningBackups[id]||[])]){
+        const p=s.people[pid],available=ledger[pid]?.canPlanAtStart??canPlan(p,s.day),reason=p.health<=0?'dead':!p.present?'absent':!available?'planning':null;
+        if(!reason)return {owner:pid,nominalOwner,attempts};attempts.push({person:pid,reason});
+      }
+      const reason=attempts[0]?.reason||'planning';
+      const seq=emit('PlanningBlocked',attempts.map(a=>a.person),s.people[nominalOwner].name+': новое дело не назначено — '+ACTIONS[id].title.toLowerCase()+'; нет доступного носителя решения',s.people[nominalOwner].originSeq,{workId:id,nominalOwner,attempts:copy(attempts)});
+      e.demandBlocks.push({workId:id,owner:nominalOwner,reason,seq});e.planningToday.push({workId:id,nominalOwner,owner:null,status:'blocked',attempts,seq});return null;
+    };
+    const routineOwner=id=>[e.owners[id],...(e.planningBackups[id]||[])].find(pid=>s.people[pid].health>0&&s.people[pid].present);
+    const ensure=(id,n,source)=>{if(n<1||pending(id))return;const decision=chooseOwner(id);if(!decision)return;const {owner,nominalOwner,attempts}=decision;
+      const j={id:hid+'-work-'+e.nextTask++,workId:id,owner,nominalOwner,quantity:n,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],source};
       if(id===IDS.cook){j.targetMeals=n*k.mealBatch;j.mealsCompleted=0;}
-      j.originSeq=emit('WorkQueued',[owner],s.people[owner].name+': '+ACTIONS[id].title.toLowerCase()+' — нужно '+n,null,{jobId:j.id,workId:id,quantity:n,source});w.jobs.push(j);
+      j.originSeq=emit('WorkQueued',[...new Set([owner,nominalOwner])],s.people[owner].name+': '+ACTIONS[id].title.toLowerCase()+' — нужно '+n+(owner!==nominalOwner?'; решение подхвачено':''),null,{jobId:j.id,workId:id,quantity:n,source,owner,nominalOwner,planningAttempts:copy(attempts)});w.jobs.push(j);
+      e.planningToday.push({workId:id,nominalOwner,owner,status:'created',attempts,seq:j.originSeq});
     };
     if(e.deadline!==null&&s.day>e.deadline){
       const unfinished=w.jobs.filter(j=>j.workId===IDS.harvest&&open(j));const lost=e.field+unfinished.reduce((n,j)=>n+j.items.length,0);
@@ -2013,7 +2030,8 @@ function сгенерироватьРод(сид) {
     const cookSupplies=!!cook&&e.tools.pot>0&&(cook.items.length>0||e.grain>0||e.loose>0||e.field>0||harvesting);
     if(e.background&&open(e.background)&&!cookSupplies&&!e.background.items.length){e.background.status='failed';e.background.reason='Готовка невозможна — топка не нужна';}
     if(!cookSupplies)for(const j of w.jobs.filter(j=>j.workId===IDS.fuel&&open(j)&&!j.items.length)){j.status='failed';j.reason='Топка не нужна';}
-    if(cookSupplies&&e.heatedDay!==s.day&&(!e.background||!open(e.background))&&hasOwner(IDS.heat))e.background={id:hid+'-heat-'+s.day,workId:IDS.heat,owner:e.owners[IDS.heat],quantity:1,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],originSeq:s.people[e.owners[IDS.heat]].originSeq,background:true};
+    const heatingOwner=routineOwner(IDS.heat);
+    if(cookSupplies&&e.heatedDay!==s.day&&(!e.background||!open(e.background))&&heatingOwner)e.background={id:hid+'-heat-'+s.day,workId:IDS.heat,owner:heatingOwner,nominalOwner:e.owners[IDS.heat],quantity:1,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],originSeq:s.people[heatingOwner].originSeq,background:true};
     const heat=e.background&&open(e.background)?e.background:null,heatUnits=heat?heat.quantity-heat.completed-heat.items.length:0;
     ensure(IDS.fuel,Math.max(0,heatUnits*k.heatingFuel-e.fuel),'топка');
     if(e.deadline===null||s.day<=e.deadline)ensure(IDS.harvest,e.field,'готовый к уборке участок');
@@ -2122,13 +2140,20 @@ function сгенерироватьРод(сид) {
   function project(s,p,d,previous,condition,admission){
     const h=s.households[p.household],w=h.work,e=w.economy;
     const daily=d?copy(d.production||[]):null;
-    return {economy:true,demandBlocks:(e.demandBlocks||[]).map(b=>({title:ACTIONS[b.workId].title,owner:s.people[b.owner].name})),admission:admission(p,condition,IDS.bag),admissions:p.knownWorks.filter(id=>ACTIONS[id]).map(id=>admission(p,condition,id)),
+    const observed=new Set(s.events.filter(ev=>ev.observed).map(ev=>ev.seq));
+    const planning=d&&e.planDay===d.day?copy((e.planningToday||[]).filter(r=>observed.has(r.seq)&&(r.nominalOwner===p.id||r.owner===p.id||r.attempts.some(a=>a.person===p.id)))):null;
+    const blocks=e.demandBlocks||[];
+    // B9 уже доставлял эти сведения без seq. Сохраняем только готовый снимок
+    // тех же наблюдённых суток, не восстанавливая старое знание из истины.
+    const legacy=d&&d.day===s.day&&e.planDay===d.day&&previous?.dailyDay===d.day&&blocks.length&&blocks.every(b=>b.seq===undefined);
+    const demandBlocks=legacy?copy(previous.demandBlocks||[]):d&&e.planDay===d.day?blocks.filter(b=>observed.has(b.seq)).map(b=>({title:ACTIONS[b.workId].title,owner:s.people[b.owner].name,reason:b.reason})):[];
+    return {economy:true,planning,demandBlocks,admission:admission(p,condition,IDS.bag),admissions:p.knownWorks.filter(id=>ACTIONS[id]).map(id=>admission(p,condition,id)),
       dailyDay:d?.day??null,daily,timeSpent:d?d.time:null,remainingTime:d?round(Math.max(0,p.capacity-d.time)):null,
       stock:{food:h.food.reduce((n,f)=>n+f.amount*f.nutrition,0),water:h.water,cloth:w.cloth,bags:w.bags,grain:e.grain,loose:e.loose,field:e.field,fuel:e.fuel,lost:e.fieldLost,capacity:w.bags*e.rules.bagCapacity},
       queue:w.jobs.map(j=>({id:j.id,title:ACTIONS[j.workId].title,workId:j.workId,quantity:j.quantity,completed:j.completed,inProgress:j.items.length>0,
         lastRun:j.day===s.day&&d?{day:j.day,status:j.status,reason:j.reason,workers:copy(j.workers)}:copy(previous?.queue?.find(old=>old.id===j.id)?.lastRun||null)}))};
   }
-  return {IDS,ACTIONS,DEFAULTS,WORK_END,CLOCK_SCALE,MEAL_AT,parameters,setup,validate,inputs,plan,priority,day,project};
+  return {IDS,ACTIONS,DEFAULTS,WORK_END,CLOCK_SCALE,MEAL_AT,parameters,setup,validate,inputs,plan,priority,day,project,canPlan};
 });
 /* Первый исполняемый рецепт: мешок. Числа DEFAULTS — условия опыта, не баланс. */
 (function (root, factory) {
@@ -2244,7 +2269,7 @@ function сгенерироватьРод(сид) {
           : copy(previous?.queue?.find(old => old.id === j.id)?.lastRun || null)}))};
   }
   function householdDay(s,hid,ledger,condition,emit){if(s.households[hid].work?.economy)economy.day(s,hid,ledger,condition,emit,admission);}
-  return {ID, TITLE, MINIMUM, DEFAULTS, parameters, setup, validate, admission, day, householdDay, project, actions:economy.ACTIONS,clockScale:economy.CLOCK_SCALE,mealAt:economy.MEAL_AT};
+  return {ID, TITLE, MINIMUM, DEFAULTS, parameters, setup, validate, admission, day, householdDay, project, actions:economy.ACTIONS,clockScale:economy.CLOCK_SCALE,mealAt:economy.MEAL_AT,canPlan:economy.canPlan};
 });
 /* Контент первого медицинского случая; все числа — параметры опыта. */
 (function(root,factory){
@@ -2438,7 +2463,7 @@ function сгенерироватьРод(сид) {
   else root.NovgorBody = api;
 })(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work,hearing) {
   'use strict';
-  const VERSION = 9;
+  const VERSION = 10;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -2485,7 +2510,7 @@ function сгенерироватьРод(сид) {
   function condition(s, p, day = s.day) {
     const active = [...sources(p, day), ...medical.effects(p, s.medicalParameters,day)], pain = Math.max(0, ...active.map(x => x.pain));
     const alive = p.health > 0;
-    return {alive, pain, ageYears:life.age(s,p), bed: alive && (p.health < s.parameters.bedThreshold || pain >= 3 || active.some(x => x.preventsStanding)),
+    return {alive, pain, ageYears:life.age(s,p), canPlan:work.canPlan(p,day), bed: alive && (p.health < s.parameters.bedThreshold || pain >= 3 || active.some(x => x.preventsStanding)),
       canWork: alive && life.work(s,p)>0 && pain < 2 && p.health >= s.parameters.bedThreshold && !active.some(x => x.preventsStanding)};
   }
   function band(p) {return p.health <= 0 ? 'умер' : p.health < 0.15 ? 'при смерти' : p.health < 0.3 ? 'еле жив' : p.health < 0.6 ? 'ослаб' : 'крепок';}
@@ -2561,6 +2586,7 @@ function сгенерироватьРод(сид) {
         positive(x.loss, 'source.loss', true);
         if (!['block', 'deduct'].includes(x.mode) || ![0, 1, 2, 3].includes(x.pain)) throw new Error('Некорректный источник вреда');
         if (x.untilDay !== null && !Number.isInteger(x.untilDay)) throw new Error('Некорректный срок воздействия');
+        if(x.preventsPlanning!==undefined&&typeof x.preventsPlanning!=='boolean')throw Error('Некорректное ограничение планирования');
         if(x.observed?.mobility!==undefined&&(x.observed.mobility!=='cannotStand'||x.preventsStanding!==true||typeof x.id!=='string'||!x.id))throw Error('Некорректный наблюдаемый признак движения');
       }
     }
@@ -2749,7 +2775,7 @@ function сгенерироватьРод(сид) {
         foodDemand:needs.foodDemand,waterDemand:needs.waterDemand,
         food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{}, production:[],reservedCare:0,carePlan:{},careClock:0,workClock:0,sentCalls:[],receivedCalls:[],signalAttempts:[],attention:[],attentionBlocked:[],blockedContacts:[],
         canEat: !c.bed, canDrink: !c.bed, bed: c.bed, bedLongEnough,
-        canWorkAtStart: c.canWork, efficiencyAtStart: efficiency(s, p),
+        canWorkAtStart: c.canWork, canPlanAtStart:c.canPlan, efficiencyAtStart: efficiency(s, p),
         foodReason: '', waterReason: '', careReasons: [], toileting: '', toiletUsed:false, toiletPending:false, toiletReason:'',
         fullCare: false, beforeBand: band(p), beforeBed:previousConditions[p.id].bed};
       ledger.people[p.id] = d;
@@ -2979,7 +3005,11 @@ function сгенерироватьРод(сид) {
       for(const c of s.careCalls)if(c.processed&&c.contactAvailable===false&&c.kind==='words'&&c.language===null&&s.events.some(e=>e.day===c.day&&e.type==='CallHeard'&&e.people.includes(c.listener)&&e.evidence?.patient===c.patient&&e.evidence.volume===c.volume&&!Object.hasOwn(e.evidence,'understood')&&s.events.some(parent=>parent.seq===e.parent&&parent.day===c.day&&parent.type==='CareCall'&&parent.people.includes(c.patient)&&parent.evidence?.volume===c.volume&&!Object.hasOwn(parent.evidence,'kind'))))c.contactAvailable=null;
     }
     // Новым способом проверяются будущие действия; прежние факты и признаки не дописываются.
-    if(s.version===8)s.version=VERSION;
+    if(s.version===8)s.version=9;
+    if(s.version===9){
+      s.version=VERSION;
+      for(const h of Object.values(s.households))if(h.work?.economy){h.work.economy.planningBackups={};h.work.economy.planningToday=[];}
+    }
     validate(s);
     if(Object.values(s.observations).some(o=>!('needs' in o)||!('intake' in o)||o.care&&!Array.isArray(o.care.items))) {
       // Rebuild only observations available now. Never reconstruct stale daily facts from truth.
@@ -3001,6 +3031,8 @@ function сгенерироватьРод(сид) {
 })(typeof globalThis === 'object' ? globalThis : this, function (body,economy) {
   'use strict';
   const labels = {sewNormal:'Шитьё: нормальное зрение',sewWeak:'Шитьё: ослабленное зрение',sewSevere:'Шитьё: сильно ослабленное зрение',sewBlind:'Шитьё: зрение отсутствует',sewReplacement:'Шитьё: другой исполнитель',tooth:'Зуб: удаление и твёрдая пища',toothRinse:'Зуб: полоскание вместо удаления',toothInfection:'Зуб: боль и воспаление',ages:'Возрастные нормы еды и воды',wound:'Рана: осмотр и лечение',woundWrong:'Рана: ошибочная версия знахарки',care: 'Помощь есть', absent: 'Помощница отсутствует', scarce: 'Мало воды', hard: 'Только твёрдая пища', noToilet: 'Нет туалета'};
+  const cognitionKinds=['cogNormal','cogBackup','cogBlocked','cogAssigned'];
+  Object.assign(labels,{cogNormal:'Планирование: доступно',cogBackup:'Планирование: решение подхватывает другой',cogBlocked:'Планирование: нет допустимой замены',cogAssigned:'Планирование: прежнее поручение выполняется'});
   const hearingLevels={hearNormal:'normal',hearWeak:'weak',hearSevere:'severe',hearDeaf:'deaf'};
   Object.assign(labels,{hearNormal:'Зов: нормальный слух',hearWeak:'Зов: ослабленный слух',hearSevere:'Зов: сильно ослабленный слух',hearDeaf:'Зов: слух отсутствует'});
   const speechKinds=['speechCommon','speechCommonNoContact','speechForeign','speechChild','speechChildHealthy','speechMoan','speechSilent','speechNoContact'];
@@ -3010,6 +3042,7 @@ function сгенерироватьРод(сид) {
   Object.assign(labels,{speechVisionWeak:'Проверка: ослабленное зрение',speechVisionSevere:'Проверка: сильно ослабленное зрение',speechVisionBlind:'Проверка: зрение отсутствует',speechVisionUnknown:'Проверка: зрение неизвестно',speechNoVisibleSign:'Проверка: явного признака нет',speechKnownCareBlind:'Зрение отсутствует: уход уже известен'});
   function make(kind = 'care', names = {}) {
     if (!Object.hasOwn(labels, kind)) throw new Error('Неизвестные начальные условия');
+    if(cognitionKinds.includes(kind))return cognitionSpec(kind,names);
     const spec = {
       observer: {household: 'А', present: true},
       people: [
@@ -3078,6 +3111,9 @@ function сгенерироватьРод(сид) {
   // make() оставляет конечные запасы для проверок самого runtime.
   function createTrial(kind = 'care', names = {}, options = {}) {
     const spec=make(kind,names);
+    if(cognitionKinds.includes(kind)){
+      const state=body.create(spec);state.cognition={kind};return state;
+    }
     if(spec.careCalls&&options.callVolume)spec.careCalls[0].volume=options.callVolume;
     for(const p of spec.people)if(Object.hasOwn(options.hearings||{},p.id)&&!((Object.hasOwn(hearingLevels,kind)||speechKinds.includes(kind))&&p.id==='p2'))p.hearing=options.hearings[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.visions||{},p.id)&&!kind.startsWith('sew')&&!(Object.hasOwn(visualCases,kind)&&p.id==='p2'))p.vision=options.visions[p.id];
@@ -3095,7 +3131,7 @@ function сгенерироватьРод(сид) {
     return state;
   }
   function advanceTrial(state, days = 1) {
-    if(state.settlement)return body.advance(state,days);
+    if(state.settlement||state.cognition)return body.advance(state,days);
     if (!state.trial || !Object.hasOwn(labels,state.trial.kind)) throw new Error('Нет условий опыта');
     if(typeof state.trial.closedStock!=='boolean'||![state.trial.foodTarget,state.trial.waterTarget].every(n=>Number.isFinite(n)&&n>=0)) throw new Error('Некорректное снабжение опыта');
     if (!Number.isInteger(days) || days<1 || days>3660) throw new Error('Некорректное число суток');
@@ -3119,7 +3155,20 @@ function сгенерироватьРод(сид) {
     const food=h.food.reduce((n,f)=>n+f.amount*f.nutrition,0),water=h.water;
     const foodDemand=people.reduce((n,p)=>n+body.needs(state,p).foodDemand,0),waterDemand=people.reduce((n,p)=>n+body.needs(state,p).waterDemand,0);
     return {food,water,foodDays:foodDemand?food/foodDemand:null,waterDays:waterDemand?water/waterDemand:null,
-      closedStock:state.settlement?true:state.trial.closedStock,settlement:!!state.settlement,shortage:people.some(p=>p.last&&(p.last.foodReason||p.last.waterReason))};
+      closedStock:state.settlement||state.cognition?true:state.trial.closedStock,settlement:!!state.settlement,cognition:!!state.cognition,shortage:people.some(p=>p.last&&(p.last.foodReason||p.last.waterReason))};
+  }
+  function cognitionSpec(kind,names){
+    const id=economy.IDS,ids=Object.values(id),people=[
+      {id:'p1',name:names.p1||'Истома',sex:'м',ageYears:38,household:'А',family:'семья-А',vision:'normal',knownWorks:[id.harvest,id.store,id.fuel]},
+      {id:'p2',name:names.p2||'Милава',sex:'ж',ageYears:36,household:'А',family:'семья-А',vision:'normal',knownWorks:[id.water,id.cook,id.heat]},
+      {id:'p6',name:names.p6||'Нежата',sex:'м',ageYears:17,household:'А',family:'семья-А',vision:'normal',knownWorks:[id.bag,id.heat]}
+    ];
+    if(kind!=='cogNormal')people[1].sources=[{id:'planning-limit',name:'ограничение самостоятельного планирования',loss:0,mode:'deduct',pain:0,preventsPlanning:true,untilDay:null}];
+    const jobs=kind==='cogAssigned'?[{id:'А-assigned-water',workId:id.water,owner:'p2',quantity:6,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],originSeq:null,source:'ранее назначенное поручение'}]:[];
+    return {people,observer:{household:'А',present:true},households:{'А':{
+      food:[{id:'initial-meal',name:'похлёбка',amount:3,nutrition:1,quality:1,texture:0}],water:0,waterClear:true,warm:true,latrineAccessible:true,pot:{amount:0,capacity:3,accessible:true},wasteDestination:true,waste:0,careOrder:[],
+      work:{cloth:2,bags:1,needles:1,order:['p2','p1','p6'],jobs,economy:{owners:Object.fromEntries(ids.map(key=>[key,'p2'])),planningBackups:kind==='cogBackup'?Object.fromEntries(ids.map(key=>[key,['p1']])):{},field:6,loose:0,grain:2,fuel:1,wood:10,deadline:14,tools:{pot:1,axe:1},rules:{}}}
+    }}};
   }
   labels.settlement='Жизнь поселения';labels.settlementPoor='Поселение: ухудшилось зрение';
   function createSettlement(roster,options={}){
@@ -3141,7 +3190,7 @@ function сгенерироватьРод(сид) {
       const owners=Object.fromEntries(Object.values(ids).map(id=>[id,id===ids.fuel?woodOwner:owner]));
       households[hid]={food:[],water:0,waterClear:true,warm:true,latrineAccessible:true,pot:{amount:0,capacity:10,accessible:true},wasteDestination:true,waste:0,
         careOrder:adults.map(p=>p.id).sort((a,b)=>Number(people.find(p=>p.id===b).sex==='ж')-Number(people.find(p=>p.id===a).sex==='ж')),
-        work:{cloth:3,bags:1,needles:2,order:members.map(p=>p.id),jobs:[],economy:{owners,field:members.length*20,loose:0,grain:2,fuel:1,wood:members.length*10,deadline:14,tools:{pot:1,axe:1},rules:options.rules||{}}}};
+        work:{cloth:3,bags:1,needles:2,order:members.map(p=>p.id),jobs:[],economy:{owners,planningBackups:options.planningBackups?.[hid]||{},field:members.length*20,loose:0,grain:2,fuel:1,wood:members.length*10,deadline:14,tools:{pot:1,axe:1},rules:options.rules||{}}}};
     }
     const s=body.create({people,households,observer:{household:people[0].household,households:Object.keys(households),present:true},seed:options.seed??1,calendarStart:options.calendarStart||'2000-01-01',workParameters:options.workParameters});
     s.settlement={kind:options.poorVision?'settlementPoor':'settlement'};
@@ -3235,6 +3284,7 @@ function обновитьТело() {
     card.телесная_сводка = o;
   }
   const типы = {HarvestLost:"УрожайПотерян",WorkQueued:"РаботаПоставлена",WorkPerformed:"РаботаИсполнена",WorkWaiting:"РаботаЖдёт",DentalAttack:"ЗубнаяБоль",DentalFlare:"ЗубнаяБоль",DentalQuiet:"ЗубнаяБоль",DentalExtraction:"ЗубУдалён",InitialCondition:"СостояниеИзвестно",InjuryKnown:"Рана",ExamRequested:"ОсмотрПоручен",MedicalExam:"Гипотеза",TreatmentPerformed:"СредствоГотово",MedicalSignsChanged:"ПризнакиИзменились",IllnessCourse:"ТечениеБолезни",HealthBand:"ПолосаЗдоровья",Bedridden:"Слёг",GotUp:"Встал",Death:"Умер",FoodShortage:"СостояниеПодступило",WaterShortage:"СостояниеПодступило",CareIncomplete:"УходНеполон",ToiletingBlocked:"СостояниеПодступило"};
+  типы.PlanningBlocked='РешениеНедоступно';
   Object.assign(типы,{CallUnavailable:'ОбращениеНедоступно',WordsUnderstood:'ПросьбаПонята',AttentionChecked:'СостояниеПроверено',CareCall:'ЗовОПомощи',CallHeard:'ЗовПолучен',CallCarePerformed:'УходВыполнен'});
   for (const e of s.events) {
     if (!типы[e.type]) continue;
@@ -3250,12 +3300,12 @@ function обновитьТело() {
     (s.observer.present?"Запас еды при полной выдаче: "+days(stock.foodDays)+"; воды: "+days(stock.waterDays)+". ":"Нет текущих сведений о запасах. ")+
     (shortage?"Есть нехватка еды, воды или помощи — причина показана в здоровье.":"");
   $("body-soft-food").disabled=!s.observer.present;
-  $("body-soft-food").hidden=!!s.settlement;$("body-stock-mode").hidden=!!s.settlement;
-  if(s.settlement){
+  $("body-soft-food").hidden=!!(s.settlement||s.cognition);$("body-stock-mode").hidden=!!(s.settlement||s.cognition);
+  if(s.settlement||s.cognition){
     const who=s.people[УИ.кто],hid=who?.household||s.observer.household,h=s.households[hid];
     const known=s.observer.present&&(s.observer.households||[s.observer.household]).includes(hid);
     $("body-stock").textContent=known?"Двор "+hid+". Готовая еда — "+Math.floor(h.food.reduce((n,f)=>n+f.amount*f.nutrition,0)*10)/10+" суточных рационов взрослого; вода — "+Math.floor(h.water*10)/10+". "+сводкаГотовки(s,hid)+" Внешнего пополнения нет.":"Нет текущих сведений о запасах этого двора.";
-    $("body-participants").textContent="Все жители участвуют в суточном расчёте. Уборка урожая, тара, готовка и вода используют общее время людей.";
+    $("body-participants").textContent=s.cognition?'Участвуют: '+Object.values(s.people).map(p=>p.name).join(', ')+'. Новые решения и исполнение знакомых поручений проверяются отдельно.':"Все жители участвуют в суточном расчёте. Уборка урожая, тара, готовка и вода используют общее время людей.";
   }
 }
 function начатьПоселение(poor=false){
@@ -3289,7 +3339,7 @@ function начатьТело() {
     else if(/жидк/.test(text))maxTextures[id]=0;
   }
   ТЕЛО.base=base; ТЕЛО.kind=kind;
-  if(/^(hear|speech)/.test(kind))$("body-controls").open=true;
+  if(/^(hear|speech|cog)/.test(kind))$("body-controls").open=true;
   // В возрастном опыте сравниваются явно заданные 4, 10 и 17 лет.
   const visions=Object.fromEntries(Object.entries(base.пешки).map(([id,p])=>[id,NovgorVision.fromDescription(p.зрение)]));
   const hearings=Object.fromEntries(Object.entries(base.пешки).map(([id,p])=>[id,NovgorHearing.fromDescription(p.слух)]));
@@ -3297,7 +3347,7 @@ function начатьТело() {
   настроитьЗов();
   обновитьТело();
   for (const id of ["body-day","body-week","body-stop","body-soft-food"]) $(id).disabled=false;
-  УИ.кто=kind==='ages'?"p9":kind.startsWith('sew')||/^(hear|speech)/.test(kind)?"p2":"p1";УИ.вкладка="Здоровье";УИ.стек=[];нарисовать();
+  УИ.кто=kind==='ages'?"p9":kind.startsWith('sew')||/^(hear|speech|cog)/.test(kind)?"p2":"p1";УИ.вкладка=kind.startsWith('cog')?'Работа':"Здоровье";УИ.стек=[];нарисовать();
 }
 function настроитьЗов(){ $("body-hearing-setup").hidden=!$("body-scenario").value.startsWith('hear'); }
 function потребностиСнимка(п) {
@@ -3406,12 +3456,23 @@ function нарисоватьДелаПоселения(к){
   const percent=n=>new Intl.NumberFormat('ru-RU',{style:'percent',maximumFractionDigits:1}).format(n),fmt=n=>new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1}).format(n);
   box.appendChild(э('div','health-kicker',(o.stale?'Последнее наблюдение · ':'Сегодня · ')+экр(деньТ(ТЕЛО.base.день+o.day))));
   box.appendChild(э('h2','','Дела и припасы'));
+  if(w.planning?.length){
+    const plans=э('section','');plans.id='work-planning';plans.appendChild(э('h3','','Планирование работ'));
+    const groups=new Map();for(const r of w.planning){const key=JSON.stringify([r.owner,r.nominalOwner,r.status,r.attempts]);if(!groups.has(key))groups.set(key,{...r,titles:[]});groups.get(key).titles.push(NovgorEconomy.ACTIONS[r.workId].title);}
+    for(const r of groups.values()){
+      const why={planning:'самостоятельное планирование недоступно',absent:'нет на месте',dead:'умер'};
+      const attempts=r.attempts.map(a=>пеш(a.person).имя+': '+why[a.reason]).join('; ');
+      const text=r.status==='created'?(r.owner===r.nominalOwner?'Решение принято: '+пеш(r.owner).имя+'.':'Решение подхвачено: '+пеш(r.owner).имя+'. '+attempts+'.'):'Новое дело не назначено. '+attempts+'. Допустимой замены нет.';
+      plans.appendChild(э('p','',экр(r.titles.join('; ')+'. '+text)));
+    }
+    box.appendChild(plans);
+  }
   const blocked=w.admissions.filter(a=>a.code==='vision');
   if(blocked.length){const b=э('div','');b.id='work-admission';for(const a of blocked)b.appendChild(э('p','',экр(a.title+': '+a.reason+'.')));box.appendChild(b);}
-  for(const b of w.demandBlocks||[])box.appendChild(э('p','вним',экр(b.title+': новый объём не назначен — '+b.owner+' не может принять решение.')));
+  if(!w.planning?.length)for(const b of w.demandBlocks||[])box.appendChild(э('p','вним',экр(b.title+': новый объём не назначен — '+b.owner+' не может принять решение.')));
   const tasks=new Map();for(const d of w.daily||[]){if(!tasks.has(d.workId))tasks.set(d.workId,{time:0,units:0});const t=tasks.get(d.workId);t.time+=d.time;t.units+=d.units||0;}
   if(!w.dailyDay)box.appendChild(э('p','мелко','Сутки ещё не прожиты.'));
-  else if(!tasks.size)box.appendChild(э('p','',экр(o.workReason==='age'?'По возрасту ещё не работает.':o.bed?'Не встаёт; нуждается в помощи.':'Производственных дел сегодня не выполнял.')));
+  else if(!tasks.size)box.appendChild(э('p','',экр(o.workReason==='age'?'По возрасту ещё не работает.':o.bed?'Не встаёт; нуждается в помощи.':'Производственных дел за сутки не выполнено.')));
   for(const [id,t]of tasks){const row=э('div','стр');row.dataset.performedWork=id;row.appendChild(э('b','',экр(NovgorEconomy.ACTIONS[id].title)));row.appendChild(э('div','мелко',экр(percent(t.time)+' рабочего дня · завершено единиц: '+t.units)));row.appendChild(э('div','мелко',экр([...new Set((w.daily||[]).filter(d=>d.workId===id).map(d=>d.method))].join('; '))));box.appendChild(row);}
   const time=э('p','');time.id='work-time';time.textContent=w.dailyDay===null?'':"Всего на дела и помощь — "+percent(w.timeSpent)+" дня. Неиспользованное время — "+percent(w.remainingTime)+".";box.appendChild(time);
   const st=w.stock,stock=э('div','');stock.id='work-stock';stock.appendChild(э('h3','','Припасы двора'));
@@ -3643,6 +3704,7 @@ function кнопкаОсмотра(к) {
 
 // Служебные параметры остаются в диагностике. В игровом тексте нет ссылок на документы.
 function названиеСобытия(тип){
+  if(тип==='РешениеНедоступно')return 'Планирование';
   const sound={ЗовОПомощи:'Зов',ЗовПолучен:'Обращение услышано',ПросьбаПонята:'Просьба понята',СостояниеПроверено:'Проверка источника',ОбращениеНедоступно:'Обращение не выполнено',УходВыполнен:'Уход'};
   if(sound[тип])return sound[тип];
   return ({УрожайПотерян:"Урожай",РаботаПоставлена:"Задача",РаботаИсполнена:"Работа",РаботаЖдёт:"Работа ждёт",Рана:"Травма",ОсмотрПоручен:"Осмотр",ПризнакиИзменились:"Самочувствие",Встал:"Самочувствие",Умер:"Смерть",ПостройкаВстала:"Стройка",ЗаёмДан:"Заём",ДитяСлабо:"Самочувствие",Гипотеза:"Осмотр",СредствоГотово:"Лечение",ЕдаПриготовлена:"Готовка",СостояниеДавит:"Самочувствие",ПолосаЗдоровья:"Самочувствие",РешилСтроить:"Выход",ВозвратЗатребован:"Возврат вещи",ПользуетсяНеотданным:"Чужая вещь",РешилПопробовать:"Смена лечения",УходНеполон:"Уход",ЗаёмВозвращён:"Возврат вещи",ДобычаПринесена:"Промысел",Поправилась:"Выздоровление",ТравыСобраны:"Сбор трав"})[тип]||"Событие";
@@ -3937,7 +3999,7 @@ const РЕНДЕР = {
     к.appendChild(ф);
     const группа = т => /Полоса|Слёг|Гипотеза|Дитя|Поправ|Средство|Состояние|Рана|Признак|Осмотр|^Встал$|Умер|Болезн|Уход|Зуб|Зов|Просьб|Обращение/.test(т) ? "тело" :
       /Заём|Вещь|Пользуется|Возврат|Пропажа/.test(т) ? "вещи" :
-      /Урожай|Работа|Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход/.test(т) ? "работы" : "люди";
+      /Урожай|Работа|Построй|Добыча|Травы|РешилСтроить|РешилПопробовать|ЕдаПриготовлена|Уход|РешениеНедоступно/.test(т) ? "работы" : "люди";
     let список = досье(УИ.кто);
     if (УИ.режим!=="дев") список = список.filter(доставлено);
     const всего = список.length;
@@ -4092,10 +4154,10 @@ function нарисоватьБ3() {
   УИ.подсветить = null;
 }
 function нарисовать() {
-  if(ТЕЛО.state?.settlement)обновитьТело();
+  if(ТЕЛО.state?.settlement||ТЕЛО.state?.cognition)обновитьТело();
   $("body-controls").hidden=УИ.б3;
   const participants=ТЕЛО.state?Object.keys(ТЕЛО.state.people):["p1","p2","p3","p6"];
-  $("body-participants").textContent=ТЕЛО.state?.settlement?"Пища и вода расходуются каждый день. Жители автоматически выполняют нужные работы в пределах своего времени.":(ТЕЛО.state?"Участвуют: ":"В медицинском случае участвуют: ")+participants.map(id=>СНИМКИ[УИ.снимок].пешки[id].имя).join(", ")+". Расходуются запасы и время помощи. Численные настройки предварительные.";
+  $("body-participants").textContent=ТЕЛО.state?.cognition?'Участвуют: '+participants.map(id=>СНИМКИ[УИ.снимок].пешки[id].имя).join(', ')+'. Новые решения и исполнение знакомых поручений проверяются отдельно.':ТЕЛО.state?.settlement?"Пища и вода расходуются каждый день. Жители автоматически выполняют нужные работы в пределах своего времени.":(ТЕЛО.state?"Участвуют: ":"В медицинском случае участвуют: ")+participants.map(id=>СНИМКИ[УИ.снимок].пешки[id].имя).join(", ")+". Расходуются запасы и время помощи. Численные настройки предварительные.";
   $("body-stop").hidden=!!ТЕЛО.state?.settlement&&УИ.режим!=='дев';
   $("б3-сцена").setAttribute("aria-pressed", String(УИ.б3));
   $("б3-сцена").classList.toggle("вкл", УИ.б3);
@@ -4180,7 +4242,8 @@ if (location.hash === "#b3") {
   УИ.б3 = true; УИ.кто = "girl"; УИ.вкладка = "Знания";
   $("снимки-выбор").querySelectorAll("button").forEach(b => { b.classList.remove("вкл"); b.setAttribute("aria-pressed", "false"); });
 }
-if(location.hash === "#speech"){$("body-scenario").value='speechCommon';начатьТело();}
+if(location.hash === "#cognition"){$("body-scenario").value='cogBackup';начатьТело();}
+else if(location.hash === "#speech"){$("body-scenario").value='speechCommon';начатьТело();}
 else if(location.hash === "#hearing"){$("body-scenario").value='hearNormal';начатьТело();}
 else if(location.hash === "#vision")начатьПоселение(true);
 else if(location.hash!=="#b3"&&!new URLSearchParams(location.search).has("snapshot"))начатьПоселение(false);
