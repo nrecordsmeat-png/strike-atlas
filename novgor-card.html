@@ -1584,7 +1584,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="0a17042a458433ea7f4db632b1e4b465aa24559d3d698493615bf7c671d487fa">
+<script data-body-runtime="da29e31e7b16ec66718f4a08f6fc04c62f9ba8407fd06f83958b2b8625bfd6e6">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -2030,21 +2030,22 @@ function сгенерироватьРод(сид) {
   const EPS=1e-10,WORK_END=0.5,CLOCK_SCALE=0.5,MEAL_AT=0.5,copy=x=>JSON.parse(JSON.stringify(x)),round=n=>Math.round(n*1e12)/1e12;
   const IDS=Object.freeze({bag:'remeslo.shit',harvest:'ogorod.ubrat',store:'zagotovka.zalozhit',cook:'gotovka.kasha',water:'zagotovka.voda_vprok',fuel:'zagotovka.drova',heat:'obihod.topka'});
   // strain — ступень тяжести работы (DEC-80-01): light/normal/heavy; разметка стендовая.
+  // hands — точная ручная работа (17-А §10а «ошибки рук»); разметка стендовая [П], на правку ГД.
   const ACTIONS=Object.freeze({
-    [IDS.bag]:{title:'Шитьё мешков',minimum:'weak',base:8,food:false,tool:'needle',strain:'light'},
-    [IDS.harvest]:{title:'Уборка гороха',minimum:'severe',base:20,food:true,strain:'heavy'},
-    [IDS.store]:{title:'Закладка гороха',minimum:'severe',base:32,food:true,strain:'normal'},
-    [IDS.cook]:{title:'Готовка гороховой каши',minimum:'severe',base:40,food:true,tool:'pot',strain:'normal'},
+    [IDS.bag]:{title:'Шитьё мешков',minimum:'weak',base:8,food:false,tool:'needle',strain:'light',hands:true},
+    [IDS.harvest]:{title:'Уборка гороха',minimum:'severe',base:20,food:true,strain:'heavy',dirty:true},
+    [IDS.store]:{title:'Закладка гороха',minimum:'severe',base:32,food:true,strain:'normal',hands:true},
+    [IDS.cook]:{title:'Готовка гороховой каши',minimum:'severe',base:40,food:true,tool:'pot',strain:'normal',hands:true},
     [IDS.water]:{title:'Принести воду',minimum:'severe',base:55,food:false,strain:'normal'},
-    [IDS.fuel]:{title:'Заготовка дров',minimum:'severe',base:10,food:false,tool:'axe',strain:'heavy'},
+    [IDS.fuel]:{title:'Заготовка дров',minimum:'severe',base:10,food:false,tool:'axe',strain:'heavy',dirty:true},
     [IDS.heat]:{title:'Топка очага',minimum:'severe',base:60,food:false,background:true,strain:'light'}
   });
-  const DEFAULTS=Object.freeze({bagCapacity:6,mealBatch:5,mealWater:2.5,foodDays:1,grainDays:2,waterDays:1,
+  const DEFAULTS=Object.freeze({bagCapacity:6,spoiledBagCapacity:3,mealBatch:5,mealWater:2.5,foodDays:1,grainDays:2,waterDays:1,
     harvestEffort:0.12,storeEffort:0.03,cookEffort:0.2,looseCarryEffort:0.1,waterEffort:0.05,fuelEffort:0.1,heatEffort:0.1,heatingFuel:1});
   function parameters(input){
     const k={...DEFAULTS,...input};
     for(const [key,n]of Object.entries(k))if(!Number.isFinite(n)||n<=EPS)throw Error('Некорректный параметр хозяйства: '+key);
-    for(const key of ['bagCapacity','mealBatch','heatingFuel'])if(!Number.isInteger(k[key]))throw Error('Дробная единица хозяйства');
+    for(const key of ['bagCapacity','spoiledBagCapacity','mealBatch','heatingFuel'])if(!Number.isInteger(k[key]))throw Error('Дробная единица хозяйства');
     return k;
   }
   function setup(w){
@@ -2085,7 +2086,7 @@ function сгенерироватьРод(сид) {
       }
     }
     const reserved=w.jobs.filter(j=>j.workId===IDS.store).reduce((n,j)=>n+j.items.length,0);
-    if(e.grain+reserved>w.bags*e.rules.bagCapacity)throw Error('Переполнены мешки');
+    if(e.grain+reserved>(w.bags*e.rules.bagCapacity+(w.spoiledBags||0)*e.rules.spoiledBagCapacity))throw Error('Переполнены мешки');
   }
   function inputs(s,hid,id,limit=Infinity){
     const h=s.households[hid],w=h.work,e=w.economy,k=e.rules;
@@ -2096,7 +2097,7 @@ function сгенерироватьРод(сид) {
     if(id===IDS.heat)return {ok:e.fuel>=k.heatingFuel,reason:'Нет дров для топки',effort:k.heatEffort,method:'растопить очаг',take:{fuel:k.heatingFuel}};
     if(id===IDS.store){
       const reserved=w.jobs.filter(j=>j.workId===IDS.store).reduce((n,j)=>n+j.items.length,0);
-      return {ok:e.loose>0&&e.grain+reserved<w.bags*k.bagCapacity,reason:e.loose<=0?'Урожай ещё не собран':'Нет свободной вместимости мешков',effort:k.storeEffort,method:'принести и засыпать в мешок',take:{loose:1}};
+      return {ok:e.loose>0&&e.grain+reserved<(w.bags*k.bagCapacity+(w.spoiledBags||0)*k.spoiledBagCapacity),reason:e.loose<=0?'Урожай ещё не собран':'Нет свободной вместимости мешков',effort:k.storeEffort,method:'принести и засыпать в мешок',take:{loose:1}};
     }
     // Решение ГД 27.10.2026: партия меньше полной допустима; вода и труд готовки
     // уменьшаются пропорционально. Перенос из кучи пропорционально не уменьшается.
@@ -2126,6 +2127,9 @@ function сгенерироватьРод(сид) {
   function finish(s,hid,j,item,at){
     const h=s.households[hid],w=h.work,e=w.economy,k=e.rules;
     if(j.workId===IDS.bag)w.bags++;
+    // 2Б (слово ГД 30.10): брак — вещь худшего качества, не пустота; в счётном
+    // прототипе — кривой мешок половинной вместимости; полная ось качества
+    // изготовления и потолка — у штучных вещей (сохранность, 10-А §3).
     if(j.workId===IDS.harvest)e.loose++;
     if(j.workId===IDS.store)e.grain++;
     if(j.workId===IDS.water){h.water=round(h.water+1);e.waterReadyAt=Math.max(e.waterReadyAt,at);}
@@ -2211,7 +2215,7 @@ function сгенерироватьРод(сид) {
     if(j.workId===IDS.harvest&&e.deadline!==null)n+=Math.max(0,10-(e.deadline-s.day));
     // Только прямые непищевые материалы; пищевое сырьё не получает вторую трубу приоритета.
     const reservedStore=w.jobs.filter(t=>t.workId===IDS.store).reduce((n,t)=>n+t.items.length,0);
-    if(j.workId===IDS.bag&&w.jobs.some(t=>t.workId===IDS.store&&open(t))&&e.grain+reservedStore>=w.bags*e.rules.bagCapacity)n=Math.max(n,ACTIONS[IDS.store].base+1);
+    if(j.workId===IDS.bag&&w.jobs.some(t=>t.workId===IDS.store&&open(t))&&e.grain+reservedStore>=(w.bags*e.rules.bagCapacity+(w.spoiledBags||0)*e.rules.spoiledBagCapacity))n=Math.max(n,ACTIONS[IDS.store].base+1);
     if(j.workId===IDS.fuel&&e.background&&open(e.background)&&e.fuel<e.rules.heatingFuel)n=Math.max(n,ACTIONS[IDS.heat].base+1);
     return n;
   }
@@ -2223,10 +2227,11 @@ function сгенерироватьРод(сид) {
     for(const j of all)if(open(j)){j.workers=[];j.day=s.day;j.reason='';}
     const bg=e.background&&open(e.background)?e.background:null;
     const abandoned=new Set((s.workFaults||[]).filter(f=>f.processed&&f.kind==='abandon'&&f.day===s.day).map(f=>f.person+'|'+f.workId));
-    const faultSource=(s,f)=>s.people[f.person].sources.find(src=>Array.isArray(src.errorWorks)&&src.errorWorks.includes(f.workId))?.name||'состояние';
+    const faultSource=(s,f)=>s.people[f.person].sources.find(src=>(f.sourceId===undefined||src.id===f.sourceId)&&Array.isArray(src.errorWorks)&&src.errorWorks.includes(f.workId)&&(src.untilDay===null||src.untilDay>=f.day))?.name||'состояние';
     const deliverOrSpoil=(ev,at,f)=>{
       if(!f){finish(s,hid,ev.j,ev.item,at);return;}
       f.processed=true;e.spoiled[ev.j.workId]=(e.spoiled[ev.j.workId]||0)+1;
+      if(ev.j.workId===IDS.bag)w.spoiledBags=(w.spoiledBags||0)+1; // кривой мешок — вещь, не пустота
       ev.j.completed++;ev.j.items.splice(ev.j.items.indexOf(ev.item),1);
       if(ev.j.workId===IDS.cook){const reserved=ev.j.items.reduce((n,i)=>n+(i.inputs.grain??i.inputs.loose),0);if(ev.j.completed+ev.j.items.length===ev.j.quantity&&ev.j.mealsCompleted+reserved<ev.j.targetMeals)ev.j.quantity++;}
       emit('WorkFault',[ev.j.owner,ev.p.id],ev.p.name+': испорчен выход — '+ACTIONS[ev.j.workId].title.toLowerCase()+'; материал и труд потрачены ('+faultSource(s,f)+')',s.people[ev.p.id].originSeq,{faultId:f.id,jobId:ev.j.id,workId:ev.j.workId,kind:f.kind,person:ev.p.id});
@@ -2368,7 +2373,7 @@ function сгенерироватьРод(сид) {
     const revisions=d?s.events.filter(ev=>ev.observed&&ev.day===d.day&&ev.people.includes(p.id)&&['WorkInterrupted','PlanDecision','WorkOrderSent','WorkOrderReceived','WorkReplanned','WorkRevisionWaiting','PlanLeadDecision','PlanLeadTransferred','PlanLeadWaiting','WorkFault'].includes(ev.type)).map(ev=>({seq:ev.seq,type:ev.type,text:ev.text})):null;
     return {economy:true,planning,revisions,demandBlocks,admission:admission(p,condition,IDS.bag),admissions:p.knownWorks.filter(id=>ACTIONS[id]).map(id=>admission(p,condition,id)),
       dailyDay:d?.day??null,daily,timeSpent:d?d.time:null,remainingTime:d?round(Math.max(0,p.capacity-d.time)):null,
-      stock:{food:h.food.reduce((n,f)=>n+f.amount*f.nutrition,0),water:h.water,cloth:w.cloth,bags:w.bags,grain:e.grain,loose:e.loose,field:e.field,fuel:e.fuel,lost:e.fieldLost,spoiled:Object.values(e.spoiled||{}).reduce((n,x)=>n+x,0),capacity:w.bags*e.rules.bagCapacity},
+      stock:{food:h.food.reduce((n,f)=>n+f.amount*f.nutrition,0),water:h.water,cloth:w.cloth,bags:w.bags,grain:e.grain,loose:e.loose,field:e.field,fuel:e.fuel,lost:e.fieldLost,spoiled:Object.values(e.spoiled||{}).reduce((n,x)=>n+x,0),capacity:(w.bags*e.rules.bagCapacity+(w.spoiledBags||0)*e.rules.spoiledBagCapacity)},
       queue:w.jobs.map(j=>({id:j.id,title:ACTIONS[j.workId].title,workId:j.workId,quantity:j.quantity,completed:j.completed,inProgress:j.items.length>0,
         lastRun:j.day===s.day&&d?{day:j.day,status:j.status,reason:j.reason,workers:copy(j.workers)}:copy(previous?.queue?.find(old=>old.id===j.id)?.lastRun||null)}))};
   }
@@ -2474,16 +2479,54 @@ function сгенерироватьРод(сид) {
       }));
     }
   }
+  // 1Б (слово ГД 30.10): причины и частоты ошибок — у носителя-состояния
+  // колонка errorRate (ошибок в день на разрешённой работе, [О]); розыгрыш
+  // детерминированным хэшем, как зубные приступы. Сгенерированная ошибка —
+  // те же данные workFaults с пометкой generated; несработавшая за день
+  // (пешка не работала) снимается молча.
+  function generateFaults(s,unit){
+    s.workFaults=(s.workFaults||[]).filter(f=>!(f.generated&&!f.processed&&f.day<s.day));
+    for(const p of Object.values(s.people)){
+      if(!p.present||p.health<=0)continue;
+      for(const src of p.sources){
+        if(!(src.errorRate>0)||!(src.untilDay===null||src.untilDay>=s.day)||!Array.isArray(src.errorWorks))continue;
+        for(const workId of src.errorWorks){
+          if(!p.knownWorks.includes(workId))continue;
+          const key='fault-gen|'+s.seed+'|'+p.id+'|'+src.id+'|'+workId+'|'+s.day;
+          // Двойной хэш: одиночный FNV на соседних днях даёт слипшиеся значения.
+          const mix=k=>unit(unit(k).toFixed(12)+'|'+k);
+          if(mix(key)>=src.errorRate)continue;
+          const pick=mix(key+'|kind');
+          const kind=pick<1/3?'spoil-input':pick<2/3?'spoil-output':'abandon';
+          const f={id:'gen|'+p.id+'|'+src.id+'|'+workId+'|'+s.day,person:p.id,sourceId:src.id,workId,day:s.day,kind,processed:false,generated:true};
+          if(kind==='abandon')f.at=0.05+mix(key+'|at')*0.35;
+          s.workFaults.push(f);
+        }
+      }
+    }
+  }
+  function carrier(s,f){
+    return s.people[f.person].sources.some(src=>(f.sourceId===undefined||src.id===f.sourceId)&&Array.isArray(src.errorWorks)&&src.errorWorks.includes(f.workId)&&(src.untilDay===null||src.untilDay>=f.day));
+  }
+  // Дневные ворота: необработанная ошибка этого дня без активного носителя —
+  // провал опыта, не тихий пропуск.
+  function faultGuard(s){
+    for(const f of s.workFaults||[])
+      if(!f.processed&&f.day===s.day&&!carrier(s,f))throw Error('Ошибка исполнения требует носителя-состояния');
+  }
   function validate(s) {
     if (!s.workParameters || !Number.isFinite(s.workParameters.bagEffort) || !Number.isInteger(s.workParameters.clothPerBag)) throw Error('Нет параметров шитья');
     if(!Array.isArray(s.workFaults))throw Error('Нет списка ошибок исполнения');
     const faultIds=new Set();
     for(const f of s.workFaults){
       const p=s.people[f.person];
-      if(typeof f.id!=='string'||!f.id||faultIds.has(f.id)||!p||!economy.ACTIONS[f.workId]||!Number.isInteger(f.day)||f.day<1||typeof f.processed!=='boolean')throw Error('Некорректная ошибка исполнения');faultIds.add(f.id);
+      if(typeof f.id!=='string'||!f.id||faultIds.has(f.id)||!p||!economy.ACTIONS[f.workId]||!Number.isInteger(f.day)||f.day<1||typeof f.processed!=='boolean'||f.generated!==undefined&&typeof f.generated!=='boolean')throw Error('Некорректная ошибка исполнения');faultIds.add(f.id);
       if(!['spoil-input','spoil-output','abandon'].includes(f.kind))throw Error('Ошибка исполнения без действительного результата');
+      if(f.sourceId!==undefined&&(typeof f.sourceId!=='string'||!f.sourceId))throw Error('Некорректный носитель ошибки исполнения');
       if(f.kind==='abandon'?!(Number.isFinite(f.at)&&f.at>0&&f.at<economy.WORK_END):f.at!==undefined)throw Error('Некорректный момент ошибки');
-      if(!p.sources.some(src=>Array.isArray(src.errorWorks)&&src.errorWorks.includes(f.workId)))throw Error('Ошибка исполнения требует носителя-состояния');
+      // Носитель может появиться позже (хронический недосып): требование
+      // проверяется к дню ошибки, будущая ошибка носителя заранее не требует.
+      if(!f.processed&&f.day<=s.day&&!carrier(s,f))throw Error('Ошибка исполнения требует носителя-состояния');
     }
     for(const p of Object.values(s.people)){
       for(const i of p.impairments||[])if(i.bansWorks.some(id=>!economy.ACTIONS[id]))throw Error('Запрет последствия на неизвестное действие');
@@ -2577,7 +2620,7 @@ function сгенерироватьРод(сид) {
           : copy(previous?.queue?.find(old => old.id === j.id)?.lastRun || null)}))};
   }
   function householdDay(s,hid,ledger,condition,emit,reaction){if(s.households[hid].work?.economy)economy.day(s,hid,ledger,condition,emit,admission,reaction);}
-  return {ID, TITLE, MINIMUM, DEFAULTS, parameters, setup, validate, admission, day, householdDay, project, actions:economy.ACTIONS,clockScale:economy.CLOCK_SCALE,mealAt:economy.MEAL_AT,canPlan:economy.canPlan};
+  return {ID, TITLE, MINIMUM, DEFAULTS, parameters, setup, validate, faultGuard, generateFaults, admission, day, householdDay, project, actions:economy.ACTIONS,clockScale:economy.CLOCK_SCALE,mealAt:economy.MEAL_AT,canPlan:economy.canPlan};
 });
 /* Контент первого медицинского случая; все числа — параметры опыта. */
 (function(root,factory){
@@ -2624,7 +2667,7 @@ function сгенерироватьРод(сид) {
   const DEFAULTS=Object.freeze({growth:0.02,lossScale:0.035,careEffect:0.01,
     cleanEffect:0.07,herbEffect:0.01,crisisSeverity:0.8,manifestDays:10,crisisDays:2,
     deathShare:0.12,examTime:0.08,treatmentTime:0.08,waterCost:0.15,
-    immunityRate:0.05,nutritionWeight:0.12,nutritionReference:0.75,burdenWeight:0.12,
+    immunityRate:0.05,nutritionWeight:0.12,nutritionReference:0.75,burdenWeight:0.12,sleepWeight:0.1,
     resistanceGain:0.1,recognition:0.3,memorySize:8,learningThreshold:3});
   const PACKS=content.packs,CAUSES=content.causes;
   function unit(key){let n=2166136261;for(const c of key)n=Math.imul(n^c.charCodeAt(0),16777619)>>>0;return n/4294967296;}
@@ -2705,7 +2748,9 @@ function сгенерироватьРод(сид) {
     const burden=input.hungerStrength+input.thirstStrength;
     // 12 §3 / 07 §5а: качество фактически съеденного, без второго множителя количества.
     const useful=clamp(input.quality,0,1);
-    const target=clamp(m.baseImmunity-p.burdenWeight*burden+p.nutritionWeight*(useful-p.nutritionReference)+(input.warm?0.02:0)-0.05*person.illnesses.filter(i=>i.phase!=='outcome').length,0.1,1);
+    // 17-А §10а: хронический недосып — член вниз в цели иммунитета (та же единая
+    // точка входа в болезни, REQ-D-003); в здоровье напрямую не лезет.
+    const target=clamp(m.baseImmunity-p.burdenWeight*burden+p.nutritionWeight*(useful-p.nutritionReference)+(input.warm?0.02:0)-p.sleepWeight*(input.sleepChronic?1:0)-0.05*person.illnesses.filter(i=>i.phase!=='outcome').length,0.1,1);
     m.immunity=round(clamp(m.immunity+(target-m.immunity)*p.immunityRate,0,1));
     const changes=[];
     for(const i of person.illnesses){
@@ -2875,7 +2920,7 @@ function сгенерироватьРод(сид) {
   else root.NovgorBody = api;
 })(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work,hearing,replanning,leadership,rations) {
   'use strict';
-  const VERSION = 16;
+  const VERSION = 17;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -2887,7 +2932,22 @@ function сгенерироватьРод(сид) {
     hungerWorkPenalty: 0.2, thirstWorkPenalty: 0.2, workFloor: 0.2,nutritionNorm:1,
     // Сон (17-А §10а): все числа — условия опыта, не баланс.
     sleepGainBase: 1, sleepReliefPartial: 0.5,
-    sleepDropThreshold: 2, sleepRest: 0.3,
+    sleepDropThreshold: 2, sleepRest: 0.3, sleepChronicThreshold: 4,
+    sleepBlackoutThreshold: 8, sleepBlackoutRest: 0.5,
+    // 6.8 старение (17-А §13б-в): годовой шанс падения ступени с возраста
+    // старта; личный разброс — детерминированный хэш, без общего «дряхления».
+    sleepErrorRate: 0.15,
+    visionDeclineAge: 45, visionDeclineSpan: 40,
+    hearingDeclineAge: 50, hearingDeclineSpan: 40,
+    mindDeclineAge: 60, mindDeclineSpan: 25, mindErrorRate: 0.05,
+    mindSevereAge: 70, mindSevereSpan: 20,
+    // «У иных тает» (слово ГД 30.10): терминал — редкость, не у каждого старца.
+    // Предрасположенность — детерминированный хэш пешки, без поля в сейве.
+    blindShare: 0.12, deafShare: 0.1, mindGoneShare: 0.08,
+    // 17-А §10б грязь тела: накопитель от дней и грязных работ; бани нет —
+    // моется у реки, время из бюджета суток. Ворота вошки и кожных хворей,
+    // зимняя цена реки — заявки (ждут болезней и состояния холода).
+    dirtGainBase: 1, dirtGainWork: 1, dirtThreshold: 7, washTime: 0.1,
     // Тяжесть труда (DEC-80-01): ступени спроса назавтра и предел желудка.
     // Числа — условия опыта, не баланс.
     strainDemand: {light: 0.9, normal: 1, heavy: 1.6},
@@ -2951,12 +3011,13 @@ function сгенерироватьРод(сид) {
       people: {}, households: copy(spec.households), observer: copy(spec.observer || {household: 'А', present: true}),
       observations: {}, events: [], nextSeq: 1, appliedImpacts: [], lastLedger: null,careCalls:copy(spec.careCalls||[]),workIncidents:copy(spec.workIncidents||[]),workFaults:copy(spec.workFaults||[])};
     if (!Number.isInteger(s.day) || s.day < 0) throw new Error('Некорректный день');
+    for(const h of Object.values(s.households))h.sleepSpots=h.sleepSpots??null;
     for (const raw of spec.people) {
       if (s.people[raw.id]) throw new Error('Повтор жителя');
       const knownAge=raw.ageYears!==undefined||raw.birthDate;
       const p = {...copy(raw), health: raw.health ?? 1, cap: raw.cap ?? 1, ageFactor: raw.ageFactor ?? (knownAge?null:1),
         marks: copy(raw.marks || []), impairments: copy(raw.impairments || []),
-        sleepDebt: raw.sleepDebt ?? 0, sleepEpisode: raw.sleepEpisode ?? false, strainYesterday: raw.strainYesterday ?? 'normal',
+        sleepDebt: raw.sleepDebt ?? 0, sleepEpisode: raw.sleepEpisode ?? false, strainYesterday: raw.strainYesterday ?? 'normal', dirt: raw.dirt ?? 0,
         foodDemand: raw.foodDemand ?? (knownAge?null:1), waterDemand: raw.waterDemand ?? (knownAge?null:1), maxTexture: raw.maxTexture ?? 3,
         capacity: raw.capacity ?? 1, present: raw.present !== false, careEligible: raw.careEligible === true,
         canLift: raw.canLift !== false, cleans: raw.cleans !== false, knows: copy(raw.knows || []),
@@ -2991,6 +3052,7 @@ function сгенерироватьРод(сид) {
     for (const [id, h] of Object.entries(s.households)) {
       positive(h.water, 'water', true); positive(h.waste, 'waste', true); positive(h.pot.amount, 'pot.amount', true); positive(h.pot.capacity, 'pot.capacity');
       if (h.pot.amount > h.pot.capacity || !Array.isArray(h.careOrder)) throw new Error('Некорректный быт двора ' + id);
+      if(h.sleepSpots!==null&&(!Number.isInteger(h.sleepSpots)||h.sleepSpots<0))throw new Error('Некорректное число спальных мест двора ' + id);
       const ids = new Set();
       for (const f of h.food) {
         if (ids.has(f.id)) throw new Error('Повтор партии'); ids.add(f.id);
@@ -3009,6 +3071,7 @@ function сгенерироватьРод(сид) {
       if (p.cap > 1 || p.health > p.cap || p.capacity > 1) throw new Error('Здоровье или время вне диапазона');
       validatePersonAftermath(p);
       if(!Number.isFinite(p.sleepDebt)||p.sleepDebt<0||typeof p.sleepEpisode!=='boolean')throw new Error('Некорректный долг сна');
+      if(!Number.isFinite(p.dirt)||p.dirt<0)throw new Error('Некорректная грязь тела');
       if(!['light','normal','heavy'].includes(p.strainYesterday))throw new Error('Некорректная ступень вчерашнего дня');
       for (const key of ['ageFactor', 'foodDemand', 'waterDemand']) if(p[key]!==null)positive(p[key], key,key==='ageFactor');
       if(!Number.isInteger(p.maxTexture)||p.maxTexture<0||p.maxTexture>3)throw Error('Некорректный допуск пищи');
@@ -3025,6 +3088,7 @@ function сгенерироватьРод(сид) {
           if(x.aftermathApplied!==undefined&&typeof x.aftermathApplied!=='boolean')throw new Error('Некорректная пометка исхода');
         }
         if(x.preventsPlanning!==undefined&&typeof x.preventsPlanning!=='boolean')throw Error('Некорректное ограничение планирования');
+        if(x.errorRate!==undefined&&(!Number.isFinite(x.errorRate)||x.errorRate<0||x.errorRate>1))throw Error('Некорректная ставка ошибок носителя');
         if(x.observed?.mobility!==undefined&&(x.observed.mobility!=='cannotStand'||x.preventsStanding!==true||typeof x.id!=='string'||!x.id))throw Error('Некорректный наблюдаемый признак движения');
       }
     }
@@ -3207,6 +3271,63 @@ function сгенерироватьРод(сид) {
       if(a.mark)p.marks.push({id:x.id+'-mark',what:a.mark.what,from:a.mark.from||x.name,prominence:a.mark.prominence||'явная',day:s.day});
       p.originSeq=event(s,'LastingHarm',[p.id],p.name+': после заживления осталось — '+a.name+(a.mark?'; виден след: '+a.mark.what:''),p.originSeq,{person:p.id,impairment:a.name,bansWorks:copy(a.bansWorks||[]),mark:a.mark?copy(a.mark):null});
     }
+    // 6.8: возрастное угасание зрения и слуха — суточный тик по зубному
+    // паттерну: годовая вероятность (возраст−старт)/span размазана по дням,
+    // падение случается в любой день года; «капля» личная (хэш по пешке
+    // и дню), дряхлость многоголосая, общего числа дряхления нет.
+    const SENSE_DOWN={vision:{normal:'weak',weak:'severe',severe:'blind'},hearing:{normal:'weak',weak:'severe',severe:'deaf'}};
+    const SENSE_TEXT={vision:{weak:'стало хуже видеть — мелкое расплывается',severe:'зрение сильно ослабло — только крупное и вблизи',blind:'зрение ушло'},
+      hearing:{weak:'слух ослаб — переспрашивает',severe:'слух сильно ослаб — только громкое рядом',deaf:'слух ушёл'}};
+    for(const p of Object.values(s.people)){
+      if(!p.present||p.health<=0)continue;
+      const n=life.age(s,p);
+      if(n===null)continue;
+      for(const [sense,cfg] of [['vision',{age:s.parameters.visionDeclineAge,span:s.parameters.visionDeclineSpan,event:'VisionDecline'}],
+                                ['hearing',{age:s.parameters.hearingDeclineAge,span:s.parameters.hearingDeclineSpan,event:'HearingDecline'}]]){
+        const level=p[sense],next=level?SENSE_DOWN[sense][level]:undefined;
+        if(!next||n<cfg.age)continue;
+        // Полная слепота и глухота — не у каждого старца: терминальная ступень
+        // доступна лишь предрасположенной доле (личный хэш), у прочих угасание
+        // останавливается ступенью выше навсегда.
+        const terminal=sense==='vision'?'blind':'deaf';
+        const share=sense==='vision'?s.parameters.blindShare:s.parameters.deafShare;
+        const prone=medical.unit('prone|'+s.seed+'|'+p.id+'|'+sense)<share;
+        if(next===terminal&&!prone)continue;
+        const annual=Math.min(1,(n-cfg.age)/cfg.span);
+        const daily=1-Math.exp(-annual/life.yearDays(life.calendar(s)));
+        if(medical.unit(sense+'-decline|'+s.seed+'|'+p.id+'|'+s.day)<daily){
+          p[sense]=next;
+          p.originSeq=event(s,cfg.event,[p.id],p.name+': '+SENSE_TEXT[sense][next],p.originSeq,{person:p.id,level:next,ageYears:n});
+        }
+      }
+    }
+    // 6.8 рассудок (17-А §13д): у иных тает к старости. Две ступени тем же
+    // суточным тиком: «слабеет умом» — носитель со ставкой ошибок рук
+    // (брак растёт, солит дважды); «из ума выжил» — редкая крайность,
+    // своих решений больше нет (готовый запрет планирования). Назад
+    // не возвращается. Источник вреда нулевой — здоровье не трогает.
+    for(const p of Object.values(s.people)){
+      if(!p.present||p.health<=0)continue;
+      const n=life.age(s,p);
+      if(n===null)continue;
+      const mix=k=>medical.unit(medical.unit(k).toFixed(12)+'|'+k);
+      const mind=p.sources.find(x=>x.id==='mind-aging');
+      if(!mind&&n>=s.parameters.mindDeclineAge){
+        const annual=Math.min(1,(n-s.parameters.mindDeclineAge)/s.parameters.mindDeclineSpan);
+        if(mix('mind-decline|'+s.seed+'|'+p.id+'|'+s.day)<1-Math.exp(-annual/life.yearDays(life.calendar(s)))){
+          p.sources.push({id:'mind-aging',name:'слабеющий от старости рассудок',loss:0,mode:'deduct',pain:0,preventsPlanning:false,
+            errorRate:s.parameters.mindErrorRate,errorWorks:p.knownWorks.filter(id=>work.actions[id]?.hands),untilDay:null});
+          p.originSeq=event(s,'MindFades',[p.id],p.name+': память и руки слабеют — солит дважды, путается в знакомом деле',p.originSeq,{person:p.id,ageYears:n});
+        }
+      }else if(mind&&!mind.preventsPlanning&&n>=s.parameters.mindSevereAge
+               &&medical.unit('prone|'+s.seed+'|'+p.id+'|mind')<s.parameters.mindGoneShare){
+        const annual=Math.min(1,(n-s.parameters.mindSevereAge)/s.parameters.mindSevereSpan);
+        if(mix('mind-severe|'+s.seed+'|'+p.id+'|'+s.day)<1-Math.exp(-annual/life.yearDays(life.calendar(s)))){
+          mind.preventsPlanning=true;
+          p.originSeq=event(s,'MindGone',[p.id],p.name+': из ума выжил — своих решений больше нет, за него думает двор',p.originSeq,{person:p.id,ageYears:n});
+        }
+      }
+    }
     for(const p of Object.values(s.people))for(const change of dental.advance(s,p,medical.unit)){
       const ep=p.dental.episode;
       const seq=event(s,change.type,[p.id],p.name+': '+change.text,ep.originSeq||p.originSeq);
@@ -3221,6 +3342,19 @@ function сгенерироватьРод(сид) {
     // стона избы снимает начисто, рваный или холодный — не до дна. Глухая
     // спит крепко: стон её не рвёт. В здоровье долг не лезет; порог даёт
     // поведение «валится с ног» ниже. SleepShort — одно на непрерывный
+    // 17-А §10а «на своём месте»: спальные места — счёт двора (null — не
+    // моделируются). Места занимают сначала лежачие, затем порядок двора,
+    // остальные по id; хвост спит где придётся [не закреплено]. Кроватей
+    // как вещей нет — только число мест.
+    const noPlace={};
+    for(const [hid,h] of Object.entries(s.households)){
+      if(h.sleepSpots===null)continue;
+      const folks=Object.values(s.people).filter(q=>q.household===hid&&q.present&&q.health>0);
+      const order=h.work?.order||[];
+      const rank=q=>{const c=condition(s,q);const i=order.indexOf(q.id);return [c.bed?0:1,i===-1?order.length:i,q.id];};
+      folks.sort((a,b)=>{const ra=rank(a),rb=rank(b);return ra[0]-rb[0]||ra[1]-rb[1]||(ra[2]<rb[2]?-1:ra[2]>rb[2]?1:0);});
+      noPlace[hid]=new Set(folks.slice(h.sleepSpots).map(q=>q.id));
+    }
     // эпизод рваных ночей (признак p.sleepEpisode), полный сон сбрасывает.
     for (const p of Object.values(s.people)) {
       if (!p.present || p.health <= 0) continue;
@@ -3229,16 +3363,49 @@ function сгенерироватьРод(сид) {
       p.sleepDebt=round(p.sleepDebt+k2.sleepGainBase);
       const ownPain=condition(s,p).pain>=2;
       const moan=ownPain||(p.hearing!=='deaf'&&Object.values(s.people).some(q=>q.id!==p.id&&q.household===p.household&&q.present&&q.health>0&&condition(s,q).pain>=2));
-      const full=h.warm&&!moan;
+      const placeless=!!noPlace[p.household]?.has(p.id);
+      const full=h.warm&&!moan&&!placeless;
       const before=p.sleepDebt;
       p.sleepDebt=full?0:round(Math.max(0,p.sleepDebt-k2.sleepReliefPartial));
       if(full){p.sleepEpisode=false;}
       else if(before>0&&p.sleepDebt>0&&!p.sleepEpisode){
         p.sleepEpisode=true;
-        const why=moan?(ownPain?'боль не даёт спать':'стон в избе рвёт сон'):'в избе холодно';
-        p.originSeq=event(s,'SleepShort',[p.id],p.name+': '+why+'; недоснятое копится',p.originSeq,{person:p.id,reason:moan?(ownPain?'pain':'moan'):'cold'});
+        const why=moan?(ownPain?'боль не даёт спать':'стон в избе рвёт сон'):!h.warm?'в избе холодно':'нет своего места — спит где придётся';
+        p.originSeq=event(s,'SleepShort',[p.id],p.name+': '+why+'; недоснятое копится',p.originSeq,{person:p.id,reason:moan?(ownPain?'pain':'moan'):!h.warm?'cold':'place'});
+      }
+      // 17-А §10б: грязь тела — от прожитого дня и грязных работ (разметка
+      // dirty в реестре — стендовая [П]); лежачего моет полный уход (§7б,
+      // hygiene уже снимает нужду — грязь присоединяется там же ниже).
+      p.dirt=round(p.dirt+k2.dirtGainBase+(p.last?.production||[]).reduce((n,r)=>n+(work.actions[r.workId]?.dirty?k2.dirtGainWork*r.time:0),0));
+      // 17-А §10а: хронический недосып (после порога) — носитель права на ошибки
+      // рук (брак по данным workFaults, вероятности не вводятся) и член вниз
+      // в цели иммунитета; в здоровье напрямую не лезет (loss 0, не глушит).
+      const chronicActive=p.sources.find(x=>x.id==='sleep-chronic'&&(x.untilDay===null||x.untilDay>=s.day));
+      if(p.sleepDebt>=k2.sleepChronicThreshold-1e-10&&!chronicActive){
+        p.sources.push({id:'sleep-chronic',name:'хронический недосып',loss:0,mode:'deduct',pain:0,preventsPlanning:false,
+          errorRate:k2.sleepErrorRate,errorWorks:p.knownWorks.filter(id=>work.actions[id]?.hands),untilDay:null});
+        p.originSeq=event(s,'SleepChronic',[p.id],p.name+': ночи без сна копятся — руки начинают ошибаться',p.originSeq,{person:p.id});
+      }else if(p.sleepDebt<k2.sleepChronicThreshold-1e-10&&chronicActive){
+        chronicActive.untilDay=s.day-1;
+        p.originSeq=event(s,'SleepRecovered',[p.id],p.name+': долг сна снят — руки снова верные',p.originSeq,{person:p.id});
+      }
+      // Третья ступень (слово ГД 30.10, референс «вырубает» при пустой шкале):
+      // отключается посреди дня и сам решений не принимает — готовый канал
+      // запрета планирования; смерти от бессонницы нет.
+      const carrier=p.sources.find(x=>x.id==='sleep-chronic'&&(x.untilDay===null||x.untilDay>=s.day));
+      if(carrier){
+        const blackout=p.sleepDebt>=k2.sleepBlackoutThreshold-1e-10;
+        if(blackout&&!carrier.preventsPlanning){
+          carrier.preventsPlanning=true;
+          p.originSeq=event(s,'SleepBlackout',[p.id],p.name+': проваливается в сон среди дня; сам уже не решает — за него думает двор',p.originSeq,{person:p.id});
+        }else if(!blackout&&carrier.preventsPlanning){
+          carrier.preventsPlanning=false;
+          p.originSeq=event(s,'SleepBlackoutEnd',[p.id],p.name+': сон вернулся — голова прояснилась',p.originSeq,{person:p.id});
+        }
       }
     }
+    work.generateFaults(s,medical.unit);
+    work.faultGuard(s);
     const ledger = {day: s.day, households: {}, people: {}};
     for (const p of Object.values(s.people)) {
       if (!p.present || p.health <= 0) continue;
@@ -3257,8 +3424,15 @@ function сгенерироватьРод(сид) {
         fullCare: false, beforeBand: band(p), beforeBed:previousConditions[p.id].bed};
       // «Валится с ног»: по порогу долга пешка сама уходит спать раньше —
       // часть дня занята отдыхом как уже прожитое время, не штраф здоровью.
+      // По порогу грязи пешка просится мыться; бани нет — у реки, время своё.
+      if(p.dirt>=s.parameters.dirtThreshold-1e-10&&c.alive&&!c.bed){
+        d.washTaken=round(Math.min(p.capacity-d.time,s.parameters.washTime));
+        if(d.washTaken>0){d.time=round(d.time+d.washTaken);p.dirt=0;
+          p.originSeq=event(s,'Washed',[p.id],p.name+': отмылся у реки — бани во дворе нет',p.originSeq,{person:p.id});}
+      }
       if(p.sleepDebt>=s.parameters.sleepDropThreshold-1e-10&&c.alive&&!c.bed){
-        d.restTaken=round(Math.min(p.capacity,s.parameters.sleepRest));d.time=d.restTaken;
+        const rest=p.sleepDebt>=s.parameters.sleepBlackoutThreshold-1e-10?s.parameters.sleepBlackoutRest:s.parameters.sleepRest;
+        d.restTaken=round(Math.min(Math.max(0,p.capacity-d.time),rest));d.time=round(d.time+d.restTaken);
         if(p.sleepCollapseDay!==s.day-1&&p.sleepCollapseDay!==s.day)p.originSeq=event(s,'SleepCollapse',[p.id],p.name+': валится с ног — бросает дела и уходит спать раньше',p.originSeq,{person:p.id});
         p.sleepCollapseDay=s.day;
       }
@@ -3332,10 +3506,13 @@ function сгенерироватьРод(сид) {
           const turned = performCare(s, p, 'turn', ledger.people, reasons);
           // The household pot is shared: once emptied, other patients do not pay again.
           let clean = h.pot.amount === 0;
-          if(clean)d.careTasks.hygiene={status:'not-needed',reason:''};
-          else if(!h.wasteDestination)d.careTasks.hygiene={status:'missing',reason:'не назначено место выноса'};
-          if (!clean && h.wasteDestination && performCare(s, p, 'hygiene', ledger.people, reasons)) {
+          const needsWash=p.dirt>=k.dirtThreshold-1e-10;
+          if(clean&&!needsWash)d.careTasks.hygiene={status:'not-needed',reason:''};
+          else if(!clean&&!h.wasteDestination)d.careTasks.hygiene={status:'missing',reason:'не назначено место выноса'};
+          if ((!clean||needsWash) && (clean||h.wasteDestination) && performCare(s, p, 'hygiene', ledger.people, reasons)) {
             ledger.households[hid].wasteRemoved += h.pot.amount; h.waste += h.pot.amount; h.pot.amount = 0; clean = true;
+            p.dirt=0;
+            if(needsWash)p.originSeq=event(s,'Washed',[p.id],p.name+': больного обмыли при уходе',p.originSeq,{person:p.id,helper:d.care.find(x=>x.task==='hygiene').helper});
             // Hygiene is a day task: after emptying a blocked pot, finish the patient's backlog.
             if (h.pot.accessible) {
               while (p.need >= k.needThreshold - 1e-10) {
@@ -3346,9 +3523,10 @@ function сгенерироватьРод(сид) {
               }
             }
           }
-          d.fullCare = foodRatio >= 1 - 1e-10 && waterRatio >= 1 - 1e-10 && warm && turned && clean && p.need < k.needThreshold - 1e-10;
+          d.fullCare = foodRatio >= 1 - 1e-10 && waterRatio >= 1 - 1e-10 && warm && turned && clean && p.dirt < k.dirtThreshold-1e-10 && p.need < k.needThreshold - 1e-10;
           if (!h.warm) reasons.add('у постели холодно');
           if (!clean) reasons.add(h.wasteDestination ? 'за больным не вынесли' : 'не назначено место выноса');
+          if (p.dirt>=k.dirtThreshold-1e-10) reasons.add('больного не обмыли');
           if (p.need >= k.needThreshold - 1e-10) reasons.add('не удалось помочь справить нужду');
           if (d.foodReason) reasons.add(d.foodReason); if (d.waterReason) reasons.add(d.waterReason);
           for(const [task,ratio,reason] of [['feed',foodRatio,d.foodReason],['drink',waterRatio,d.waterReason]]) {
@@ -3366,7 +3544,7 @@ function сгенерироватьРод(сид) {
         p.thirst = round(Math.max(0, p.thirst + (waterRatio < 1 - 1e-10 ? 1 - waterRatio : -k.thirstRecovery)));
         p.slowHunger = round(Math.max(0, p.slowHunger + 1 - 3 * clamp(quality / k.nutritionNorm, 0, 1)));
         const oldSigns=medical.visible(p).map(x=>x.text).sort();
-        const phaseChanges=medical.advance(p,s.day,{foodRatio,quality,hungerStrength:clamp(p.hunger/k.hungerThreshold,0,1),thirstStrength:clamp(p.thirst/k.thirstThreshold,0,1),fullCare:d.fullCare,warm:h.warm},s.medicalParameters,s.seed);
+        const phaseChanges=medical.advance(p,s.day,{foodRatio,quality,hungerStrength:clamp(p.hunger/k.hungerThreshold,0,1),thirstStrength:clamp(p.thirst/k.thirstThreshold,0,1),fullCare:d.fullCare,warm:h.warm,sleepChronic:p.sources.some(x=>x.id==='sleep-chronic'&&(x.untilDay===null||x.untilDay>=s.day))},s.medicalParameters,s.seed);
         for(const change of phaseChanges){const illness=p.illnesses.find(x=>x.id===change.illnessId);
           illness.transitionSeq=event(s,'IllnessCourse',[p.id],'Переход болезни: '+change.to,illness.transitionSeq||illness.originSeq,{...copy(change),severity:illness.severity,cause:illness.cause},false);}
         const newSigns=medical.visible(p).map(x=>x.text).sort();
@@ -3457,6 +3635,10 @@ function сгенерироватьРод(сид) {
         injuries:p.sources.filter(x=>x.observed).map(x=>({...copy(x.observed),active:x.untilDay===null||x.untilDay>=s.day})),
         marks:copy(p.marks),impairments:p.impairments.map(i=>({name:i.name,bansWorks:copy(i.bansWorks)})),
         sleepSign:p.sleepDebt>=s.parameters.sleepDropThreshold-1e-10?'валится с ног':null,
+        dirtSign:p.dirt>=s.parameters.dirtThreshold-1e-10?'чешется, просится мыться':null,
+        mindSign:(()=>{const m=p.sources.find(x=>x.id==='mind-aging');return m?(m.preventsPlanning?'из ума выжил':'память слабеет, путается'):null;})(),
+        sleepChronicSign:(()=>{const src=p.sources.find(x=>x.id==='sleep-chronic'&&(x.untilDay===null||x.untilDay>=s.day));
+          return src?(src.preventsPlanning?'засыпает на ходу, путается':'не высыпается ночь за ночью'):null;})(),
         medicine:{...medical.project(p,s.day,s.events),reason:d?.medicalReason||''},
         needs:c.alive?{hunger:tracked('hunger',needLevel(p.hunger,s.parameters.hungerThreshold)),
           thirst:tracked('thirst',needLevel(p.thirst,s.parameters.thirstThreshold)),
@@ -3526,7 +3708,7 @@ function сгенерироватьРод(сид) {
     if(s.version===12){s.version=13;s.workFaults=[];for(const h of Object.values(s.households))if(h.work?.economy)h.work.economy.spoiled={};}
     if(s.version===13){s.version=14;for(const p of Object.values(s.people)){p.marks=[];p.impairments=[];}}
     if(s.version===14){s.version=15;s.parameters=parameters(s.parameters);for(const p of Object.values(s.people)){p.sleepDebt=0;p.sleepEpisode=false;}}
-    if(s.version===15){s.version=VERSION;s.parameters=parameters(s.parameters);
+    if(s.version===15){s.version=16;s.parameters=parameters(s.parameters);
       // Ступень восстанавливается из сохранённого итога дня, не выдумывается.
       for(const p of Object.values(s.people)){
         const d=p.last,byStrain={light:0,normal:0,heavy:0};
@@ -3534,6 +3716,14 @@ function сгенерироватьРод(сид) {
         const other=Math.max(0,(d?.time||0)-byStrain.light-byStrain.normal-byStrain.heavy);
         p.strainYesterday=byStrain.heavy>(d?.time||0)/2+1e-10?'heavy':byStrain.light>1e-10&&(byStrain.normal+byStrain.heavy+other)<=1e-10?'light':'normal';
       }}
+    // Недосып до v17 не имел хронического порога: источник появится сам при
+    // первом расчёте, прошлые дни не пересчитываются.
+    if(s.version===16){s.version=VERSION;s.parameters=parameters(s.parameters);s.medicalParameters=medical.params(s.medicalParameters);
+      // В v16 ещё не было вместимости бракованной тары: восстановить все
+      // параметры хозяйства до первого допуска и расчёта вместимости.
+      work.setup(s);
+      for(const h of Object.values(s.households))h.sleepSpots=h.sleepSpots??null;
+      for(const p of Object.values(s.people))p.dirt=p.dirt??0;}
     if(s.parameters.sleepGainPerWork!==undefined){delete s.parameters.sleepGainPerWork;s.parameters=parameters(s.parameters);}
     validate(s);
     if(Object.values(s.observations).some(o=>!('needs' in o)||!('intake' in o)||o.care&&!Array.isArray(o.care.items))) {
@@ -3562,11 +3752,11 @@ function сгенерироватьРод(сид) {
   const leadershipKinds=['leadContinue','leadHandover','leadNoSuccessor','leadOrderLost','leadOwnerDecides'];
   const workErrorKinds=['errSpoilInput','errSpoilOutput','errAbandon'];
   const maimKinds=['maimBan','maimClean'];
-  const sleepKinds=['sleepWarm','sleepCold','sleepMoan'];
+  const sleepKinds=['sleepWarm','sleepCold','sleepMoan','sleepChronicError','sleepChronicCalm'];
   const strainKinds=['strainPorridgeNormal','strainPorridgeHeavy','strainKashaHeavy','strainLight','strainSpiral','strainBalanced','strainFair'];
   Object.assign(labels,{strainBalanced:'Рацион: плотность и полезность',strainFair:'Рацион: общий недостаток'});
   Object.assign(labels,{strainPorridgeNormal:'Тяжесть: обычный день на похлёбке',strainPorridgeHeavy:'Тяжесть: рубка на похлёбке',strainKashaHeavy:'Тяжесть: рубка на каше',strainLight:'Тяжесть: лёгкий день шитья',strainSpiral:'Тяжесть: истощение гасит спираль'});
-  Object.assign(labels,{sleepWarm:'Сон: тёплая изба',sleepCold:'Сон: холодная изба',sleepMoan:'Сон: стон в избе'});
+  Object.assign(labels,{sleepWarm:'Сон: тёплая изба',sleepCold:'Сон: холодная изба',sleepMoan:'Сон: стон в избе',sleepChronicError:'Недосып: брак рук на холодных ночах',sleepChronicCalm:'Недосып: тёплые ночи — брак невозможен'});
   Object.assign(labels,{maimBan:'Увечье: запрет после заживления',maimClean:'Заживление без последствия'});
   Object.assign(labels,{errSpoilInput:'Ошибка: испорчен вход',errSpoilOutput:'Ошибка: испорчен выход',errAbandon:'Ошибка: оставленное дело'});
   Object.assign(labels,{leadContinue:'План: обычное продолжение между днями',leadHandover:'План: передача ведения преемнику',leadNoSuccessor:'План: нет годного преемника',leadOrderLost:'План: поручение о передаче не дошло',leadOwnerDecides:'План: лежачий носитель решения передаёт'});
@@ -3794,15 +3984,23 @@ function сгенерироватьРод(сид) {
   // Числа — условия опыта; иммунитет-ворота и брак рук не вводятся.
   function sleepSpec(kind,names){
     const id=economy.IDS,ids=Object.values(id);
+    // 17-А §10а: хронический недосып — брак рук; ошибка задана данными workFaults,
+    // недосып лишь даёт ей носителя. В тёплом близнеце носителя нет — прогон падает.
+    const chronic=kind==='sleepChronicError'||kind==='sleepChronicCalm';
     const people=[
       {id:'p1',name:names.p1||'Истома',sex:'м',ageYears:38,household:'А',family:'семья-А',vision:'normal',hearing:'normal',knownWorks:[id.water,id.fuel],knows:[]},
-      {id:'p2',name:names.p2||'Милава',sex:'ж',ageYears:36,household:'А',family:'семья-А',vision:'normal',hearing:kind==='sleepMoan'?'deaf':'normal',knownWorks:[id.water,id.cook,id.heat],knows:[]}
+      {id:'p2',name:names.p2||'Милава',sex:'ж',ageYears:36,household:'А',family:'семья-А',vision:'normal',hearing:kind==='sleepMoan'?'deaf':'normal',knownWorks:chronic?[id.water,id.cook,id.heat,id.bag]:[id.water,id.cook,id.heat],knows:[]}
     ];
     if(kind==='sleepMoan')people.push({id:'p3',name:names.p3||'Нежата',sex:'м',ageYears:17,household:'А',family:'семья-А',vision:'normal',hearing:'normal',knownWorks:[],knows:[],
       sources:[{id:'night-pain',name:'сильная ночная боль — условие опыта',loss:0,mode:'deduct',pain:2,preventsStanding:false,untilDay:null,observed:{kind:'wound',title:'Ноющая рана',site:'бок',day:0,event:'ноет старая рана; по ночам стонет'}}]});
-    return {people,observer:{household:'А',present:true},households:{'А':{
-      food:[{id:'initial-meal',name:'каша',amount:80,nutrition:1,quality:1,texture:0}],water:2,waterClear:true,warm:kind!=='sleepCold',latrineAccessible:true,pot:{amount:0,capacity:10,accessible:true},wasteDestination:true,waste:0,careOrder:[],
-      work:{cloth:0,bags:1,needles:1,order:['p1','p2'],jobs:[],economy:{owners:Object.fromEntries(ids.map(key=>[key,'p1'])),field:0,loose:0,grain:0,fuel:4,wood:8,deadline:null,tools:{pot:1,axe:1},rules:{}}}
+    // Стартовый долг — условие опыта: жила в холодной избе до начала наблюдения.
+    if(kind==='sleepChronicError')people[1].sleepDebt=3.5;
+    const job=chronic?{id:'chronic-bag',workId:id.bag,owner:'p1',quantity:1,completed:0,items:[],nextItem:1,status:'pending',reason:'',day:null,workers:[],originSeq:null,source:'назначено до ошибки'}:null;
+    return {people,observer:{household:'А',present:true},
+      workFaults:chronic?[{id:'chronic-fault',person:'p2',workId:id.bag,day:1,kind:'spoil-input'}]:[],
+      households:{'А':{
+      food:[{id:'initial-meal',name:'каша',amount:80,nutrition:1,quality:1,texture:0}],water:chronic?30:2,waterClear:true,warm:kind!=='sleepCold'&&kind!=='sleepChronicError',latrineAccessible:true,pot:{amount:0,capacity:10,accessible:true},wasteDestination:true,waste:0,careOrder:[],
+      work:{cloth:chronic?2:0,bags:chronic?0:1,needles:1,order:['p1','p2'],jobs:job?[job]:[],economy:{owners:Object.fromEntries(ids.map(key=>[key,'p1'])),field:0,loose:0,grain:0,fuel:4,wood:8,deadline:null,tools:{pot:1,axe:1},rules:{}}}
     }}};
   }
   // Постоянные последствия увечий (17-А §13е, REQ-B-003, 6.7): исход травмы
@@ -3930,7 +4128,10 @@ function обновитьТело() {
       card.боль=o.pain;card.слёг=o.bed;
       card.зрение=NovgorVision.label(o.vision??null);
       card.слух=NovgorHearing.label(o.hearing??null);
-      card.состояния=[o.hunger&&{тип:"голод",сила_словами:o.hunger},o.thirst&&{тип:"жажда",сила_словами:o.thirst},o.sleepSign&&{тип:"сон",сила_словами:o.sleepSign}].filter(Boolean);
+      const sleepSign=o.sleepChronicSign||o.sleepSign;
+      card.состояния=[o.hunger&&{тип:"голод",сила_словами:o.hunger},o.thirst&&{тип:"жажда",сила_словами:o.thirst},
+        sleepSign&&{тип:"сон",сила_словами:sleepSign},o.mindSign&&{тип:"рассудок",сила_словами:o.mindSign},
+        o.dirtSign&&{тип:"грязь тела",сила_словами:o.dirtSign}].filter(Boolean);
       if(Array.isArray(o.marks)&&o.marks.length)card.отметины=o.marks.map(m=>m.what+' — '+m.from);
       card.признаки={на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
       card.телесная_сводка=o;
