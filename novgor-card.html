@@ -156,6 +156,7 @@ blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромк�
       <option value="maimBan">Увечье: запрет после заживления</option><option value="maimClean">Заживление без последствия</option>
       <option value="sleepWarm">Сон: тёплая изба</option><option value="sleepCold">Сон: холодная изба</option><option value="sleepMoan">Сон: стон в избе</option>
       <option value="strainBalanced">Рацион: плотность и полезность</option><option value="strainFair">Рацион: общий недостаток</option>
+      <option value="nutritionLight">Состав: после лёгкого дня</option><option value="nutritionNormal">Состав: после обычного дня</option><option value="nutritionHeavy">Состав: после тяжёлого дня</option><option value="nutritionMixed">Состав: тяжёлый день, улучшенная смесь</option>
       <option value="strainPorridgeNormal">Тяжесть: обычный день на похлёбке</option><option value="strainPorridgeHeavy">Тяжесть: рубка на похлёбке</option><option value="strainKashaHeavy">Тяжесть: рубка на каше</option><option value="strainLight">Тяжесть: лёгкий день шитья</option><option value="strainSpiral">Тяжесть: истощение гасит спираль</option>
       <option value="errSpoilInput">Ошибка: испорчен вход</option><option value="errSpoilOutput">Ошибка: испорчен выход</option><option value="errAbandon">Ошибка: оставленное дело</option>
       <option value="leadContinue">План: обычное продолжение между днями</option><option value="leadHandover">План: передача ведения преемнику</option><option value="leadNoSuccessor">План: нет годного преемника</option><option value="leadOrderLost">План: поручение о передаче не дошло</option><option value="leadOwnerDecides">План: лежачий носитель решения передаёт</option>
@@ -1584,7 +1585,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="da29e31e7b16ec66718f4a08f6fc04c62f9ba8407fd06f83958b2b8625bfd6e6">
+<script data-body-runtime="0e25b4efd04e28a93c348fe696b214c9d73769b61e4c4230602f6841e4597748">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -2920,7 +2921,7 @@ function сгенерироватьРод(сид) {
   else root.NovgorBody = api;
 })(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work,hearing,replanning,leadership,rations) {
   'use strict';
-  const VERSION = 17;
+  const VERSION = 18;
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -2951,6 +2952,9 @@ function сгенерироватьРод(сид) {
     // Тяжесть труда (DEC-80-01): ступени спроса назавтра и предел желудка.
     // Числа — условия опыта, не баланс.
     strainDemand: {light: 0.9, normal: 1, heavy: 1.6},
+    // DEC-80-02: множители прежней нормы состава по той же вчерашней ступени.
+    // Обычная ступень сохраняет прежний расчёт. Числа — условия опыта.
+    strainNutrition: {light: 0.9, normal: 1, heavy: 1.2},
     stomachVolume: 2
   });
   const copy = value => JSON.parse(JSON.stringify(value));
@@ -2962,13 +2966,16 @@ function сгенерироватьРод(сид) {
   }
   function parameters(options) {
     const p = {...DEFAULTS, ...copy(options || {}), careTime: {...DEFAULTS.careTime, ...(options?.careTime || {})},
-      strainDemand: {...DEFAULTS.strainDemand, ...(options?.strainDemand || {})}};
+      strainDemand: {...DEFAULTS.strainDemand, ...(options?.strainDemand || {})},
+      strainNutrition: {...DEFAULTS.strainNutrition, ...(options?.strainNutrition || {})}};
     for (const [key, value] of Object.entries(p)) {
-      if (key === 'careTime' || key === 'strainDemand') {for (const n of Object.values(value)) positive(n, key);}
+      if (key === 'careTime' || key === 'strainDemand' || key === 'strainNutrition') {for (const n of Object.values(value)) positive(n, key);}
       else positive(value, key, key!=='attentionTime'&&!key.endsWith('Threshold'));
     }
     if (p.bedThreshold >= 1 || p.workFloor > 1 || p.nutritionNorm<=0) throw new Error('Порог вне диапазона');
     if(!p.strainDemand||!['light','normal','heavy'].every(k2=>Number.isFinite(p.strainDemand[k2])&&p.strainDemand[k2]>0)||!Number.isFinite(p.stomachVolume)||p.stomachVolume<=1)throw new Error('Некорректные ступени спроса или предел желудка');
+    if(options?.strainNutrition!==undefined&&(!options.strainNutrition||typeof options.strainNutrition!=='object'||Array.isArray(options.strainNutrition)))throw new Error('Некорректные ступени состава');
+    if(p.strainNutrition.light>p.strainNutrition.normal||p.strainNutrition.normal>p.strainNutrition.heavy)throw new Error('Требование состава должно расти по ступеням');
     return p;
   }
   function event(s, type, people, text, parent = null, evidence = null, observable = true) {
@@ -3415,6 +3422,7 @@ function сгенерироватьРод(сид) {
       // от базовой возрастной нормы (желудок от работы не растёт).
       const strainK=s.parameters.strainDemand[p.strainYesterday];
       const d = {day:s.day, observed:visible(s,p),
+        strain:p.strainYesterday,nutritionNorm:k.nutritionNorm*k.strainNutrition[p.strainYesterday],
         baseFoodDemand:needs.foodDemand,stomach:round(s.parameters.stomachVolume*needs.foodDemand),volume:0,
         foodDemand:round(needs.foodDemand*strainK),waterDemand:round(needs.waterDemand*strainK),
         food: 0, water: 0, qualitySum: 0, foods: [], time: 0, helped: [], care: [], careTasks:{}, production:[],reservedCare:0,carePlan:{},careClock:0,workClock:0,sentCalls:[],receivedCalls:[],signalAttempts:[],attention:[],attentionBlocked:[],blockedContacts:[],
@@ -3540,9 +3548,15 @@ function сгенерироватьРод(сид) {
           : 'нет доступного туалета';
         d.careReasons = [...reasons];
         const quality = d.food > 0 ? d.qualitySum / d.food : 0;
+        d.nutritionCoverage=clamp(quality/d.nutritionNorm,0,1);
+        // Причина показывается при росте прежнего счёта, а не при любом
+        // неполном покрытии: 17-А §9а уже допускает поправку при покрытии > 1/3.
+        // Пустую выдачу объясняет foodReason; состав по ней не выдумывается.
+        d.nutritionReason=d.food>0&&d.nutritionCoverage<1/3-1e-10
+          ? 'скудный состав еды для '+({light:'вчерашнего лёгкого дня',normal:'вчерашнего обычного дня',heavy:'вчерашней тяжёлой работы'}[d.strain]) : '';
         p.hunger = round(Math.max(0, p.hunger + (foodRatio < 1 - 1e-10 ? 1 - foodRatio : -k.hungerRecovery)));
         p.thirst = round(Math.max(0, p.thirst + (waterRatio < 1 - 1e-10 ? 1 - waterRatio : -k.thirstRecovery)));
-        p.slowHunger = round(Math.max(0, p.slowHunger + 1 - 3 * clamp(quality / k.nutritionNorm, 0, 1)));
+        p.slowHunger = round(Math.max(0, p.slowHunger + 1 - 3 * d.nutritionCoverage));
         const oldSigns=medical.visible(p).map(x=>x.text).sort();
         const phaseChanges=medical.advance(p,s.day,{foodRatio,quality,hungerStrength:clamp(p.hunger/k.hungerThreshold,0,1),thirstStrength:clamp(p.thirst/k.thirstThreshold,0,1),fullCare:d.fullCare,warm:h.warm,sleepChronic:p.sources.some(x=>x.id==='sleep-chronic'&&(x.untilDay===null||x.untilDay>=s.day))},s.medicalParameters,s.seed);
         for(const change of phaseChanges){const illness=p.illnesses.find(x=>x.id===change.illnessId);
@@ -3565,10 +3579,11 @@ function сгенерироватьРод(сид) {
         const careSeq = changed(s, p, 'care', d.bedLongEnough && !d.fullCare ? d.careReasons.join('; ') : '', 'CareIncomplete', p.name + ': уход неполный — ' + d.careReasons.join('; '), p.originSeq);
         const foodSeq = changed(s, p, 'food', d.foodReason, 'FoodShortage', p.name + ': ' + d.foodReason, careSeq || p.originSeq);
         const waterSeq = changed(s, p, 'water', d.waterReason, 'WaterShortage', p.name + ': ' + d.waterReason, careSeq || p.originSeq);
-        const evidence = {loss, recovery, sources:copy(active), food:d.food, water:d.water, care:copy(d.care), reasons:copy(d.careReasons), causes:[careSeq,foodSeq,waterSeq].filter(Boolean)};
+        const nutritionSeq=changed(s,p,'nutrition',d.nutritionReason,'FoodComposition',p.name+': '+d.nutritionReason,foodSeq||p.originSeq);
+        const evidence = {loss, recovery, sources:copy(active), food:d.food, water:d.water, care:copy(d.care), reasons:copy(d.careReasons), causes:[careSeq,foodSeq,waterSeq,nutritionSeq].filter(Boolean)};
         const illnessSeq=p.illnesses.find(x=>x.outcome==='death')?.transitionSeq||p.medical.lastSignsSeq;
-        if (d.beforeBand !== band(p)) event(s, p.health === 0 ? 'Death' : 'HealthBand', [p.id], p.name + ': ' + band(p), waterSeq || foodSeq || careSeq || illnessSeq || p.originSeq, evidence);
-        if (d.beforeBed !== after.bed && p.health > 0) event(s, after.bed ? 'Bedridden' : 'GotUp', [p.id], p.name + (after.bed ? ': слёг' : ': встал'), waterSeq || foodSeq || careSeq || illnessSeq || p.originSeq, evidence);
+        if (d.beforeBand !== band(p)) event(s, p.health === 0 ? 'Death' : 'HealthBand', [p.id], p.name + ': ' + band(p), waterSeq || foodSeq || nutritionSeq || careSeq || illnessSeq || p.originSeq, evidence);
+        if (d.beforeBed !== after.bed && p.health > 0) event(s, after.bed ? 'Bedridden' : 'GotUp', [p.id], p.name + (after.bed ? ': слёг' : ': встал'), waterSeq || foodSeq || nutritionSeq || careSeq || illnessSeq || p.originSeq, evidence);
         changed(s, p, 'toilet', /нет доступного|недоступна/.test(d.toileting) ? d.toileting : '', 'ToiletingBlocked', p.name + ': ' + d.toileting, p.originSeq);
       }
       ledger.households[hid].foodAfter = sum(h.food.map(f => f.amount * f.nutrition));
@@ -3615,7 +3630,7 @@ function сгенерироватьРод(сид) {
       const intake=d?{day:d.day,
         // Наблюдаемая ступень спроса дня (DEC-80-01): множитель к личной норме.
         demandK:d.baseFoodDemand?round(d.foodDemand/d.baseFoodDemand):1,
-        food:{ratio:round(d.food/(d.foodDemand??p.foodDemand)),foods:d.foods.map(f=>({name:f.name,ratio:round(f.amount/(d.foodDemand??p.foodDemand))})),reason:d.foodReason},
+        food:{ratio:round(d.food/(d.foodDemand??p.foodDemand)),foods:d.foods.map(f=>({name:f.name,ratio:round(f.amount/(d.foodDemand??p.foodDemand))})),reason:d.foodReason,composition:d.nutritionReason??null},
         water:{ratio:round(d.water/(d.waterDemand??p.waterDemand)),reason:d.waterReason},
         toilet:{status:typeof d.toiletUsed!=='boolean'?'unknown':d.toiletPending?(d.toiletUsed?'partial':'blocked'):d.toiletUsed?'done':'not-needed',reason:d.toiletReason||''}}:null;
       const legacyCare=task=>{
@@ -3718,12 +3733,15 @@ function сгенерироватьРод(сид) {
       }}
     // Недосып до v17 не имел хронического порога: источник появится сам при
     // первом расчёте, прошлые дни не пересчитываются.
-    if(s.version===16){s.version=VERSION;s.parameters=parameters(s.parameters);s.medicalParameters=medical.params(s.medicalParameters);
+    if(s.version===16){s.version=17;s.parameters=parameters(s.parameters);s.medicalParameters=medical.params(s.medicalParameters);
       // В v16 ещё не было вместимости бракованной тары: восстановить все
       // параметры хозяйства до первого допуска и расчёта вместимости.
       work.setup(s);
       for(const h of Object.values(s.households))h.sleepSpots=h.sleepSpots??null;
       for(const p of Object.values(s.people))p.dirt=p.dirt??0;}
+    // DEC-80-02 действует со следующего расчёта: прежние выдача, счёт,
+    // наблюдения и события не пересчитываются. Скаляр nutritionNorm сохранён.
+    if(s.version===17){s.version=VERSION;s.parameters=parameters(s.parameters);}
     if(s.parameters.sleepGainPerWork!==undefined){delete s.parameters.sleepGainPerWork;s.parameters=parameters(s.parameters);}
     validate(s);
     if(Object.values(s.observations).some(o=>!('needs' in o)||!('intake' in o)||o.care&&!Array.isArray(o.care.items))) {
@@ -3754,6 +3772,8 @@ function сгенерироватьРод(сид) {
   const maimKinds=['maimBan','maimClean'];
   const sleepKinds=['sleepWarm','sleepCold','sleepMoan','sleepChronicError','sleepChronicCalm'];
   const strainKinds=['strainPorridgeNormal','strainPorridgeHeavy','strainKashaHeavy','strainLight','strainSpiral','strainBalanced','strainFair'];
+  const nutritionKinds=['nutritionLight','nutritionNormal','nutritionHeavy','nutritionMixed'];
+  Object.assign(labels,{nutritionLight:'Состав: после лёгкого дня',nutritionNormal:'Состав: после обычного дня',nutritionHeavy:'Состав: после тяжёлого дня',nutritionMixed:'Состав: тяжёлый день, улучшенная смесь'});
   Object.assign(labels,{strainBalanced:'Рацион: плотность и полезность',strainFair:'Рацион: общий недостаток'});
   Object.assign(labels,{strainPorridgeNormal:'Тяжесть: обычный день на похлёбке',strainPorridgeHeavy:'Тяжесть: рубка на похлёбке',strainKashaHeavy:'Тяжесть: рубка на каше',strainLight:'Тяжесть: лёгкий день шитья',strainSpiral:'Тяжесть: истощение гасит спираль'});
   Object.assign(labels,{sleepWarm:'Сон: тёплая изба',sleepCold:'Сон: холодная изба',sleepMoan:'Сон: стон в избе',sleepChronicError:'Недосып: брак рук на холодных ночах',sleepChronicCalm:'Недосып: тёплые ночи — брак невозможен'});
@@ -3777,6 +3797,7 @@ function сгенерироватьРод(сид) {
     if(maimKinds.includes(kind))return maimSpec(kind,names);
     if(sleepKinds.includes(kind))return sleepSpec(kind,names);
     if(strainKinds.includes(kind))return strainSpec(kind,names);
+    if(nutritionKinds.includes(kind))return nutritionSpec(kind,names);
     const spec = {
       observer: {household: 'А', present: true},
       people: [
@@ -3853,7 +3874,7 @@ function сгенерироватьРод(сид) {
     if(workErrorKinds.includes(kind)){const state=body.create(spec);state.workErrors={kind};return state;}
     if(maimKinds.includes(kind)){const state=body.create(spec);state.maim={kind};return state;}
     if(sleepKinds.includes(kind)){const state=body.create(spec);state.sleep={kind};return state;}
-    if(strainKinds.includes(kind)){const state=body.create(spec);state.strain={kind};return state;}
+    if(strainKinds.includes(kind)||nutritionKinds.includes(kind)){const state=body.create(spec);state.strain={kind};return state;}
     if(spec.careCalls&&options.callVolume)spec.careCalls[0].volume=options.callVolume;
     for(const p of spec.people)if(Object.hasOwn(options.hearings||{},p.id)&&!((Object.hasOwn(hearingLevels,kind)||speechKinds.includes(kind))&&p.id==='p2'))p.hearing=options.hearings[p.id];
     for(const p of spec.people)if(Object.hasOwn(options.visions||{},p.id)&&!kind.startsWith('sew')&&!(Object.hasOwn(visualCases,kind)&&p.id==='p2'))p.vision=options.visions[p.id];
@@ -3978,6 +3999,19 @@ function сгенерироватьРод(сид) {
         h.work.order=['p1','p9'];h.work.economy.owners=Object.fromEntries(ids.map(key=>[key,'p1']));
       }
     }
+    return spec;
+  }
+  // DEC-80-02: сравнивается первая выдача после заданного прошлого дня.
+  // Начальная ступень и полезность — условия опыта, не частоты и не баланс.
+  // Далее ступень меняется обычным расчётом; прошлый труд не повторяется сам.
+  function nutritionSpec(kind,names){
+    const spec=strainSpec('strainBalanced',names),h=spec.households['А'];
+    spec.people[0].strainYesterday=kind==='nutritionLight'?'light':kind==='nutritionNormal'?'normal':'heavy';
+    spec.people[0].slowHunger=4;h.work=null;
+    h.food=kind==='nutritionMixed'
+      ? [{id:'plain-meal',name:'каша без добавок',amount:40,nutrition:1,quality:.1,texture:0},
+        {id:'useful-meal',name:'рыба с зеленью',amount:1.3,nutrition:1,quality:1,texture:0}]
+      : [{id:'plain-meal',name:'каша без добавок',amount:40,nutrition:1,quality:.35,texture:0}];
     return spec;
   }
   // Сон (17-А §10а): накопитель, качество ночи, порог «валится с ног».
@@ -4260,7 +4294,8 @@ function нарисоватьБытТела(к) {
   const foods=o.intake?.food.foods||[];
   const demandK=o.intake?.demandK;
   const strainNote=demandK>1+1e-10?'<span class="body-note">Спрос выше обычного: накануне тяжёлый день</span>':demandK&&demandK<1-1e-10?'<span class="body-note">Спрос ниже обычного: накануне лёгкий день</span>':'';
-  row('food','Голод',state('hunger',['Нет','Недоедание','Сильный голод']),intake('food')+strainNote+(foods.length?'<span class="body-note">'+foods.map(f=>экр(f.name)+(foods.length>1?' · '+экр(percent(f.ratio)):'')).join('<br>')+'</span>':''));
+  const composition=o.intake?.food.composition;
+  row('food','Голод',state('hunger',['Нет','Недоедание','Сильный голод']),intake('food')+strainNote+(composition?'<span class="body-problem" data-food-composition>'+экр(composition)+'</span>':'')+(foods.length?'<span class="body-note">'+foods.map(f=>экр(f.name)+(foods.length>1?' · '+экр(percent(f.ratio)):'')).join('<br>')+'</span>':''));
   row('water','Жажда',state('thirst',['Нет','Жажда','Сильная жажда']),intake('water'));
   const toilet=o.intake?.toilet;
   row('toilet','Туалет',o.needs?({waiting:'Требуется туалет',clear:'Не требуется',unknown:'Нет сведений'}[o.needs.toilet]):'—',toilet?({done:'Справлена',partial:'Не полностью','not-needed':'Не требовалось',blocked:'Не справлена',unknown:'Нет сведений'}[toilet.status]+(toilet.reason?'<span class="body-problem">'+экр(toilet.reason)+'</span>':'')):'Нет сведений');
@@ -5130,6 +5165,7 @@ else if(location.hash === "#workErrors"){$("body-scenario").value='errSpoilOutpu
 else if(location.hash === "#maim"){$("body-scenario").value='maimBan';начатьТело();}
 else if(location.hash === "#sleep"){$("body-scenario").value='sleepMoan';начатьТело();}
 else if(location.hash === "#strain"){$("body-scenario").value='strainBalanced';начатьТело();}
+else if(location.hash === "#nutrition"){$("body-scenario").value='nutritionHeavy';начатьТело();}
 else if(location.hash === "#vision")начатьПоселение(true);
 else if(location.hash!=="#b3"&&!new URLSearchParams(location.search).has("snapshot"))начатьПоселение(false);
 нарисовать();
