@@ -127,6 +127,7 @@ details.раск>summary{cursor:pointer;color:var(--текст2);font-size:12.5p
 .б3-параметр select{width:auto;max-width:100%}
 blockquote{margin:8px 0;padding:4px 12px;border-left:2px solid var(--кромка2);color:var(--текст2)}
 @media (max-width:860px){.раскладка{flex-direction:column}.карточка{width:100%}.люди{flex-basis:auto;width:100%;display:flex;flex-wrap:wrap;gap:2px}.люди h2{width:100%}.чел{width:auto}.тело-вкл{max-height:none}}
+.тело-ряд{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}.тело-текст{flex:1 1 320px;min-width:0}.тело-силуэт{flex:0 0 220px}.тело-силуэт svg{width:220px;height:auto;display:block}#body-abilities td.внимание{font-weight:600}
 </style></head><body>
 
 <h1>Карточка жителя <span class="плашка тест">Прототип</span></h1>
@@ -1589,7 +1590,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="c5e2d7d4d62fc9c2e7e90e6daace0d36e90444f55426d05c0c9a62e5ffd164e3">
+<script data-body-runtime="248c4af5b2ecc4198cebdbef8ac2c8f71b487c3a2d985ff842a0f7ca118ccc2d">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -6071,7 +6072,8 @@ function сгенерироватьРод(сид) {
       if (a) placed.push({...t, ...a, text: label}); else unplaced.push({...t, text: label});
     }
     placed.sort((a, b) => a.y - b.y || a.x - b.x);
-    return {placed, unplaced, svg: placed.length ? svg(placed) : ''};
+    // o.always — рисовать пустую фигуру и без следов (карточка показывает тело всегда; дополнено Claude claude-fable-5-1, 09.11.2026).
+    return {placed, unplaced, svg: placed.length || o.always ? svg(placed) : ''};
   }
 
   function svg(points) {
@@ -6408,18 +6410,24 @@ function нарисоватьТело(к) {
   const block=э("section","");block.id="body-model";
   block.appendChild(э("h3","","Тело"));
   if(!т.alive){block.appendChild(э("p","","Умер."));к.appendChild(block);return;}
+  const wrap=э("div","тело-ряд");
+  const left=э("div","тело-текст"),right=э("div","тело-силуэт");
   const signs=(т.signs||[]).filter(x=>x!=='умер');
-  block.appendChild(э("div","стр",signs.length?"На виду: "+signs.map(экр).join("; "):"На виду ничего особенного."));
-  const can=т.can||{};const bad=Object.entries(can).filter(([,v])=>v!=='как все');
-  block.appendChild(э("div","стр",bad.length?"Что может: "+bad.map(([k,v])=>экр(k)+" — "+экр(v)).join("; "):"Что может: всё как все."));
+  left.appendChild(э("div","стр",signs.length?"На виду: "+signs.map(экр).join("; "):"На виду ничего особенного."));
+  // Что может — все семь умений словами, как их видит двор; «как все» — тоже сведение.
+  const can=т.can||{};const tbl=э("table","таблица");tbl.id="body-abilities";
+  const thead=э("thead","");const tr=э("tr","");tr.appendChild(э("th","","Умение"));tr.appendChild(э("th","","Как справляется"));thead.appendChild(tr);tbl.appendChild(thead);
+  const tb=э("tbody","");for(const [k,v] of Object.entries(can)){const r=э("tr","");r.appendChild(э("td","",экр(k)));const td=э("td","",экр(v));if(v!=='как все')td.className="внимание";r.appendChild(td);tb.appendChild(r);}
+  tbl.appendChild(tb);left.appendChild(tbl);
   const wounds=(т.injuries||[]).filter(w=>w.active);
-  if(wounds.length)block.appendChild(э("div","стр","Раны: "+wounds.map(w=>экр(w.title)+" ("+экр(w.site)+")"+(w.bleeding?", идёт кровь":"")+(w.bandaged?", перевязано":"")+(w.splinted?", в лубке":"")).join("; ")));
-  if((т.marks||[]).length)block.appendChild(э("div","стр","Следы: "+т.marks.map(m=>экр(m.what)+(m.site?" — "+экр(m.site):"")).join("; ")));
+  left.appendChild(э("div","стр",wounds.length?"Раны: "+wounds.map(w=>экр(w.title)+" ("+экр(w.site)+")"+(w.bleeding?", идёт кровь":"")+(w.bandaged?", перевязано":"")+(w.splinted?", в лубке":"")).join("; "):"Ран нет."));
+  left.appendChild(э("div","стр",(т.marks||[]).length?"Следы: "+т.marks.map(m=>экр(m.what)+(m.site?" — "+экр(m.site):"")).join("; "):"Следов на теле нет."));
   if(typeof NovgorSilhouette!=="undefined"){
-    const r=NovgorSilhouette.build({day:т.day,alive:т.alive,injuries:т.injuries||[],marks:т.marks||[]},{today:т.day});
-    if(r.svg){const host=э("div","");host.id="body-silhouette";host.insertAdjacentHTML("beforeend",r.svg);block.appendChild(host);}
-    for(const u of r.unplaced||[])block.appendChild(э("div","мелко","Без места на силуэте: "+экр(u.text)));
+    const r=NovgorSilhouette.build({day:т.day,alive:т.alive,injuries:т.injuries||[],marks:т.marks||[]},{today:т.day,always:true});
+    if(r.svg){const host=э("div","");host.id="body-silhouette";host.insertAdjacentHTML("beforeend",r.svg);right.appendChild(host);}
+    for(const u of r.unplaced||[])right.appendChild(э("div","мелко","Без места на силуэте: "+экр(u.text)));
   }
+  wrap.appendChild(left);wrap.appendChild(right);block.appendChild(wrap);
   к.appendChild(block);
 }
 function нарисоватьМедицину(к) {
