@@ -1590,7 +1590,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="248c4af5b2ecc4198cebdbef8ac2c8f71b487c3a2d985ff842a0f7ca118ccc2d">
+<script data-body-runtime="df4ae208daa85cc9abc8dc59948ad669514a2cd9febdbb6557114649566a2cb9">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -4524,8 +4524,68 @@ function сгенерироватьРод(сид) {
   }
   return {VERSION,SPREAD,CLOSENESS,PATH,CATTLE_RINGWORM,present,setup,validate,validateFrame,body,household,move,care,rememberDeaths,bury,closeness,environment,shedding,susceptibility,spread,fromCattle,arrive,observeBody,observe};
 });
+/* Возникновение первого случая болезни из условий двора. Claude (claude-fable-5-1), 09.11.2026.
+   Слово ГД 09.11.2026 («откуда они вообще возникают?» → «да»). Условия возникновения — из канона
+   болезней 07-А §4 (холодная сырая ночёвка, нечистота двора и воды, вшивая одёжа зимой, занос чужими);
+   числа — оценки стенда, не решения. Работает только при явном входе exposure в кадре человека:
+   без него (стендовая сверка с эталоном) первого случая не бывает. Причина наружу не выдаётся. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./pathology.js'),require('./contagion.js'));else root.NovgorOnset=factory(root.NovgorPathology,root.NovgorContagion);})(typeof globalThis==='object'?globalThis:this,function(D,C){
+  'use strict';
+  const VERSION=1;
+  function freeze(x){for(const v of Object.values(x))if(v&&typeof v==='object')freeze(v);return Object.freeze(x);}
+  // Дневной шанс первого случая при полной уязвимости. Множители — по условиям кадра.
+  const ONSET=freeze({
+    'простуда':{base:0.002,coldNight:0.02,wetOutside:0.03,winter:1.5},
+    'воспаление лёгких':{base:0,coldNight:0.003,weak:3,young:2,old:2},
+    'простой понос':{base:0.0005,dirtyYard:0.004,dirtyBody:1.5,summer:2,badWater:0.006},
+    'кровавый понос':{base:0,dirtyYard:0.0012,summer:2,badWater:0.003},
+    'сыпной тиф':{base:0,lousyWinter:0.0015,guest:0.01},
+    'корь':{base:0,guest:0.02}
+  });
+  // Кадр условий человека за сутки: все поля булевы, отсутствующие — ложь.
+  const EXPOSURE_KEYS=['coldNight','wetOutside','dirtyYard','badWater','guest'];
+  function validateExposure(e){
+    if(e===undefined)return null;
+    if(!e||typeof e!=='object')throw Error('Условия возникновения должны быть объектом');
+    for(const k of Object.keys(e))if(!EXPOSURE_KEYS.includes(k)||typeof e[k]!=='boolean')throw Error('Неизвестное или небулево условие: '+k);
+    return e;
+  }
+  function chance(body,cause,e,season){
+    const t=ONSET[cause];let p=t.base;
+    if(e.coldNight&&t.coldNight)p+=t.coldNight;
+    if(e.wetOutside&&t.wetOutside)p+=t.wetOutside;
+    if(e.dirtyYard&&t.dirtyYard)p+=t.dirtyYard;
+    if(e.badWater&&t.badWater)p+=t.badWater;
+    if(e.guest&&t.guest)p+=t.guest;
+    if(e.lousyWinter&&t.lousyWinter)p+=t.lousyWinter;
+    if(p<=0)return 0;
+    if(t.winter&&season==='зима')p*=t.winter;
+    if(t.summer&&season==='лето')p*=t.summer;
+    if(t.dirtyBody&&body.skin.dirt>=.6)p*=t.dirtyBody;
+    if(t.weak&&(body.effects.weakness>=.3||body.reserves.nutrition<.5))p*=t.weak;
+    if(t.young&&body.ageYears<=3)p*=t.young;
+    if(t.old&&body.ageYears>=60)p*=t.old;
+    return p*C.susceptibility(body,cause);
+  }
+  // Суточный розыгрыш первых случаев по двору. Вызывать после шага болезней и кожи, до передачи.
+  function stepDay(world,hid,day,houseFrame,frames,random){
+    const h=C.household(world,hid),out=[];
+    for(const id of h.members){
+      const person=world.people[id],body=person.body,frame=frames.people[id];
+      if(!body.alive||!C.present(world,id))continue;
+      const e=validateExposure(frame&&frame.exposure);if(!e)continue;
+      const ex={...e,lousyWinter:h.clothes==='вшивая'&&houseFrame.season==='зима'};
+      for(const cause of Object.keys(ONSET)){
+        const p=chance(body,cause,ex,houseFrame.season);
+        if(p>0&&random()<p){const c=D.infect(body,cause,null);if(c){out.push({id,cause});h.trace.push({day,type:'onset',id,cause});}}
+      }
+    }
+    return out;
+  }
+  return {VERSION,ONSET,EXPOSURE_KEYS,validateExposure,chance,stepDay};
+});
 /* Единая суточная граница новой модели. Codex (gpt-6), 09.11.2026. */
-(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./physiology.js'),require('./pathology.js'),require('./skin.js'),require('./contagion.js'));else root.NovgorClinical=factory(root.NovgorPhysiology,root.NovgorPathology,root.NovgorSkin,root.NovgorContagion);})(globalThis,function(P,D,S,C){
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./physiology.js'),require('./pathology.js'),require('./skin.js'),require('./contagion.js'),require('./onset.js'));else root.NovgorClinical=factory(root.NovgorPhysiology,root.NovgorPathology,root.NovgorSkin,root.NovgorContagion,root.NovgorOnset);})(globalThis,function(P,D,S,C,O){
   'use strict';
   const VERSION=1,has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
   const dict=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
@@ -4574,7 +4634,7 @@ function сгенерироватьРод(сид) {
     for(const person of Object.values(world.people)){
       const body=person.body;if(!body.alive)continue;
       if(body.hour!==day*24)throw Error('Физическое тело ещё не закончило сутки');
-      const frame=frames.people[person.id];D.validateFrame(frame);S.validateFrame(frame);
+      const frame=frames.people[person.id];D.validateFrame(frame);S.validateFrame(frame);O.validateExposure(frame.exposure);
       const receipt=body.lastSupply;
       if(!receipt||receipt.day!==day||receipt.ration!==frame.ration||receipt.cleanCare!==frame.cleanCare)throw Error('Клинический вход не совпадает с фактическим снабжением тела');
     }
@@ -4587,6 +4647,8 @@ function сгенерироватьРод(сид) {
     // Физические часы здесь не вызываются. Данные снабжения — уже совершившийся факт.
     for(const person of Object.values(world.people))D.stepDay(person.body,day,frames.people[person.id],random);
     for(const person of Object.values(world.people))if(person.body.alive)S.stepDay(person.body,day,frames.people[person.id],random);
+    // Первые случаи из условий двора (onset.js) — только при входе exposure; стендовая сверка его не подаёт.
+    const onsets=[];for(const hid of Object.keys(world.households))onsets.push(...O.stepDay(world,hid,day,frames.households[hid],frames,random));
     for(const hid of Object.keys(world.households)){
       // Вошь плодится на тех, кто дома; отсутствующие в счёт двора не входят.
       const h=C.household(world,hid),bodies=h.members.filter(id=>C.present(world,id)).map(id=>C.body(world,id));
@@ -4594,7 +4656,7 @@ function сгенерироватьРод(сид) {
     }
     for(const hid of Object.keys(world.households))C.fromCattle(world,hid,day,frames.households[hid],random);
     const infections=[];for(const hid of Object.keys(world.households))infections.push(...C.spread(world,hid,day,frames.households[hid],random));
-    world.clinical.lastDay=day;validate(world);return infections;
+    world.clinical.lastDay=day;validate(world);return infections.concat(onsets.map(o=>({...o,onset:true})));
   }
   function observeBody(world,id,day){natural(day,'observe');const p=world.people[id];if(!p)throw Error('Нет человека');return C.observeBody(p.body,day,C.household(world,p.household).clothes);}
   function observeHouse(world,hid,day){natural(day,'observe');return C.observe(world,hid,day);}
@@ -4756,7 +4818,12 @@ function сгенерироватьРод(сид) {
       for(let hr=0;hr<24&&b.alive;hr++)physiology.tickHour(b,{hour:b.hour+1,thermal:hr<nightHours?thermal:'норма',ration,drank,cleanCare},rand);
       if(!b.alive)continue; // умер в часах — кадра клинического дня не нужно
       // Зелень и свет — из состава еды и из постели; баня раз в неделю и грязная работа по ступени дня — условия опыта [не закреплено].
-      frames.people[p.id]={ration,drank,cleanCare,greens:(d?.nutritionCoverage??1)>=1/3,daylight:!(d?.bed),bathed:s.day%7===0,dirtyWork:p.strainYesterday==='heavy'};
+      // Условия возникновения болезней (onset.js) — из тех же фактов: холодная ночёвка, ночёвка на дворе,
+      // нечистота двора (нет места для отходов или горшок не вынесен), плохая вода — заглушка (источника воды
+      // в расчёте нет), гость — заглушка (контакта с чужими нет).
+      const h=s.households[p.household],dirtyYard=!(h?.wasteDestination)||(h?.pot?.amount??0)>0;
+      const exposure=p.present?{coldNight:thermal!=='норма',wetOutside:p.homeBlock==='outside'&&thermal!=='норма',dirtyYard,badWater:false,guest:false}:{coldNight:false,wetOutside:false,dirtyYard:false,badWater:false,guest:false};
+      frames.people[p.id]={ration,drank,cleanCare,greens:(d?.nutritionCoverage??1)>=1/3,daylight:!(d?.bed),bathed:s.day%7===0,dirtyWork:p.strainYesterday==='heavy',exposure};
     }
     for(const hid of Object.keys(s.households)){const h=s.households[hid];frames.households[hid]={season,clean:!!h.wasteDestination&&(h.pot?.amount??0)===0,bathed:s.day%7===0,cattleRingworm:false};}
     clinical.stepDay(world,s.day,frames,rand);
