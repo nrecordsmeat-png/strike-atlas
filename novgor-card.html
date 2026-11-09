@@ -1589,7 +1589,7 @@ function сгенерироватьРод(сид) {
 
 </script>
 <!-- BEGIN GENERATED BODY RUNTIME -->
-<script data-body-runtime="96929345d0ca1ca1aad52514319db19fa68dac0967f5974ae557904663efb4c6">
+<script data-body-runtime="c5e2d7d4d62fc9c2e7e90e6daace0d36e90444f55426d05c0c9a62e5ffd164e3">
 /* Возраст и личные нормы. Числа воды и детских подступеней — оценки для опыта. */
 (function(root,factory){
   if(typeof module==='object'&&module.exports)module.exports=factory();
@@ -3193,15 +3193,1426 @@ function сгенерироватьРод(сид) {
   }
   return {allocate};
 });
+/* Физическое ядро новой модели тела. Автор: Codex (gpt-6), 08.11.2026.
+ * Числа — условия прототипа PR109/110, не игровой баланс.
+ * Такт, снабжение и RNG принадлежат вызывающему runtime. Стенд здесь не загружается. */
+(function(root,factory){
+  if(typeof module==='object'&&module.exports)module.exports=factory();
+  else root.NovgorPhysiology=factory();
+})(globalThis,function(){
+  'use strict';
+  const VERSION=1;
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+  const rounded=x=>Math.round(x*1000)/1000;
+  function freeze(x){for(const v of Object.values(x))if(v&&typeof v==='object')freeze(v);return Object.freeze(x);}
+  const PARTS=freeze({
+    'голова':['сознание'],'глаз правый':['зрение'],'глаз левый':['зрение'],
+    'шея':['сознание'],'грудь':['дыхание'],'живот':['сила'],'спина':['ходьба','сила'],
+    'рука правая':['руки'],'рука левая':['руки'],
+    'кисть правая':['руки','тонкая работа'],'кисть левая':['руки','тонкая работа'],
+    'нога правая':['ходьба'],'нога левая':['ходьба'],'стопа правая':['ходьба'],'стопа левая':['ходьба']
+  });
+  const ABILITIES=Object.freeze(['сознание','зрение','дыхание','руки','тонкая работа','ходьба','сила']);
+  // Содержание правил сверяется со стендом, код расчёта и формат состояния самостоятельные.
+  const INJURIES=freeze({
+    'порез':{blood:.004,stop:6,open:true,damage:.15,pain:1,days:5},
+    'рваная рана':{blood:.009,stop:14,open:true,damage:.3,pain:2,days:10,infection:1.5},
+    'колотая рана':{blood:.006,stop:12,open:true,damage:.35,pain:2,days:12,infection:2,internal:true},
+    'рубленая рана':{blood:.011,stop:36,open:true,damage:.5,pain:2,days:20},
+    'прокол':{blood:.001,stop:1,open:true,damage:.05,pain:0,days:3,tetanus:true},
+    'ушиб':{blood:0,stop:0,damage:.1,pain:1,days:4},
+    'растяжение':{blood:0,stop:0,damage:.2,pain:1,days:6},
+    'вывих':{blood:0,stop:0,damage:.5,pain:2,days:3,block:true,joint:true},
+    'перелом закрытый':{blood:0,stop:0,damage:.6,pain:3,days:35,block:true,bone:true},
+    'перелом открытый':{blood:.012,stop:30,open:true,damage:.7,pain:3,days:45,block:true,bone:true,infection:2},
+    'размозжение':{blood:.012,stop:30,open:true,damage:.9,pain:2,days:60,block:true,infection:3},
+    'отрубание':{blood:.02,stop:30,open:true,damage:1,pain:2,days:25,lost:true},
+    'ожог':{blood:0,stop:0,open:true,damage:.3,pain:2,days:14,infection:1.5},
+    'обморожение':{blood:0,stop:0,open:true,damage:.3,pain:1,days:10,infection:.3},
+    'укус змеи':{blood:0,stop:0,damage:.1,pain:2,days:5,venom:.5},
+    'нарыв':{blood:0,stop:0,open:true,damage:.1,pain:1,days:8,infection:1}
+  });
+  const RULES=freeze({bloodPerDay:.06,foodLoss:.02,foodGain:.02,waterLoss:.34,
+    cooling:{'норма':-.05,'холод':.006,'мороз':.03},floor:{'норма':1,'холод':.62,'мороз':0},
+    infectionGain:.14,resistance:.12,woundInfection:.05});
+  const RESERVES=Object.freeze(['blood','nutrition','water','heat','brain','infection','venom','poison','tetanus']);
+  const has=(object,key)=>Object.prototype.hasOwnProperty.call(object,key);
+  function number(x,label,min=0,max=1){if(!Number.isFinite(x)||x<min||x>max)throw Error('Некорректное значение тела: '+label);}
+  function integer(x,label,min=0){if(!Number.isSafeInteger(x)||x<min)throw Error('Некорректный счётчик тела: '+label);}
+  function boolean(x,label){if(typeof x!=='boolean')throw Error('Некорректный признак тела: '+label);}
+  function draw(random){if(typeof random!=='function')throw Error('Нужен RNG общего runtime');const x=random();if(!Number.isFinite(x)||x<0||x>=1)throw Error('RNG вне диапазона [0,1)');return x;}
+  const limb=site=>/рука|кисть|нога|стопа/.test(site);
+  function record(body,type,details){body.trace.push({hour:body.hour,type,...details});}
+  function create(input){
+    if(!input||typeof input.id!=='string'||!input.id)throw Error('Тело требует стабильный id человека');
+    // Не принимать старый health даже как необязательную подсказку.
+    if(has(input,'health')||has(input,'cap'))throw Error('Старое здоровье нельзя преобразовать в части тела');
+    const body={version:VERSION,id:input.id,hour:input.hour??0,ageYears:input.ageYears??30,
+      alive:true,deathReason:null,immunity:input.immunity??1,
+      reserves:{blood:1,nutrition:input.nutrition??.8,water:1,heat:1,brain:0,infection:0,venom:0,poison:0,tetanus:0},
+      parts:{},injuries:[],nextInjuryId:1,thermalVariation:1,tetanusAt:null,
+      effects:{breathing:0,weakness:0},lastSupply:null,trace:[]};
+    for(const site of Object.keys(PARTS))body.parts[site]={damage:0,lost:false,paralysed:false};
+    return validate(body);
+  }
+  function validate(body){
+    if(!body||body.version!==VERSION||typeof body.id!=='string'||!body.id||has(body,'health')||has(body,'cap'))throw Error('Несовместимый формат тела');
+    integer(body.hour,'hour');integer(body.nextInjuryId,'nextInjuryId',1);
+    number(body.ageYears,'ageYears',0,200);number(body.immunity,'immunity',.6,1.4);boolean(body.alive,'alive');
+    if(body.alive?body.deathReason!==null:typeof body.deathReason!=='string'||!body.deathReason)throw Error('Некорректный исход тела');
+    if(!body.reserves||Object.keys(body.reserves).length!==RESERVES.length)throw Error('Неверный состав запасов тела');
+    for(const key of RESERVES)number(body.reserves[key],key);
+    number(body.thermalVariation,'thermalVariation',.9,1.1);
+    if(body.tetanusAt!==null)integer(body.tetanusAt,'tetanusAt');
+    if(!body.parts||Object.keys(body.parts).length!==Object.keys(PARTS).length)throw Error('Неверный состав частей тела');
+    for(const site of Object.keys(PARTS)){
+      const part=body.parts[site];if(!part)throw Error('Нет части тела: '+site);
+      number(part.damage,'damage');boolean(part.lost,'lost');boolean(part.paralysed,'paralysed');
+    }
+    if(!Array.isArray(body.injuries)||!Array.isArray(body.trace))throw Error('Неверные записи тела');
+    number(body.effects?.breathing,'breathing');number(body.effects?.weakness,'weakness',0,1.3);
+    if(body.lastSupply!==undefined&&body.lastSupply!==null){
+      const q=body.lastSupply;integer(q.day,'lastSupply.day',1);number(q.ration,'lastSupply.ration',0,Number.MAX_VALUE);
+      boolean(q.drank,'lastSupply.drank');boolean(q.cleanCare,'lastSupply.cleanCare');
+      if(q.day*24>body.hour)throw Error('Снабжение тела из будущего');
+    }
+    const ids=new Set();
+    for(const wound of body.injuries){
+      integer(wound.id,'injury.id',1);if(ids.has(wound.id)||wound.id>=body.nextInjuryId)throw Error('Повтор или неверный id травмы');ids.add(wound.id);
+      if(!has(INJURIES,wound.kind)||!has(PARTS,wound.site))throw Error('Неизвестный вид или место травмы');
+      integer(wound.atHour,'injury.atHour');if(wound.atHour>body.hour)throw Error('Травма из будущего');
+      integer(wound.severity,'injury.severity',1);if(wound.severity>3)throw Error('Тяжесть травмы вне диапазона');
+      number(wound.healing,'healing');number(wound.vessel,'vessel',.5,1.5);integer(wound.bleedRemaining,'bleedRemaining');
+      for(const k of ['internal','bleeding','bandaged','set','splinted','infected','cleared','scar','tetanusChecked'])boolean(wound[k],k);
+      if(![null,'dry','wet'].includes(wound.gangrene))throw Error('Неизвестное состояние раны');
+      if(typeof wound.source!=='string'||!(wound.aftermath===null||typeof wound.aftermath==='string'))throw Error('Неверная причина или след травмы');
+      for(const k of ['dryAt','gangreneAt'])if(wound[k]!==null)integer(wound[k],k);
+      number(wound.brainGain,'brainGain',0,.8);number(wound.brainDelay,'brainDelay',0,6);
+      number(wound.internalRate,'internalRate',0,1);
+    }
+    return body;
+  }
+  function injury(body,input,random){
+    if(!body.alive)throw Error('Нельзя нанести травму умершему');
+    if(!input||!has(INJURIES,input.kind)||!has(PARTS,input.site))throw Error('Неизвестный вид или место травмы');
+    integer(input.severity,'severity',1);if(input.severity>3)throw Error('Тяжесть травмы вне диапазона');
+    if(input.source!==undefined&&typeof input.source!=='string')throw Error('Неверный источник травмы');
+    const k=INJURIES[input.kind],part=body.parts[input.site],severity=input.severity;
+    if(part.lost)throw Error('Нельзя травмировать отсутствующую часть');
+    const vessel=.5+draw(random);
+    const wound={id:body.nextInjuryId++,kind:input.kind,site:input.site,severity,source:input.source??'',atHour:body.hour,
+      vessel,bleedRemaining:Math.round(k.stop*(severity===3?2:severity===2?1:.5)*vessel),
+      internal:!!k.internal&&['грудь','живот'].includes(input.site)&&severity>=2,
+      bleeding:k.blood>0,bandaged:false,set:!k.joint,splinted:false,healing:0,
+      infected:false,cleared:false,gangrene:null,dryAt:null,gangreneAt:null,scar:false,aftermath:null,
+      brainDelay:0,brainGain:0,internalRate:0,tetanusChecked:false};
+    body.injuries.push(wound);part.damage=clamp(part.damage+k.damage*severity/2);
+    if(k.lost)part.lost=true;
+    if(input.kind==='укус змеи')body.reserves.venom=clamp(body.reserves.venom+k.venom*severity/2*(.3+1.2*draw(random)));
+    if(input.kind==='обморожение'&&(severity===3||(severity===2&&draw(random)<.4))){wound.gangrene='dry';wound.dryAt=body.hour+48;}
+    if(input.site==='голова'&&['ушиб','перелом закрытый','перелом открытый','рубленая рана'].includes(input.kind)){
+      wound.brainDelay=severity>=2?6:0;
+      wound.brainGain=severity===3?(draw(random)<.4?.8:0):severity===2?(draw(random)<.15?.3:0):0;
+      body.reserves.brain=clamp(body.reserves.brain+(severity===3?.3:severity===2?.12:.03));
+      if(input.kind==='ушиб')part.damage=clamp(part.damage-k.damage*severity/2);
+    }
+    if(input.site==='спина'&&k.bone&&severity===3){body.parts['нога правая'].paralysed=true;body.parts['нога левая'].paralysed=true;}
+    if(input.site==='живот'&&input.kind==='ушиб'&&severity===3){wound.internal=true;wound.bleeding=true;wound.bleedRemaining=12;wound.internalRate=.02;}
+    record(body,'injury',{injuryId:wound.id,source:wound.source});return wound.id;
+  }
+  function woundById(body,id){const wound=body.injuries.find(x=>x.id===id);if(!wound||wound.healing>=1)throw Error('Нет открытой травмы с таким id');return wound;}
+  function treat(body,id,action){
+    if(!body.alive)throw Error('Нет живого пациента');
+    const wound=woundById(body,id),k=INJURIES[wound.kind];
+    if(action==='bandage'){if(wound.internal)return false;wound.bandaged=true;wound.bleeding=false;}
+    else if(action==='splint'){if(!k.bone)throw Error('Шина требует перелома');wound.splinted=true;}
+    else if(action==='set'){if(!k.joint)throw Error('Вправление требует вывиха');wound.set=true;}
+    else throw Error('Неизвестная помощь');
+    record(body,'treatment',{injuryId:id,action});return true;
+  }
+  function amputate(body,site,random){
+    if(!body.alive||!has(PARTS,site)||!limb(site)||body.parts[site].lost)throw Error('Нет конечности для удаления');
+    for(const wound of body.injuries)if(wound.site===site&&wound.healing<1){wound.healing=1;wound.infected=false;wound.gangrene=null;}
+    // injury выставит lost после записи нового повреждения.
+    return injury(body,{kind:'отрубание',site,severity:2,source:'отняли'},random);
+  }
+  function pain(body){
+    const levels=body.injuries.filter(w=>w.healing<1).map(w=>{
+      const eased=w.infected?0:w.healing>=.5?-2:w.healing>=.25?-1:0;
+      return Math.min(3,INJURIES[w.kind].pain+w.severity-2+(w.infected?1:0)+(body.hour-w.atHour<24?1:0)+eased);
+    }).sort((a,b)=>b-a);
+    return clamp(Math.round((levels[0]||0)+(levels[1]||0)/2),0,3);
+  }
+  function support(body,ignorePain){
+    const v=body.reserves,weak=body.effects.weakness,pn=ignorePain?0:pain(body);
+    return Math.min(
+      v.blood>=.85?1:v.blood>=.7?.7:v.blood>=.55?.35:0,
+      v.nutrition>=.4?1:v.nutrition>=.2?.7:.4,
+      v.water>=.5?1:v.water>=.25?.7:.3,v.heat>=.8?1:v.heat>=.6?.6:.2,
+      v.infection>=.6?.2:v.infection>=.3?.6:1,v.brain>=.6?0:v.brain>=.35?.6:v.brain>=.2?.85:1,
+      v.poison>=.6?.2:v.poison>=.25?.6:1,weak>=.9?0:weak>=.5?.25:weak>=.25?.6:1,
+      pn>=3?0:pn===2?.6:1);
+  }
+  function ability(body,name){
+    if(!ABILITIES.includes(name))throw Error('Неизвестное умение тела');
+    if(!body.alive)return 0;
+    function part(site){const p=body.parts[site];if(p.lost||p.paralysed)return 0;
+      return body.injuries.some(w=>w.site===site&&w.healing<1&&INJURIES[w.kind].block&&(INJURIES[w.kind].bone||!w.set))?0:1-p.damage;}
+    let local;
+    if(name==='ходьба'){
+      const left=Math.min(part('нога левая'),part('стопа левая')),right=Math.min(part('нога правая'),part('стопа правая'));
+      local=Math.min(part('спина'),(left+right)/2);if(Math.min(left,right)===0)local=Math.min(local,.25);
+    }else if(name==='зрение'){
+      const right=part('глаз правый'),left=part('глаз левый');local=Math.max(right,left)*(right&&left?1:.8);
+    }else if(name==='дыхание')local=part('грудь')*(1-body.effects.breathing);
+    else{const sites=Object.keys(PARTS).filter(site=>PARTS[site].includes(name));local=sites.reduce((n,site)=>n+part(site),0)/sites.length;}
+    return rounded(clamp(local*support(body,['зрение','сознание','дыхание'].includes(name))));
+  }
+  function workSpeed(body,requirements){
+    if(!Array.isArray(requirements)||!requirements.length)throw Error('Работа требует явный список умений');
+    return rounded(Math.min(...requirements.map(name=>ability(body,name))));
+  }
+  function daily(body,frame,random){
+    const v=body.reserves,ration=frame.ration;
+    body.lastSupply={day:body.hour/24,ration,drank:frame.drank,cleanCare:frame.cleanCare};
+    v.water=clamp(frame.drank?1:v.water-RULES.waterLoss);
+    v.nutrition=clamp(v.nutrition+(ration>=1?RULES.foodGain:-RULES.foodLoss*(1-ration)**1.5));
+    if(ration>=1&&frame.drank&&v.infection<.3&&!body.injuries.some(w=>w.bleeding))v.blood=Math.min(1,v.blood+RULES.bloodPerDay*(v.nutrition<.3?.5:1));
+    const resistance=RULES.resistance*body.immunity*(v.nutrition<.3?.5:1)*(v.blood<.7?.6:1)*(v.heat<.8?.7:1)*(frame.cleanCare?1.15:.85)*(.6+.8*draw(random));
+    for(const wound of body.injuries){
+      if(wound.healing>=1)continue;const k=INJURIES[wound.kind],part=body.parts[wound.site];
+      if(k.open&&!wound.infected&&!wound.cleared){
+        const chance=wound.healing<.34?RULES.woundInfection*(k.infection||1)/body.immunity*(frame.cleanCare?.3:1)*(v.nutrition<.3?1.5:1):0;
+        if(draw(random)<chance){wound.infected=true;record(body,'woundInfected',{injuryId:wound.id});}
+      }
+      if(k.tetanus&&!wound.tetanusChecked){wound.tetanusChecked=true;if(draw(random)<.05)body.tetanusAt=body.hour+24*7;}
+      const delay=(body.ageYears>=55&&k.bone?1.6:1)*(v.nutrition<.3?1.5:1)*(wound.infected?2:1)*(k.joint&&!wound.set?4:1);
+      wound.healing=rounded(Math.min(1,wound.healing+1/(k.days*wound.severity*delay)));
+      if(wound.healing<1)continue;
+      part.damage=rounded(Math.max(part.lost?1:0,part.damage-k.damage*wound.severity/2*(wound.severity===3?.6:1)));
+      if(wound.gangrene==='dry'){part.lost=true;wound.gangrene=null;}
+      wound.scar=['порез','рваная рана','рубленая рана','ожог','перелом открытый','размозжение','отрубание'].includes(wound.kind)&&wound.severity>=2;
+      if(k.bone&&!wound.splinted&&wound.severity>=2){part.damage=Math.max(part.damage,.4);wound.aftermath='срослось криво';}
+      if(['рваная рана','рубленая рана'].includes(wound.kind)&&wound.severity===3&&limb(wound.site)&&draw(random)<.35){part.damage=Math.max(part.damage,.5);wound.aftermath='нерв перебит';}
+      if(wound.site.includes('глаз')&&wound.severity>=2&&draw(random)<.5){part.lost=true;wound.aftermath='глаз не видит';}
+      if(wound.kind==='колотая рана'&&wound.site==='грудь'&&wound.severity>=2){part.damage=Math.max(part.damage,.3);wound.aftermath='лёгкое повреждено';}
+      record(body,'healed',{injuryId:wound.id});
+    }
+    if(body.tetanusAt&&body.hour>=body.tetanusAt)v.tetanus=clamp(v.tetanus+.25);
+    for(const wound of body.injuries){
+      if(!wound.infected||wound.healing>=1)continue;
+      const clear=.07*body.immunity*(frame.cleanCare?1.4:1)*(v.nutrition<.3?.5:1)*(v.infection>=.6?.5:1)*(wound.gangrene==='wet'?0:1);
+      if(draw(random)<clear){wound.infected=false;wound.cleared=true;record(body,'woundCleared',{injuryId:wound.id});continue;}
+      if(wound.gangrene==='dry'){wound.gangrene='wet';wound.gangreneAt=body.hour;body.parts[wound.site].damage=1;record(body,'gangrene',{injuryId:wound.id});continue;}
+      if(limb(wound.site)&&wound.gangrene!=='wet'&&draw(random)<.03*(v.nutrition<.3?1.5:1)/body.immunity){wound.gangrene='wet';wound.gangreneAt=body.hour;body.parts[wound.site].damage=1;record(body,'gangrene',{injuryId:wound.id});}
+    }
+    const wounds=body.injuries.filter(w=>w.infected&&w.healing<1).reduce((n,w)=>n+(.5+w.severity/2)*(w.gangrene==='wet'?2:1),0);
+    v.infection=clamp(v.infection+wounds*RULES.infectionGain*(.7+.6*draw(random))-resistance);
+    v.brain=clamp(v.brain-(v.brain<.6?.03:0));
+  }
+  function finishHour(body){
+    const v=body.reserves;v.blood=rounded(clamp(v.blood));v.brain=rounded(clamp(v.brain));v.heat=rounded(v.heat);
+    const reason=v.blood<=.4?'истёк кровью':v.brain>=1?'удар по голове':v.poison>=1?'умер от яда':
+      v.water<=0?'умер от жажды':v.nutrition<=.02?'умер от истощения':v.heat<=.3?'замёрз':
+      v.infection>=1?'умер от заражения крови':v.tetanus>=1?'умер в судорогах':
+      body.parts['шея'].lost||body.parts['голова'].lost?'смертельная рана':null;
+    if(reason){body.alive=false;body.deathReason=reason;record(body,'death',{reason});}
+  }
+  function tickHour(body,frame,random){
+    if(!body.alive)return body;
+    integer(frame?.hour,'frame.hour');
+    if(!frame||frame.hour!==body.hour+1)throw Error('Повторный или пропущенный час тела');
+    if(!has(RULES.cooling,frame.thermal))throw Error('Неизвестная среда тела');
+    number(frame.ration,'ration',0,Number.MAX_VALUE);boolean(frame.drank,'drank');boolean(frame.cleanCare,'cleanCare');
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');
+    body.hour=frame.hour;const v=body.reserves;
+    for(const wound of body.injuries)if(wound.bleeding){
+      const site=wound.site,location=site==='шея'?3:['грудь','живот'].includes(site)?2:site==='голова'?1.5:1;
+      v.blood-=(wound.internalRate||INJURIES[wound.kind].blood)*wound.severity*wound.vessel*location*(v.heat<.8?1.3:1);
+      if(--wound.bleedRemaining<=0){wound.bleeding=false;wound.bleedRemaining=0;}
+    }
+    for(const wound of body.injuries)if(wound.brainGain&&body.hour-wound.atHour>wound.brainDelay&&body.hour-wound.atHour<=wound.brainDelay+12)v.brain+=wound.brainGain/12;
+    if(body.hour%24===1)body.thermalVariation=.9+.2*draw(random);
+    const floor=RULES.floor[frame.thermal]*body.thermalVariation-(v.nutrition<.3?.15:0)-(v.blood<.7?.1:0);
+    const next=v.heat-RULES.cooling[frame.thermal]*(v.nutrition<.3?1.5:1);
+    v.heat=clamp(v.heat>floor?Math.max(floor,next):floor>0?Math.min(floor,v.heat+.01):next);
+    if(v.venom>0){const weight=body.ageYears<12?2.2:body.ageYears<16?1.4:1;v.poison=clamp(v.poison+v.venom*.03*weight/body.immunity);v.venom=Math.max(0,v.venom-.018*body.immunity);}
+    else if(v.poison>0)v.poison=Math.max(0,v.poison-.02);
+    if(body.hour%24===0)daily(body,frame,random);
+    finishHour(body);return body;
+  }
+  function signs(body){
+    if(!body.alive)return ['умер'];const v=body.reserves,out=[];
+    if(body.immunity>=1.25)out.push('крепкий от рождения');else if(body.immunity<=.75)out.push('слабый от рождения');
+    if(v.blood<.55)out.push('очень бледный, без сознания');else if(v.blood<.7)out.push('очень бледный, шатается');else if(v.blood<.85)out.push('бледный');
+    if(v.brain>=.6)out.push('не приходит в себя');else if(v.brain>=.35)out.push('плохо соображает, тошнит');else if(v.brain>=.2)out.push('болит голова');
+    if(v.water<.25)out.push('губы потрескались, почти не говорит');else if(v.water<.7)out.push('мучает жажда');
+    if(v.nutrition<.2)out.push('крайне истощён');else if(v.nutrition<.4)out.push('сильно похудел');
+    if(v.heat<.6)out.push('перестал дрожать, засыпает');else if(v.heat<.8)out.push('дрожит от холода');
+    if(v.infection>=.6)out.push('сильный жар, бредит');else if(v.infection>=.3)out.push('жар, озноб');
+    if(v.tetanus>0)out.push('сводит челюсть');
+    if(v.poison>=.6)out.push('сильный отёк после укуса, задыхается');else if(v.poison>=.25)out.push('отёк после укуса, рвота');
+    const pn=pain(body);if(pn>=3)out.push('кричит от боли');else if(pn===2)out.push('стонет');
+    for(const wound of body.injuries){
+      if(wound.healing>=1)continue;
+      let description=wound.internal?'держится за '+(wound.site==='грудь'?'грудь':'живот'):wound.kind+' ('+wound.site+')';
+      if(wound.bleeding&&!wound.internal)description+=', идёт кровь';if(wound.bandaged)description+=', перевязано';
+      if(wound.gangrene==='wet')description+=', почернело, пахнет';
+      else if(wound.gangrene==='dry'&&body.hour>=wound.dryAt)description+=', почернело и высохло';
+      else if(wound.infected&&v.infection>=.3)description+=', рана красная и горячая';out.push(description);
+    }
+    const walking=ability(body,'ходьба');if(walking===0)out.push('не может встать');else if(walking<.7)out.push('хромает');return out;
+  }
+  function observe(body,day){
+    integer(day,'observation.day');const words=x=>x===0?'не может':x<.5?'еле-еле':x<.9?'хуже обычного':'как все';
+    const can={};for(const name of ABILITIES)can[name]=words(ability(body,name));
+    return {id:body.id,day,alive:body.alive,signs:signs(body),can,
+      injuries:body.injuries.filter(w=>w.healing<1&&!w.internal).map(w=>({kind:'wound',title:w.kind,site:w.site,day:Math.floor(w.atHour/24),active:true,bandaged:w.bandaged,splinted:w.splinted,bleeding:w.bleeding})),
+      marks:Object.entries(body.parts).filter(([site,p])=>(p.lost||p.damage>.2||p.paralysed)&&!body.injuries.some(w=>w.site===site&&w.healing<1)).map(([site,p])=>({site,what:p.lost?'отсутствует':p.paralysed?'не двигается':'увечье',from:'травма'}))
+        .concat(body.injuries.filter(w=>w.scar).map(w=>({site:w.site,what:'шрам',from:w.kind})))};
+  }
+  function save(body){validate(body);return JSON.stringify(body);}
+  function load(json){return validate(JSON.parse(json));}
+  return {VERSION,PARTS,ABILITIES,INJURIES,RULES,create,validate,injury,treat,amputate,pain,ability,workSpeed,tickHour,signs,observe,save,load};
+});
+/* Данные клинического прототипа PR110. Codex (gpt-6), 09.11.2026.
+ * Силы и сроки — оценки стенда, не проверенный баланс игры. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.NovgorPathologyContent=factory();})(globalThis,function(){
+  'use strict';
+  function freeze(x){for(const v of Object.values(x))if(v&&typeof v==='object')freeze(v);return Object.freeze(x);}
+  const CAUSES={
+  "кровавый понос": {
+    "nature": "заразное",
+    "main": "живот",
+    "incubation": 2,
+    "speed": 6,
+    "signs": {
+      "явная": [
+        [
+          "живот",
+          0
+        ],
+        [
+          "понос",
+          0.2
+        ],
+        [
+          "кровь в стуле",
+          0.4
+        ]
+      ],
+      "кризис": [
+        [
+          "кровь в стуле",
+          0
+        ],
+        [
+          "без сил",
+          0.3
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.95,
+      "умер": 0.05
+    },
+    "ageDeath": [
+      3,
+      2,
+      1,
+      2
+    ],
+    "drain": {
+      "water": 0.25,
+      "feed": 0.03
+    },
+    "season": "лето"
+  },
+  "простой понос": {
+    "nature": "заразное",
+    "main": "живот",
+    "incubation": 1,
+    "speed": 3,
+    "signs": {
+      "явная": [
+        [
+          "живот",
+          0
+        ],
+        [
+          "понос",
+          0.2
+        ]
+      ],
+      "кризис": [
+        [
+          "понос",
+          0
+        ],
+        [
+          "без сил",
+          0.4
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.99,
+      "умер": 0.01
+    },
+    "ageDeath": [
+      4,
+      2,
+      1,
+      2
+    ],
+    "drain": {
+      "water": 0.2
+    },
+    "season": "лето"
+  },
+  "глисты": {
+    "nature": "паразит",
+    "main": "живот",
+    "incubation": 10,
+    "speed": 30,
+    "signs": {
+      "явная": [
+        [
+          "бледный, худеет при хорошем аппетите",
+          0.3
+        ]
+      ],
+      "кризис": [
+        [
+          "живот",
+          0
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.5,
+      "хроника": 0.5
+    },
+    "drain": {
+      "feed": 0.015
+    },
+    "weakens": false
+  },
+  "несвежая еда": {
+    "nature": "отравление",
+    "main": "живот",
+    "incubation": 0,
+    "speed": 2,
+    "signs": {
+      "явная": [
+        [
+          "живот",
+          0
+        ],
+        [
+          "рвота",
+          0.2
+        ]
+      ],
+      "кризис": [
+        [
+          "рвота",
+          0
+        ],
+        [
+          "без сил",
+          0.3
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.995,
+      "умер": 0.005
+    },
+    "ageDeath": [
+      4,
+      2,
+      1,
+      3
+    ],
+    "drain": {
+      "water": 0.2
+    }
+  },
+  "ядовитый гриб": {
+    "nature": "отравление",
+    "main": "живот",
+    "incubation": 0,
+    "speed": 4,
+    "signs": {
+      "явная": [
+        [
+          "живот",
+          0
+        ],
+        [
+          "рвота",
+          0.1
+        ]
+      ],
+      "кризис": [
+        [
+          "пожелтел",
+          0
+        ],
+        [
+          "без сил",
+          0.2
+        ],
+        [
+          "бредит",
+          0.6
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.4,
+      "умер": 0.6
+    },
+    "ageDeath": [
+      2,
+      1.5,
+      1,
+      1.3
+    ],
+    "drain": {
+      "water": 0.2
+    },
+    "season": "осень"
+  },
+  "простуда": {
+    "nature": "заразное",
+    "main": "кашель",
+    "incubation": 2,
+    "speed": 4,
+    "signs": {
+      "явная": [
+        [
+          "насморк",
+          0
+        ],
+        [
+          "кашель",
+          0.2
+        ],
+        [
+          "жар",
+          0.6
+        ]
+      ],
+      "кризис": [
+        [
+          "кашель",
+          0
+        ],
+        [
+          "жар",
+          0.3
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.995,
+      "умер": 0.005
+    },
+    "ageDeath": [
+      3,
+      1,
+      1,
+      4
+    ],
+    "drain": {},
+    "season": "зима",
+    "weakens": 0.5,
+    "becomes": {
+      "cause": "воспаление лёгких",
+      "onDay": 2,
+      "severity": 0.3,
+      "infant": 0.1,
+      "adult": 0.02,
+      "elder": 0.15,
+      "coldMultiplier": 2
+    }
+  },
+  "воспаление лёгких": {
+    "nature": "заразное",
+    "main": "кашель",
+    "incubation": 3,
+    "speed": 7,
+    "signs": {
+      "явная": [
+        [
+          "кашель",
+          0
+        ],
+        [
+          "жар",
+          0.3
+        ]
+      ],
+      "кризис": [
+        [
+          "жар",
+          0
+        ],
+        [
+          "тяжело дышит",
+          0.3
+        ],
+        [
+          "бредит",
+          0.6
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.78,
+      "умер": 0.22
+    },
+    "ageDeath": [
+      2,
+      0.35,
+      1,
+      1.6
+    ],
+    "drain": {
+      "feed": 0.02
+    },
+    "breath": 0.5,
+    "fever": true,
+    "season": "зима"
+  },
+  "родильная горячка": {
+    "nature": "родильное",
+    "main": "жар",
+    "incubation": 2,
+    "speed": 5,
+    "signs": {
+      "явная": [
+        [
+          "жар",
+          0
+        ],
+        [
+          "озноб",
+          0.3
+        ]
+      ],
+      "кризис": [
+        [
+          "жар",
+          0
+        ],
+        [
+          "бредит",
+          0.5
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.65,
+      "умер": 0.35
+    },
+    "drain": {
+      "water": 0.1
+    },
+    "fever": true
+  },
+  "флюс": {
+    "nature": "зубное",
+    "main": "опухоль",
+    "incubation": 1,
+    "speed": 5,
+    "signs": {
+      "явная": [
+        [
+          "щека распухла",
+          0
+        ],
+        [
+          "жар",
+          0.5
+        ]
+      ],
+      "кризис": [
+        [
+          "щека распухла",
+          0
+        ],
+        [
+          "жар",
+          0
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.9,
+      "умер": 0.02,
+      "хроника": 0.08
+    },
+    "ageDeath": [
+      1,
+      1,
+      1,
+      2
+    ],
+    "drain": {
+      "feed": 0.01
+    },
+    "weakens": false
+  },
+  "цинга": {
+    "nature": "нехватка",
+    "main": "дёсны",
+    "incubation": 30,
+    "speed": 60,
+    "calendar": "daysWithoutGreens",
+    "threshold": 60,
+    "signs": {
+      "явная": [
+        [
+          "кровоточат дёсны",
+          0
+        ],
+        [
+          "слабость",
+          0.3
+        ],
+        [
+          "зубы шатаются",
+          0.5
+        ]
+      ],
+      "кризис": [
+        [
+          "синяки сами собой",
+          0
+        ],
+        [
+          "не встаёт",
+          0.5
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.7,
+      "умер": 0.3
+    },
+    "ageDeath": [
+      1.5,
+      1.2,
+      1,
+      1.5
+    ],
+    "drain": {
+      "feed": 0.01
+    },
+    "season": "конец зимы",
+    "weakens": 0.7,
+    "food": true
+  },
+  "рахит": {
+    "nature": "нехватка",
+    "main": "ноги",
+    "incubation": 60,
+    "speed": 180,
+    "onlyAge": [
+      0,
+      5
+    ],
+    "calendar": "daysInDark",
+    "threshold": 90,
+    "signs": {
+      "явная": [
+        [
+          "поздно пошёл",
+          0
+        ],
+        [
+          "ноги кривятся",
+          0.4
+        ]
+      ],
+      "кризис": [
+        [
+          "ноги кривые",
+          0
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.4,
+      "хроника": 0.6
+    },
+    "drain": {},
+    "weakens": false,
+    "aftermath": {
+      "site": "нога правая",
+      "what": "кривые ноги",
+      "damage": 0.3
+    }
+  },
+  "корь": {
+    "nature": "заразное",
+    "main": "жар",
+    "incubation": 10,
+    "speed": 7,
+    "immune": true,
+    "signs": {
+      "явная": [
+        [
+          "жар",
+          0
+        ],
+        [
+          "кашель",
+          0.1
+        ],
+        [
+          "сыпь",
+          0.3
+        ]
+      ],
+      "кризис": [
+        [
+          "сыпь",
+          0
+        ],
+        [
+          "тяжело дышит",
+          0.4
+        ],
+        [
+          "бредит",
+          0.6
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.97,
+      "умер": 0.03
+    },
+    "ageDeath": [
+      3,
+      2,
+      0.7,
+      1.5
+    ],
+    "drain": {
+      "feed": 0.02,
+      "water": 0.1
+    },
+    "fever": true
+  },
+  "сыпной тиф": {
+    "nature": "заразное",
+    "main": "жар",
+    "incubation": 10,
+    "speed": 12,
+    "signs": {
+      "явная": [
+        [
+          "жар",
+          0
+        ],
+        [
+          "голова болит",
+          0.1
+        ],
+        [
+          "сыпь",
+          0.4
+        ]
+      ],
+      "кризис": [
+        [
+          "жар",
+          0
+        ],
+        [
+          "бредит",
+          0.3
+        ],
+        [
+          "без сил",
+          0.5
+        ]
+      ]
+    },
+    "outcome": {
+      "проходит": 0.8,
+      "умер": 0.2
+    },
+    "ageDeath": [
+      0.8,
+      0.5,
+      1,
+      2.5
+    ],
+    "drain": {
+      "feed": 0.02,
+      "water": 0.15
+    },
+    "fever": true,
+    "season": "зима",
+    "immune": true
+  },
+  "чесотка": {
+    "nature": "паразит",
+    "main": "зуд",
+    "incubation": 14,
+    "speed": 9999,
+    "grow": 0.02,
+    "cap": 0.6,
+    "signs": {
+      "явная": [
+        [
+          "чешется",
+          0
+        ],
+        [
+          "расчёсы",
+          0.3
+        ],
+        [
+          "расчёсы гноятся",
+          0.5
+        ]
+      ],
+      "кризис": []
+    },
+    "outcome": {
+      "проходит": 1
+    },
+    "drain": {},
+    "weakens": 0.2
+  },
+  "лишай": {
+    "nature": "паразит",
+    "main": "кожа",
+    "incubation": 10,
+    "speed": 90,
+    "grow": 0.015,
+    "cap": 0.5,
+    "signs": {
+      "явная": [
+        [
+          "круглые пятна на коже",
+          0
+        ],
+        [
+          "пятно на голове, волосы выпали",
+          0.3
+        ]
+      ],
+      "кризис": []
+    },
+    "outcome": {
+      "проходит": 1
+    },
+    "drain": {},
+    "weakens": 0.1
+  }
+};
+  const REMEDIES={
+  "drink-rest": {
+    "label": "питьё и покой",
+    "hits": {
+      "кровавый понос": 0.5,
+      "простой понос": 0.6,
+      "несвежая еда": 0.4,
+      "ядовитый гриб": 0.1,
+      "родильная горячка": 0.2,
+      "корь": 0.2,
+      "сыпной тиф": 0.2
+    }
+  },
+  "warm-care": {
+    "label": "тепло и уход",
+    "hits": {
+      "воспаление лёгких": 0.5,
+      "простуда": 0.4,
+      "родильная горячка": 0.3,
+      "корь": 0.2,
+      "сыпной тиф": 0.2
+    }
+  },
+  "clean-care": {
+    "label": "чистота",
+    "hits": {
+      "родильная горячка": 0.5
+    }
+  },
+  "garlic": {
+    "label": "чеснок",
+    "hits": {
+      "глисты": 0.3
+    }
+  },
+  "bark": {
+    "label": "отвар коры",
+    "hits": {
+      "кровавый понос": 0.15
+    }
+  },
+  "extract-tooth": {
+    "label": "вырвать зуб",
+    "hits": {
+      "флюс": 0.9
+    }
+  },
+  "greens": {
+    "label": "зелень и лук",
+    "hits": {
+      "цинга": 0.9
+    }
+  },
+  "daylight": {
+    "label": "на свет и солнце",
+    "hits": {
+      "рахит": 0.6
+    }
+  },
+  "clothes-heat": {
+    "label": "Прогрев одежды",
+    "hits": {
+      "чесотка": 0.5
+    }
+  },
+  "tar": {
+    "label": "дёготь",
+    "hits": {
+      "чесотка": 0.5,
+      "лишай": 0.3
+    }
+  },
+  "bath": {
+    "label": "баня",
+    "hits": {
+      "чесотка": 0.15
+    }
+  },
+  "spell": {
+    "label": "заговор",
+    "hits": {}
+  }
+};
+  return freeze({CAUSES,REMEDIES});
+});
+/* Болезни над единственной записью тела. Codex (gpt-6), 09.11.2026. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./physiology.js'),require('./pathology-content.js'));else root.NovgorPathology=factory(root.NovgorPhysiology,root.NovgorPathologyContent);})(globalThis,function(P,content){
+  'use strict';
+  const {CAUSES,REMEDIES}=content,VERSION=1;
+  const has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k),clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+  const active=x=>x.phase!=='исход';
+  function natural(x,label){if(!Number.isSafeInteger(x)||x<0)throw Error('Неверный счётчик болезни: '+label);}
+  function unit(x,label,max=1){if(!Number.isFinite(x)||x<0||x>max)throw Error('Неверное значение болезни: '+label);}
+  function draw(random){if(typeof random!=='function')throw Error('Нужен RNG общего runtime');const x=random();if(!Number.isFinite(x)||x<0||x>=1)throw Error('RNG вне диапазона');return x;}
+  function causeId(id){const result=id==='отравление'?'несвежая еда':id;if(!has(CAUSES,result))throw Error('Неизвестная причина болезни');return result;}
+  function setup(body){
+    if(body.disease===undefined)body.disease={version:VERSION,lastDay:Math.floor(body.hour/24),nextId:1,cases:[],toughness:{},withoutGreens:0,withoutLight:0};
+    return validate(body);
+  }
+  function validate(body){
+    P.validate(body);const d=body.disease;
+    if(!d||d.version!==VERSION||!Array.isArray(d.cases)||!d.toughness||typeof d.toughness!=='object'||Array.isArray(d.toughness))throw Error('Неверное состояние болезней');
+    natural(d.lastDay,'lastDay');natural(d.nextId,'nextId');natural(d.withoutGreens,'withoutGreens');natural(d.withoutLight,'withoutLight');
+    if(d.nextId<1||d.lastDay>Math.floor(body.hour/24))throw Error('Болезни из будущего');
+    for(const [key,value] of Object.entries(d.toughness)){if(causeId(key)!==key)throw Error('Неверный ключ стойкости');unit(value,'toughness');}
+    const ids=new Set();
+    for(const c of d.cases){
+      natural(c.id,'case.id');if(!c.id||ids.has(c.id)||c.id>=d.nextId)throw Error('Повтор id болезни');ids.add(c.id);
+      if(causeId(c.cause)!==c.cause||!['скрытая','явная','кризис','исход'].includes(c.phase))throw Error('Неверная причина или фаза');
+      unit(c.severity,'severity');unit(c.lastCure,'lastCure',Number.MAX_VALUE);natural(c.phaseDays,'phaseDays');natural(c.atHour,'atHour');
+      if(c.atHour>body.hour||!(c.source===null||typeof c.source==='string'))throw Error('Неверный источник болезни');
+      if(!Array.isArray(c.treatments)||c.treatments.some(x=>!has(REMEDIES,x)))throw Error('Неизвестное средство');
+      if(active(c)){if(c.result!==null||c.resolvedDay!==null)throw Error('Исход активной болезни');}
+      else{if(!['проходит','умер','хроника','перешла'].includes(c.result))throw Error('Неизвестный исход');natural(c.resolvedDay,'resolvedDay');if(c.resolvedDay>d.lastDay||c.severity!==0)throw Error('Исход болезни из будущего');}
+    }
+    return body;
+  }
+  function resistance(body,cause){
+    cause=causeId(cause);const v=body.reserves,d=body.disease;
+    const age=body.ageYears<6?.6:body.ageYears<12?.8:body.ageYears>=60?.65:1;
+    let value=.7*age*body.immunity;
+    if(v.nutrition<.3)value-=.2;else if(v.nutrition<.45)value-=.1;
+    if(v.water<.5)value-=.15;if(v.heat<.8)value-=.1;if(v.blood<.7)value-=.1;
+    if(d.cases.some(c=>active(c)&&c.cause!==cause))value-=.1;
+    return clamp(value+(d.toughness[cause]||0),.05,1);
+  }
+  function infect(body,cause,source=null){
+    if(!body.alive)return null;cause=causeId(cause);
+    if(!(source===null||typeof source==='string'))throw Error('Источник болезни должен быть id или null');
+    const d=body.disease,c=CAUSES[cause];
+    if((c.immune&&(d.toughness[cause]||0)>=1)||d.cases.some(x=>active(x)&&x.cause===cause))return null;
+    const item={id:d.nextId++,cause,source,phase:'скрытая',severity:.1,phaseDays:0,treatments:[],atHour:body.hour,result:null,resolvedDay:null,lastCure:0};
+    d.cases.push(item);body.trace.push({hour:body.hour,type:'diseaseStarted',caseId:item.id,cause,source});return item.id;
+  }
+  function treat(body,id,remedy){
+    if(!body.alive||!has(REMEDIES,remedy))throw Error('Нет пациента или средства');
+    const c=body.disease.cases.find(x=>x.id===id&&active(x));if(!c)throw Error('Нет активной болезни с таким id');
+    c.treatments.push(remedy);return id;
+  }
+  function deprivation(body,frame){
+    const d=body.disease;d.withoutGreens=frame.greens?0:d.withoutGreens+1;d.withoutLight=frame.daylight?0:d.withoutLight+1;
+    for(const [name,rule]of Object.entries(CAUSES)){
+      if(!rule.calendar||d.cases.some(c=>c.cause===name&&active(c)))continue;
+      if(rule.onlyAge&&(body.ageYears<rule.onlyAge[0]||body.ageYears>rule.onlyAge[1]))continue;
+      const days=rule.calendar==='daysWithoutGreens'?d.withoutGreens:d.withoutLight;
+      if(days>=rule.threshold){const id=infect(body,name,'calendar');if(id!==null){const c=d.cases.find(x=>x.id===id);c.phase='явная';c.severity=.15;}}
+    }
+  }
+  function finish(body,item,result,day){
+    item.phase='исход';item.result=result;item.severity=0;item.resolvedDay=day;
+    const rule=CAUSES[item.cause];
+    if(rule.fever)body.reserves.infection=Math.min(body.reserves.infection,.2);
+    if(rule.breath)body.effects.breathing=result==='хроника'?.3:0;
+    if(result==='умер'){
+      body.alive=false;body.deathReason='умер: '+item.cause;
+      body.trace.push({hour:body.hour,type:'death',reason:body.deathReason});
+    }else{
+      const tough=body.disease.toughness;
+      tough[item.cause]=rule.immune?1:clamp((tough[item.cause]||0)+.3,0,.5);
+      if(result==='хроника'&&rule.aftermath){
+        const part=body.parts[rule.aftermath.site];part.damage=Math.max(part.damage,rule.aftermath.damage);
+      }
+      body.trace.push({hour:body.hour,type:'diseaseFinished',caseId:item.id,result});
+    }
+  }
+  function validateFrame(frame){
+    if(!frame||!Number.isFinite(frame.ration)||frame.ration<0||!['cleanCare','greens','daylight'].every(k=>typeof frame[k]==='boolean'))throw Error('Нужны фактические входы болезней');
+    return frame;
+  }
+  function stepDay(body,day,frame,random){
+    if(!body.alive)return body;
+    validateFrame(frame);natural(day,'day');
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');
+    const d=body.disease;
+    if(day!==d.lastDay+1||body.hour!==day*24)throw Error('Повторная или несвоевременная суточная граница болезней');
+    d.lastDay=day;deprivation(body,frame);body.effects.weakness=0;
+    // Вклад каждой незавершённой болезни живёт отдельно в пределах расчёта.
+    // Выздоровление от одной не снимает слабость, уже вызванную другой.
+    const weakness=new Map();
+    for(let index=0;index<d.cases.length;index++){
+      const item=d.cases[index];if(!active(item))continue;
+      const rule=CAUSES[item.cause],r=resistance(body,item.cause);item.phaseDays++;
+      if(item.phase==='скрытая'){
+        item.treatments=[];if(item.phaseDays>=rule.incubation){item.phase='явная';item.phaseDays=0;}continue;
+      }
+      const cure=item.treatments.reduce((n,m)=>n+(REMEDIES[m].hits[item.cause]||0),0);item.treatments=[];item.lastCure=cure;
+      const growth=rule.grow??(rule.nature==='нехватка'?.03:.1/r);
+      item.severity=clamp(item.severity+growth-cure*.2-(frame.cleanCare&&rule.nature!=='нехватка'?.02:0),rule.nature==='нехватка'?.1:0,rule.cap??1);
+      for(const [key,value]of Object.entries(rule.drain)){const target=key==='feed'?'nutrition':key;body.reserves[target]=clamp(body.reserves[target]-value*(.5+item.severity));}
+      if(rule.fever)body.reserves.infection=clamp(Math.max(body.reserves.infection,item.severity*.7),0,.95);
+      if(rule.breath)body.effects.breathing=clamp(rule.breath*item.severity);
+      weakness.set(item.id,rule.weakens===false?0:item.severity*(item.phase==='кризис'?1.3:1)*(typeof rule.weakens==='number'?rule.weakens:1));
+      let result=null;
+      if(item.severity<=0)result='проходит';
+      else if(rule.becomes&&item.phase==='явная'&&item.phaseDays===rule.becomes.onDay){
+        const t=rule.becomes,base=body.ageYears>=60?t.elder:body.ageYears<3?t.infant:t.adult;
+        if(draw(random)<base*(body.reserves.heat<.8?t.coldMultiplier:1)){
+          result='перешла';finish(body,item,result,day);weakness.delete(item.id);
+          const id=infect(body,t.cause,'case:'+item.id);if(id!==null){const next=d.cases.find(x=>x.id===id);next.phase='явная';next.severity=t.severity;}
+          continue;
+        }
+      }
+      if(result===null&&rule.food&&frame.ration>=1&&frame.greens)result='проходит';
+      if(result!==null){finish(body,item,result,day);weakness.delete(item.id);continue;}
+      if(item.phase==='явная'&&(item.severity>=.7||item.phaseDays>=rule.speed)){item.phase='кризис';item.phaseDays=0;continue;}
+      if(item.phase==='кризис'&&item.phaseDays>=2){
+        const weights={...rule.outcome};
+        const shift=(r-.6)*.5+item.lastCure*.3;
+        const age=body.ageYears<3?0:body.ageYears<12?1:body.ageYears>=60?3:2;
+        if(weights.умер!==undefined){weights.умер=clamp(weights.умер*(rule.ageDeath?.[age]??1)-shift*weights.умер*2,.002,.95);weights.проходит=1-weights.умер-(weights.хроника||0);}
+        let value=draw(random),picked='проходит';for(const [name,weight]of Object.entries(weights)){if(value<weight){picked=name;break;}value-=weight;}
+        finish(body,item,picked,day);weakness.delete(item.id);if(!body.alive)break;
+      }
+    }
+    body.effects.weakness=Math.max(0,...weakness.values());return body;
+  }
+  function signs(body){
+    if(!body.alive)return [];const result=[];
+    for(const item of body.disease.cases){
+      if(item.phase==='скрытая'||!active(item))continue;
+      if(item.cause==='ядовитый гриб'&&item.phase==='явная'&&item.phaseDays>=2){result.push('отпустило');continue;}
+      for(const [text,threshold]of CAUSES[item.cause].signs[item.phase])if(item.severity>=threshold)result.push(text);
+    }
+    return [...new Set(result)];
+  }
+  return {VERSION,CAUSES,REMEDIES,setup,validate,resistance,infect,treat,validateFrame,stepDay,signs,causeId};
+});
+/* Кожа над общей записью тела. Codex (gpt-6), 09.11.2026. Числа — условия PR110. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./physiology.js'),require('./pathology.js'));else root.NovgorSkin=factory(root.NovgorPhysiology,root.NovgorPathology);})(globalThis,function(P,D){
+  'use strict';
+  const VERSION=1;
+  const RULES=Object.freeze({dirtPerDay:.04,dirtyWork:.06,itchAt:.6,boilChance:.03,scratchChance:.02,liceChance:.05,liceWinter:1.5});
+  const SITES=Object.freeze(['шея','рука правая','рука левая','нога правая','нога левая','грудь','живот']);
+  const clamp=x=>Math.max(0,Math.min(1,x));
+  function draw(random){if(typeof random!=='function')throw Error('Нужен RNG общего runtime');const x=random();if(!Number.isFinite(x)||x<0||x>=1)throw Error('RNG вне диапазона');return x;}
+  function setup(body){if(body.skin===undefined)body.skin={version:VERSION,lastDay:Math.floor(body.hour/24),dirt:0,itch:0};return validate(body);}
+  function validate(body){
+    P.validate(body);const s=body.skin;
+    if(!s||s.version!==VERSION||!Number.isSafeInteger(s.lastDay)||s.lastDay<0||s.lastDay>Math.floor(body.hour/24))throw Error('Неверное состояние кожи');
+    for(const key of ['dirt','itch'])if(!Number.isFinite(s[key])||s[key]<0||s[key]>1)throw Error('Неверный показатель кожи');return body;
+  }
+  function validateFrame(frame){if(!frame||!['bathed','dirtyWork'].every(key=>typeof frame[key]==='boolean'))throw Error('Нужны фактические входы кожи');return frame;}
+  function stepDay(body,day,frame,random){
+    validateFrame(frame);if(!body.alive)return [];
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');
+    if(!Number.isSafeInteger(day)||day!==body.skin.lastDay+1||body.hour!==24*day)throw Error('Повторная или несвоевременная граница кожи');
+    const s=body.skin;s.lastDay=day;s.dirt=frame.bathed?0:clamp(s.dirt+RULES.dirtPerDay+(frame.dirtyWork?RULES.dirtyWork:0));
+    const scabies=body.disease.cases.find(c=>c.cause==='чесотка'&&c.phase==='явная');
+    const ringworm=body.disease.cases.find(c=>c.cause==='лишай'&&c.phase==='явная');
+    const chance=RULES.boilChance*s.dirt*s.dirt+(scabies&&scabies.severity>=.3?RULES.scratchChance:0),events=[];
+    if(draw(random)<chance){
+      const site=SITES[Math.floor(draw(random)*SITES.length)];
+      if(!body.parts[site].lost){const id=P.injury(body,{kind:'нарыв',site,severity:1,source:scabies?'scratching':'dirt'},random);events.push({personId:body.id,injuryId:id,site});}
+    }
+    s.itch=Math.max(scabies?scabies.severity:0,ringworm ? .2 : 0,s.dirt>=RULES.itchAt?.3:0);return events;
+  }
+  function signs(body,clothes){
+    if(!body.alive)return [];const out=[];if(body.skin.dirt>=RULES.itchAt)out.push('чешется на людях');if(clothes==='вшивая')out.push('вши');return out;
+  }
+  function liceDay(house,bodies,day,frame,random){
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');
+    if(!frame||!['зима','весна','лето','осень'].includes(frame.season))throw Error('Нет фактического сезона');
+    if(day!==house.lastLiceDay+1)throw Error('Повторный или пропущенный шаг вшей');
+    house.lastLiceDay=day;if(house.clothes==='вшивая')return false;
+    const alive=bodies.filter(body=>body.alive),dirty=alive.filter(body=>body.skin.dirt>=RULES.itchAt).length/Math.max(1,alive.length);
+    if(draw(random)<RULES.liceChance*dirty*(frame.season==='зима'?RULES.liceWinter:1)){
+      house.clothes='вшивая';house.trace.push({day,type:'lice'});return true;
+    }
+    return false;
+  }
+  function delouse(house,bodies){
+    house.clothes='чистая';
+    for(const body of bodies)if(body.alive)for(const c of body.disease.cases)if(c.cause==='чесотка'&&c.phase!=='исход')D.treat(body,c.id,'clothes-heat');
+    house.trace.push({type:'clothesCleaned'});
+  }
+  return {VERSION,RULES,SITES,setup,validate,validateFrame,stepDay,signs,liceDay,delouse};
+});
+/* Передача внутри двора, ключи только по id. Codex (gpt-6), 09.11.2026. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./physiology.js'),require('./pathology.js'),require('./skin.js'));else root.NovgorContagion=factory(root.NovgorPhysiology,root.NovgorPathology,root.NovgorSkin);})(globalThis,function(P,D,S){
+  'use strict';
+  const VERSION=1,has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+  function freeze(x){for(const v of Object.values(x))if(v&&typeof v==='object')freeze(v);return Object.freeze(x);}
+  const SPREAD=freeze({
+    'простуда':{path:'air',latent:.04,latentDays:1,overt:.12,crisis:.08,after:.02,afterDays:2},
+    'воспаление лёгких':{path:'air',latent:0,latentDays:0,overt:.03,crisis:.03,after:0,afterDays:0},
+    'корь':{path:'air',latent:.25,latentDays:4,overt:.5,crisis:.25,after:0,afterDays:0},
+    'кровавый понос':{path:'dirt',latent:0,latentDays:0,overt:.06,crisis:.08,after:.02,afterDays:3},
+    'простой понос':{path:'dirt',latent:0,latentDays:0,overt:.06,crisis:.06,after:.015,afterDays:2},
+    'сыпной тиф':{path:'clothes',latent:0,latentDays:0,overt:.08,crisis:.08,after:0,afterDays:0,needsLice:true},
+    'чесотка':{path:'clothes',latent:.02,latentDays:7,overt:.04,crisis:0,after:0,afterDays:0},
+    'лишай':{path:'clothes',latent:0,latentDays:0,overt:.015,crisis:0,after:0,afterDays:0}
+  });
+  const CLOSENESS=freeze({care:1,room:.6,yard:.25});
+  const PATH=freeze({air:{care:1,room:1,yard:1},dirt:{care:1.5,room:1,yard:2},clothes:{care:1.2,room:1,yard:.2}});
+  const CATTLE_RINGWORM=.04;
+  function draw(random){if(typeof random!=='function')throw Error('Нужен RNG общего runtime');const x=random();if(!Number.isFinite(x)||x<0||x>=1)throw Error('RNG вне диапазона');return x;}
+  function body(world,id){const p=world.people[id];if(!p||p.id!==id||p.body?.id!==id)throw Error('Нет единственной записи тела по id');return p.body;}
+  // Отсутствующий во дворе (в пути) в контактах двора не участвует: ни источником, ни жертвой.
+  function present(world,id){return world.people[id].present!==false;}
+  function household(world,hid){const h=world.households[hid]?.contagion;if(!h)throw Error('Нет контейнера заразности двора');return h;}
+  function setup(world,hid,day){
+    const root=world.households[hid];if(!root)throw Error('Нет двора');
+    if(root.contagion===undefined){
+      const members=Object.keys(world.people).filter(id=>world.people[id].household===hid),room={};for(const id of members)room[id]='room';
+      root.contagion={version:VERSION,members,room,carer:{},bodies:[],deaths:{},clothes:'чистая',trace:[],lastLiceDay:day,lastCattleDay:day,lastSpreadDay:day};
+    }
+    validate(world,hid);rememberDeaths(world,hid);return root.contagion;
+  }
+  function validate(world,hid){
+    const h=household(world,hid);
+    if(h.version!==VERSION||!Array.isArray(h.members)||new Set(h.members).size!==h.members.length||!Array.isArray(h.bodies)||new Set(h.bodies).size!==h.bodies.length||!Array.isArray(h.trace))throw Error('Неверный состав двора');
+    if(![h.room,h.carer,h.deaths].every(x=>x&&typeof x==='object'&&!Array.isArray(x))||!['чистая','вшивая'].includes(h.clothes))throw Error('Неверные условия двора');
+    for(const key of ['lastLiceDay','lastCattleDay','lastSpreadDay'])if(!Number.isSafeInteger(h[key])||h[key]<0)throw Error('Неверный шаг двора');
+    for(const id of h.members){
+      body(world,id);if(world.people[id].household!==hid||typeof h.room[id]!=='string'||!h.room[id])throw Error('Чужой член двора или нет комнаты');
+    }
+    if(Object.keys(h.room).some(id=>!h.members.includes(id)))throw Error('Комната неизвестного человека');
+    for(const [id,carer]of Object.entries(h.carer))if(!h.members.includes(id)||(carer!==null&&!h.members.includes(carer)))throw Error('Чужой участник ухода');
+    for(const [id,hour]of Object.entries(h.deaths))if(!h.members.includes(id)||body(world,id).alive||hour!==body(world,id).hour)throw Error('Неверный учёт умершего');
+    if(h.bodies.some(id=>!has(h.deaths,id)))throw Error('Тело без зарегистрированной смерти');return h;
+  }
+  function member(world,hid,id){const h=household(world,hid);if(!h.members.includes(id))throw Error('Человек не в этом дворе');return h;}
+  function move(world,hid,id,room){const h=member(world,hid,id);if(typeof room!=='string'||!room)throw Error('Нет комнаты');h.room[id]=room;h.trace.push({hour:body(world,id).hour,type:'moved',personId:id,room});}
+  function care(world,hid,patient,carer){const h=member(world,hid,patient);if(carer!==null)member(world,hid,carer);h.carer[patient]=carer;}
+  function rememberDeaths(world,hid){
+    const h=household(world,hid);
+    // Тело лежит во дворе, только если человек умер дома; умерший в пути — факт смерти без тела.
+    for(const id of h.members){const p=body(world,id);if(!p.alive&&!has(h.deaths,id)){h.deaths[id]=p.hour;if(present(world,id))h.bodies.push(id);}}
+  }
+  function bury(world,hid,id){
+    const h=member(world,hid,id),p=body(world,id);if(p.alive)throw Error('Нельзя вынести живого как тело');
+    h.deaths[id]=p.hour;h.bodies=h.bodies.filter(x=>x!==id);
+  }
+  // Открытый двор (outside) — не помещение: двое снаружи — ступень двора, не комнаты.
+  function closeness(h,from,to){if(h.carer[from]===to||h.carer[to]===from)return 'care';return h.room[from]===h.room[to]&&h.room[from]!=='outside'?'room':'yard';}
+  function validateFrame(frame){
+    if(!frame||!['зима','весна','лето','осень'].includes(frame.season)||!['clean','bathed','cattleRingworm'].every(k=>typeof frame[k]==='boolean'))throw Error('Нужны фактические условия передачи');return frame;
+  }
+  function environment(path,frame,clothes,cause){
+    let value=1;if(path==='dirt'&&frame.clean)value*=.5;
+    if(path==='clothes'){value*=frame.season==='зима'?1:.3;if(frame.bathed)value*=.4;if(cause&&SPREAD[cause].needsLice&&clothes!=='вшивая')value=0;}
+    if(path==='air'&&frame.season==='зима')value*=1.3;return value;
+  }
+  // Запрос не двигает часы хвоста заразности. Их владелец — календарный день исхода.
+  function shedding(item,day){
+    const s=SPREAD[item.cause];if(!s)return 0;
+    if(item.phase==='скрытая')return item.phaseDays>=D.CAUSES[item.cause].incubation-s.latentDays?s.latent:0;
+    if(item.phase==='явная')return s.overt;if(item.phase==='кризис')return s.crisis;
+    const age=day-item.resolvedDay+1;
+    return item.phase==='исход'&&item.result!=='умер'&&age>=1&&age<=s.afterDays?s.after:0;
+  }
+  function susceptibility(p,cause){
+    if(p.disease.cases.some(c=>c.cause===cause&&c.phase!=='исход'))return 0;
+    if(D.CAUSES[cause].immune&&(p.disease.toughness[cause]||0)>=1)return 0;
+    return Math.max(.15,Math.min(1,1.15-D.resistance(p,cause)));
+  }
+  function spread(world,hid,day,frame,random){
+    validateFrame(frame);const h=household(world,hid);
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');
+    if(day!==h.lastSpreadDay+1)throw Error('Повторный или пропущенный шаг передачи');
+    h.lastSpreadDay=day;const sources=[],out=[];
+    for(const id of h.members){const p=body(world,id);if(!p.alive||!present(world,id))continue;for(const item of p.disease.cases){const chance=shedding(item,day);if(chance>0)sources.push({id,cause:item.cause,chance,corpse:false});}}
+    // Тело заражает, только пока лежит во дворе (умерший дома и не вынесен).
+    for(const id of h.bodies)for(const item of body(world,id).disease.cases){
+      if(!present(world,id))break;const s=SPREAD[item.cause];if(s&&s.path!=='air'&&(item.phase==='явная'||item.phase==='кризис'||(item.phase==='исход'&&item.result==='умер')))sources.push({id,cause:item.cause,chance:s.overt*.5,corpse:true});
+    }
+    for(const source of sources)for(const id of h.members){
+      const p=body(world,id);if(id===source.id||!p.alive||!present(world,id))continue;const susceptible=susceptibility(p,source.cause);if(susceptible<=0)continue;
+      const step=closeness(h,source.id,id),path=SPREAD[source.cause].path;
+      const chance=source.chance*CLOSENESS[step]*PATH[path][step]*environment(path,frame,h.clothes,source.cause)*susceptible;
+      if(draw(random)<chance){
+        const caseId=D.infect(p,source.cause,(source.corpse?'body:':'person:')+source.id);
+        if(caseId!==null){const event={to:id,from:source.id,cause:source.cause,step,caseId};out.push(event);h.trace.push({day,type:'infection',...event});}
+      }
+    }
+    return out;
+  }
+  function fromCattle(world,hid,day,frame,random){
+    validateFrame(frame);const h=household(world,hid);if(day!==h.lastCattleDay+1)throw Error('Повторный или пропущенный шаг источника скота');
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');
+    h.lastCattleDay=day;const out=[];if(!frame.cattleRingworm)return out;
+    for(const id of h.members){const p=body(world,id);if(!p.alive||!present(world,id)||world.people[id].tendsCattle!==true)continue;const s=susceptibility(p,'лишай');if(s<=0)continue;
+      if(draw(random)<CATTLE_RINGWORM*s&&D.infect(p,'лишай','cattle')!==null)out.push(id);
+    }return out;
+  }
+  function arrive(world,hid,cause,frame,random){
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');
+    validateFrame(frame);cause=D.causeId(cause);const h=household(world,hid),s=SPREAD[cause];if(!s)throw Error('Причина не передаётся при контакте');
+    const out=[];for(const id of h.members){const p=body(world,id),susceptible=susceptibility(p,cause);if(!p.alive||!present(world,id)||susceptible<=0)continue;
+      if(draw(random)<s.overt*CLOSENESS.room*environment(s.path,frame,'вшивая',cause)*susceptible&&D.infect(p,cause,'outside')!==null)out.push(id);
+    }return out;
+  }
+  function observeBody(p,day,clothes){
+    const out=P.observe(p,day);out.signs=[...new Set([...out.signs,...D.signs(p),...S.signs(p,clothes)])];
+    for(const mark of out.marks)if(!p.injuries.some(w=>w.site===mark.site))mark.from='наблюдение';
+    return out;
+  }
+  function observe(world,hid,day){
+    const h=household(world,hid);
+    return {day,clothes:h.clothes,bodies:[...h.bodies],people:h.members.filter(id=>body(world,id).alive).map(id=>({...observeBody(body(world,id),day,h.clothes),room:h.room[id]}))};
+  }
+  return {VERSION,SPREAD,CLOSENESS,PATH,CATTLE_RINGWORM,present,setup,validate,validateFrame,body,household,move,care,rememberDeaths,bury,closeness,environment,shedding,susceptibility,spread,fromCattle,arrive,observeBody,observe};
+});
+/* Единая суточная граница новой модели. Codex (gpt-6), 09.11.2026. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./physiology.js'),require('./pathology.js'),require('./skin.js'),require('./contagion.js'));else root.NovgorClinical=factory(root.NovgorPhysiology,root.NovgorPathology,root.NovgorSkin,root.NovgorContagion);})(globalThis,function(P,D,S,C){
+  'use strict';
+  const VERSION=1,has=(o,k)=>Object.prototype.hasOwnProperty.call(o,k);
+  const dict=x=>!!x&&typeof x==='object'&&!Array.isArray(x);
+  function natural(x,label){if(!Number.isSafeInteger(x)||x<0)throw Error('Неверный день клинического расчёта: '+label);}
+  function validateBody(body){P.validate(body);D.validate(body);S.validate(body);return body;}
+  function createBody(input){const body=P.create(input);D.setup(body);S.setup(body);return body;}
+  function structure(world){
+    if(!world||!dict(world.people)||!dict(world.households))throw Error('Нет общего мира');
+    for(const [id,person]of Object.entries(world.people)){
+      if(!person||person.id!==id||!has(world.households,person.household)||person.body?.id!==id||has(person,'health')||has(person,'cap'))throw Error('Нет единственного владельца нового тела');
+      P.validate(person.body);if(person.tendsCattle!==undefined&&typeof person.tendsCattle!=='boolean')throw Error('Неверный признак ухода за скотом');
+      if(person.present!==undefined&&typeof person.present!=='boolean')throw Error('Неверный признак присутствия');
+    }
+  }
+  function initialize(world,day){
+    natural(day,'initialize');structure(world);
+    if(world.clinical!==undefined)return validate(world);
+    for(const person of Object.values(world.people)){
+      const b=person.body;if(b.alive?b.hour!==day*24:b.hour>day*24)throw Error('Начало клинического расчёта не совпадает с физическим временем');
+      if(b.disease!==undefined)D.validate(b);if(b.skin!==undefined)S.validate(b);
+    }
+    for(const person of Object.values(world.people)){D.setup(person.body);S.setup(person.body);}
+    world.clinical={version:VERSION,lastDay:day};
+    for(const hid of Object.keys(world.households))C.setup(world,hid,day);
+    return validate(world);
+  }
+  function validate(world){
+    structure(world);const state=world.clinical;
+    if(!state||state.version!==VERSION)throw Error('Несовместимый формат клинического мира');natural(state.lastDay,'lastDay');
+    for(const person of Object.values(world.people)){
+      const b=validateBody(person.body);
+      if(b.alive&&(b.hour<state.lastDay*24||b.hour>(state.lastDay+1)*24||b.disease.lastDay!==state.lastDay||b.skin.lastDay!==state.lastDay))throw Error('Рассинхрон часов и клинического состояния');
+      if(b.disease.lastDay>state.lastDay||b.skin.lastDay>state.lastDay)throw Error('Клинические сведения из будущего');
+    }
+    const seen=new Set();
+    for(const hid of Object.keys(world.households)){
+      const h=C.validate(world,hid);
+      if(['lastLiceDay','lastCattleDay','lastSpreadDay'].some(k=>h[k]!==state.lastDay))throw Error('Незавершённая суточная граница двора');
+      for(const id of h.members){if(seen.has(id))throw Error('Тело числится в двух дворах');seen.add(id);}
+    }
+    if(seen.size!==Object.keys(world.people).length)throw Error('Тело вне учёта двора');return world;
+  }
+  function validateFrames(world,day,frames){
+    if(!frames||!dict(frames.people)||!dict(frames.households))throw Error('Нет фактических входов суточной границы');
+    if(Object.keys(frames.people).some(id=>!has(world.people,id))||Object.keys(frames.households).some(id=>!has(world.households,id)))throw Error('Входы неизвестного участника');
+    for(const person of Object.values(world.people)){
+      const body=person.body;if(!body.alive)continue;
+      if(body.hour!==day*24)throw Error('Физическое тело ещё не закончило сутки');
+      const frame=frames.people[person.id];D.validateFrame(frame);S.validateFrame(frame);
+      const receipt=body.lastSupply;
+      if(!receipt||receipt.day!==day||receipt.ration!==frame.ration||receipt.cleanCare!==frame.cleanCare)throw Error('Клинический вход не совпадает с фактическим снабжением тела');
+    }
+    for(const hid of Object.keys(world.households))C.validateFrame(frames.households[hid]);return frames;
+  }
+  function stepDay(world,day,frames,random){
+    validate(world);natural(day,'stepDay');
+    if(day!==world.clinical.lastDay+1)throw Error('Повторный или пропущенный клинический день');
+    if(typeof random!=='function')throw Error('Нужен RNG общего runtime');validateFrames(world,day,frames);
+    // Физические часы здесь не вызываются. Данные снабжения — уже совершившийся факт.
+    for(const person of Object.values(world.people))D.stepDay(person.body,day,frames.people[person.id],random);
+    for(const person of Object.values(world.people))if(person.body.alive)S.stepDay(person.body,day,frames.people[person.id],random);
+    for(const hid of Object.keys(world.households)){
+      // Вошь плодится на тех, кто дома; отсутствующие в счёт двора не входят.
+      const h=C.household(world,hid),bodies=h.members.filter(id=>C.present(world,id)).map(id=>C.body(world,id));
+      C.rememberDeaths(world,hid);S.liceDay(h,bodies,day,frames.households[hid],random);
+    }
+    for(const hid of Object.keys(world.households))C.fromCattle(world,hid,day,frames.households[hid],random);
+    const infections=[];for(const hid of Object.keys(world.households))infections.push(...C.spread(world,hid,day,frames.households[hid],random));
+    world.clinical.lastDay=day;validate(world);return infections;
+  }
+  function observeBody(world,id,day){natural(day,'observe');const p=world.people[id];if(!p)throw Error('Нет человека');return C.observeBody(p.body,day,C.household(world,p.household).clothes);}
+  function observeHouse(world,hid,day){natural(day,'observe');return C.observe(world,hid,day);}
+  function save(world){validate(world);return JSON.stringify(world);}
+  function load(json){return validate(JSON.parse(json));}
+  function saveBody(body){validateBody(body);return JSON.stringify(body);}
+  function loadBody(json){return validateBody(JSON.parse(json));}
+  return {VERSION,createBody,initialize,validate,validateBody,validateFrames,stepDay,observeBody,observeHouse,save,load,saveBody,loadBody};
+});
 /* Runtime телесного слоя. Предварительные параметры — не игровой баланс. */
 (function (root, factory) {
   const node=typeof module === 'object' && module.exports;
-  const api = factory(node?require('./medical.js'):root.NovgorMedical,node?require('./life.js'):root.NovgorLife,node?require('./dental.js'):root.NovgorDental,node?require('./vision.js'):root.NovgorVision,node?require('./work.js'):root.NovgorWork,node?require('./hearing.js'):root.NovgorHearing,node?require('./replanning.js'):root.NovgorReplanning,node?require('./leadership.js'):root.NovgorLeadership,node?require('./rations.js'):root.NovgorRations,node?require('./housing.js'):root.NovgorHousing,node?require('./fuel-storage.js'):root.NovgorFuelStorage);
+  const api = factory(node?require('./medical.js'):root.NovgorMedical,node?require('./life.js'):root.NovgorLife,node?require('./dental.js'):root.NovgorDental,node?require('./vision.js'):root.NovgorVision,node?require('./work.js'):root.NovgorWork,node?require('./hearing.js'):root.NovgorHearing,node?require('./replanning.js'):root.NovgorReplanning,node?require('./leadership.js'):root.NovgorLeadership,node?require('./rations.js'):root.NovgorRations,node?require('./housing.js'):root.NovgorHousing,node?require('./fuel-storage.js'):root.NovgorFuelStorage,node?require('./clinical.js'):root.NovgorClinical,node?require('./physiology.js'):root.NovgorPhysiology,node?require('./contagion.js'):root.NovgorContagion);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.NovgorBody = api;
-})(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work,hearing,replanning,leadership,rations,housing,fuelStorage) {
+})(typeof globalThis === 'object' ? globalThis : this, function (medical,life,dental,vision,work,hearing,replanning,leadership,rations,housing,fuelStorage,clinical,physiology,contagion) {
   'use strict';
-  const VERSION = 20;
+  const VERSION = 21;
+  const STEPPING = new WeakSet(); // состояния посреди шага; не сериализуется
   const DEFAULTS = Object.freeze({
     hungerRecovery: 1, thirstRecovery: 1, hungerThreshold: 3, thirstThreshold: 2,
     hungerLoss: 0.04, thirstLoss: 0.08, slowHungerThreshold: 7, slowHungerLoss: 0.02,
@@ -3277,18 +4688,88 @@ function сгенерироватьРод(сид) {
   }
   function condition(s, p, day = s.day) {
     const active = [...sources(p, day), ...medical.effects(p, s.medicalParameters,day)], pain = Math.max(0, ...active.map(x => x.pain));
-    const alive = p.health > 0;
-    return {alive, pain, ageYears:life.age(s,p), canPlan:work.canPlan(p,day), bed: alive && (p.health < s.parameters.bedThreshold || pain >= 3 || active.some(x => x.preventsStanding)),
+    // Новая модель тела (09.11.2026): живость, постель и допуск к работе считаются и по ней.
+    const b = bodyOf(s,p), bodyPain = b ? physiology.pain(b) : 0, bodyDown = !!b && b.alive && (bodyPain >= 2 || physiology.ability(b,'ходьба') === 0 || b.effects.weakness >= 0.9);
+    const alive = p.health > 0 && (!b || b.alive);
+    return {alive, pain: Math.max(pain, bodyPain), ageYears:life.age(s,p), canPlan:work.canPlan(p,day), bed: alive && (p.health < s.parameters.bedThreshold || pain >= 3 || bodyDown || active.some(x => x.preventsStanding)),
       // Предохранитель спирали DEC-80-01 (17-А §5а: тяжёлое — «ещё не
       // ослабшему»): ослабший полосой или истощённый медленным голодом сам
       // выпадает из тяжёлых работ; граница — существующая полоса «ослаб».
       exhausted: alive && (p.health < 0.6 - 1e-10 || p.slowHunger >= s.parameters.slowHungerThreshold - 1e-10),
-      canWork: alive && life.work(s,p)>0 && pain < 2 && p.health >= s.parameters.bedThreshold && !active.some(x => x.preventsStanding)};
+      canWork: alive && life.work(s,p)>0 && pain < 2 && p.health >= s.parameters.bedThreshold && !bodyDown && (!b || physiology.ability(b,'руки') > 0) && !active.some(x => x.preventsStanding)};
+  }
+  // Запись нового тела человека живёт в s.bodyWorld (мир клинического расчёта), ключ — id человека.
+  function bodyOf(s,p){return s.bodyWorld?.people?.[p.id]?.body||null;}
+  function bodyRandom(s,day){let n=0;return()=>{const x=medical.unit('body|'+s.seed+'|'+day+'|'+(n++));return x>=1?0.9999999:x;};}
+  function bodyWorldFor(s){
+    const world={people:{},households:{}};
+    for(const hid of Object.keys(s.households))world.households[hid]={};
+    for(const p of Object.values(s.people))world.people[p.id]={id:p.id,household:p.household,tendsCattle:false,body:clinical.createBody({id:p.id,ageYears:life.age(s,p)??30,hour:s.day*24})};
+    return clinical.initialize(world,s.day);
+  }
+  function bodyThermal(s,p){
+    if(warmAt(s,p))return 'норма';
+    // «Мороз» для тела — открытый воздух ниже нуля без укрытия; нетопленая изба — «холод».
+    const h=s.households[p.household];
+    if(h?.home&&p.homeBlock==='outside'&&housing.actualWeather(s,h.home.time).temperature<0)return 'мороз';
+    return 'холод';
+  }
+  function killBodyIfDead(s,p){
+    const b=bodyOf(s,p);if(!b||!b.alive||p.health>0)return false;
+    b.alive=false;b.deathReason='умер';b.trace.push({hour:b.hour,type:'death',reason:'по старому расчёту'});
+    // Факт смерти — всегда; тело во дворе — только если человек умер дома. Умерший вдали телом двора не становится.
+    const h=s.bodyWorld.households[p.household]?.contagion;if(h&&!Object.hasOwn(h.deaths,p.id)){h.deaths[p.id]=b.hour;if(p.present!==false)h.bodies.push(p.id);}
+    return true;
+  }
+  function syncContacts(s,ledger){
+    const world=s.bodyWorld;
+    for(const [hid,root] of Object.entries(world.households)){
+      const h=root.contagion;if(!h)continue;
+      for(const id of h.members){const p=s.people[id];if(!p)continue;
+        world.people[id].present=p.present!==false;
+        const room=p.homeBlock||'room';if(h.room[id]!==room)contagion.move(world,hid,id,room);
+        h.carer[id]=null;
+      }
+      for(const id of h.members){const d=ledger?.people?.[id];const helper=d?.care?.find(x=>x.helper&&h.members.includes(x.helper))?.helper;if(helper)h.carer[id]=helper;}
+    }
+  }
+  // Сутки нового тела по фактам ведомости: 24 часа физиологии, затем единая клиническая граница
+  // (болезни → кожа → вши → скот → передача). Старый расчёт здесь не трогается: он даёт факты
+  // снабжения; новое тело даёт живость, постель, допуск, признаки и силуэт.
+  function bodyDay(s,ledger){
+    const world=s.bodyWorld;if(!world)return;
+    const rand=bodyRandom(s,s.day),cal=life.calendar(s),month=cal.getUTCMonth(),season=month<=1||month===11?'зима':month<=4?'весна':month<=7?'лето':'осень';
+    const frames={people:{},households:{}};
+    // Смерть старого расчёта (ведомость, воздействие) — смерть тела: один переход для обоих производителей.
+    for(const p of Object.values(s.people))killBodyIfDead(s,p);
+    // Фактические контакты дня: присутствие, место в доме и выполненный уход — в клинический двор.
+    syncContacts(s,ledger);
+    for(const p of Object.values(s.people)){
+      const b=bodyOf(s,p),d=ledger.people[p.id];if(!b||!b.alive)continue;
+      b.ageYears=life.age(s,p)??b.ageYears; // возраст тела следует календарю и дате рождения
+      const ration=d?clamp(d.food/Math.max(1e-9,d.foodDemand),0,1):1,drank=d?d.water/Math.max(1e-9,d.waterDemand)>=0.5:true,cleanCare=!!d?.fullCare;
+      const thermal=p.present?bodyThermal(s,p):'норма';
+      // Старый расчёт знает только тепло ночлега: холод избы прикладывается к ночным часам (8 из 24),
+      // днём — норма; на дворе без укрытия — все часы [не закреплено, условие опыта до почасовой среды].
+      const nightHours=p.homeBlock==='outside'?24:8;
+      for(let hr=0;hr<24&&b.alive;hr++)physiology.tickHour(b,{hour:b.hour+1,thermal:hr<nightHours?thermal:'норма',ration,drank,cleanCare},rand);
+      if(!b.alive)continue; // умер в часах — кадра клинического дня не нужно
+      // Зелень и свет — из состава еды и из постели; баня раз в неделю и грязная работа по ступени дня — условия опыта [не закреплено].
+      frames.people[p.id]={ration,drank,cleanCare,greens:(d?.nutritionCoverage??1)>=1/3,daylight:!(d?.bed),bathed:s.day%7===0,dirtyWork:p.strainYesterday==='heavy'};
+    }
+    for(const hid of Object.keys(s.households)){const h=s.households[hid];frames.households[hid]={season,clean:!!h.wasteDestination&&(h.pot?.amount??0)===0,bathed:s.day%7===0,cattleRingworm:false};}
+    clinical.stepDay(world,s.day,frames,rand);
+    for(const p of Object.values(s.people)){
+      const b=bodyOf(s,p);if(!b||b.alive||p.health<=0)continue;
+      // Смерть по новому телу — смерть человека; причина наружу не выдаётся (07-А §§2–3).
+      p.health=0;event(s,'Death',[p.id],p.name+': умер',p.originSeq,{body:true});
+    }
   }
   function band(p) {return p.health <= 0 ? 'умер' : p.health < 0.15 ? 'при смерти' : p.health < 0.3 ? 'еле жив' : p.health < 0.6 ? 'ослаб' : 'крепок';}
   function efficiency(s, p) {
     const k = s.parameters;
-    return p.health * life.work(s,p) * Math.max(k.workFloor, 1 - k.hungerWorkPenalty * Math.min(1, p.hunger / k.hungerThreshold) - k.thirstWorkPenalty * Math.min(1, p.thirst / k.thirstThreshold));
+    const b=bodyOf(s,p),bodySpeed=b?physiology.workSpeed(b,['руки','сила']):1;
+    return p.health * bodySpeed * life.work(s,p) * Math.max(k.workFloor, 1 - k.hungerWorkPenalty * Math.min(1, p.hunger / k.hungerThreshold) - k.thirstWorkPenalty * Math.min(1, p.thirst / k.thirstThreshold));
   }
   function create(spec) {
     const s = {version: VERSION, day: spec.day || 0, parameters: parameters(spec.parameters),
@@ -3314,6 +4795,7 @@ function сгенерироватьРод(сид) {
       p.homeBlock=raw.homeBlock??(s.households[p.household]?.home?'room':null);life.setup(s,p,raw);medical.setup(p);vision.setup(p); s.people[p.id] = p;
     }
     work.setup(s);hearing.setup(s);replanning.setup(s);leadership.setup(s);
+    s.bodyWorld=bodyWorldFor(s);for(const p of Object.values(s.people))if(p.health<=0){const b=s.bodyWorld.people[p.id].body;b.alive=false;b.deathReason='умер';}
     validate(s);
     for (const p of Object.values(s.people)) {
       if (condition(s, p).bed && p.bedSince === null) p.bedSince = s.day;
@@ -3330,6 +4812,17 @@ function сгенерироватьРод(сид) {
   }
   function validate(s) {
     if (s.version !== VERSION || !Number.isInteger(s.day) || !Number.isInteger(s.nextSeq)) throw new Error('Неизвестный формат состояния');
+    if(!s.bodyWorld)throw new Error('Нет мира тела (v21)');
+    clinical.validate(s.bodyWorld);
+    for(const id of Object.keys(s.bodyWorld.people))if(!s.people[id])throw new Error('Тело без человека: '+id);
+    for(const p of Object.values(s.people)){const w=s.bodyWorld.people[p.id];if(!w||w.body.id!==p.id)throw new Error('Человек без тела: '+p.id);if(w.household!==p.household)throw new Error('Тело в чужом дворе: '+p.id);}
+    for(const hid of Object.keys(s.bodyWorld.households))if(!s.households[hid])throw new Error('Двор тела без двора мира: '+hid);
+    // Публичная граница сохранения: завершённые сутки — клинический день равен дню мира, живые тела ровно на часу
+    // day*24 (мёртвые хранят час смерти). Отставание на сутки допустимо только внутри step (флаг STEPPING — не поле
+    // состояния, в JSON не пишется и из JSON не читается).
+    const stepping=STEPPING.has(s);
+    if(s.bodyWorld.clinical.lastDay!==s.day&&!(stepping&&s.bodyWorld.clinical.lastDay===s.day-1))throw new Error('Клинический день не совпадает с днём мира');
+    if(!stepping)for(const w of Object.values(s.bodyWorld.people))if(w.body.alive&&w.body.hour!==s.day*24)throw new Error('Часы тела не на границе суток: '+w.id);
     for(const h of Object.values(s.households))fuelStorage.bind(h);
     positive(s.parameters.attentionTime,'attentionTime');
     parameters(s.parameters);
@@ -3474,7 +4967,7 @@ function сгенерироватьРод(сид) {
     const p = s.people[pid]; if (!p || p.health <= 0) throw new Error('Нет живого получателя');
     positive(input.loss, 'impact.loss', true);
     if (input.source) {
-      const probe = copy(s); probe.people[pid].sources.push(copy(input.source)); validate(probe);
+      const probe = copy(s); probe.people[pid].sources.push(copy(input.source)); if(STEPPING.has(s))STEPPING.add(probe); validate(probe);
     }
     const complication=input.complication?medical.fromEvent(p,{...input.complication,eventId:input.id},s.day,s.seed):null;
     p.health = round(Math.max(0, p.health - input.loss));
@@ -3483,7 +4976,7 @@ function сгенерироватьРод(сид) {
     p.originSeq = event(s, 'Impact', [pid], input.label || 'Разовое воздействие', p.originSeq, {loss:input.loss, source:input.source || null});
     if(complication){complication.originSeq=p.originSeq;p.illnesses.push(complication);}
     if (condition(s, p).bed && p.bedSince === null) p.bedSince = s.day;
-    if (!p.health) event(s, 'Death', [pid], p.name + ': умер', p.originSeq, {loss:input.loss, source:input.source || null});
+    if (!p.health) {event(s, 'Death', [pid], p.name + ': умер', p.originSeq, {loss:input.loss, source:input.source || null});killBodyIfDead(s,p);}
     if(refresh)observeDay(s); return true;
   }
   function deliver(s, hid, delivery) {
@@ -3577,7 +5070,8 @@ function сгенерироватьРод(сид) {
   function step(s) {
     const previousDay = s.day, k = s.parameters,homeSleepBefore=Object.fromEntries(Object.values(s.people).map(p=>[p.id,p.sleepDebt]));
     const previousConditions = Object.fromEntries(Object.values(s.people).map(p => [p.id, condition(s, p, previousDay)]));
-    s.day++;
+    s.day++;STEPPING.add(s);
+    for(const p of Object.values(s.people))killBodyIfDead(s,p); // смерть, выставленная между сутками (воздействие, сценарий), — смерть тела
     // 17-А §13е, REQ-B-003 (6.7): истёкшая травма с заданным исходом оставляет
     // пожизненное последствие — частный запрет работ и строку в отметинах.
     // Предел здоровья не трогается; исход задан данными этапа 5, не броском.
@@ -3888,6 +5382,7 @@ function сгенерироватьРод(сид) {
       ledger.households[hid].waterAfter = h.water;
     }
     for(const p of Object.values(s.people))medical.finishCase(p,Object.values(s.people).filter(c=>c.healer),s.day,s.medicalParameters,condition(s,p).bed);
+    bodyDay(s,ledger);
     work.day(s,ledger.people,p=>condition(s,p),(...args)=>event(s,...args));
     // Helpers may act for a patient later in iteration order. Snapshot only the completed day.
     for(const p of Object.values(s.people)) {
@@ -3908,7 +5403,7 @@ function сгенерироватьРод(сид) {
       p.last={...copy(d),remainingTime:round(Math.max(0,p.capacity-d.time)),
         availableWork:condition(s,p).canWork?round(Math.max(0,p.capacity-d.time)*efficiency(s,p)):0};
     }
-    s.lastLedger = ledger; observeDay(s); validate(s);
+    s.lastLedger = ledger; STEPPING.delete(s); observeDay(s); validate(s);
   }
   function validatePersonAftermath(p){
     if(!Array.isArray(p.marks)||!Array.isArray(p.impairments))throw new Error('Нет списков отметин и последствий');
@@ -3948,6 +5443,7 @@ function сгенерироватьРод(сид) {
         workReason:!c.alive?'dead':c.bed?'bed':life.work(s,p)<=0?'age':c.pain>=2?'pain':null,
         injuries:p.sources.filter(x=>x.observed).map(x=>({...copy(x.observed),active:x.untilDay===null||x.untilDay>=s.day})),
         marks:copy(p.marks),impairments:p.impairments.map(i=>({name:i.name,bansWorks:copy(i.bansWorks)})),
+        body:bodyOf(s,p)?clinical.observeBody(s.bodyWorld,p.id,s.day):null,
         sleepSign:p.sleepDebt>=s.parameters.sleepDropThreshold-1e-10?'валится с ног':null,
         dirtSign:p.dirt>=s.parameters.dirtThreshold-1e-10?'чешется, просится мыться':null,
         mindSign:(()=>{const m=p.sources.find(x=>x.id==='mind-aging');return m?(m.preventsPlanning?'из ума выжил':'память слабеет, путается'):null;})(),
@@ -3981,7 +5477,7 @@ function сгенерироватьРод(сид) {
   }
   function save(s) {validate(s); return JSON.stringify(s);}
   function restore(text) {
-    const s=JSON.parse(text);
+    const s=JSON.parse(text);delete s.stepping; // внутренних флагов шага из файла не берём
     if(s.version===1){s.version=2;s.medicalParameters=medical.params();s.seed=1;for(const p of Object.values(s.people))medical.setup(p);}
     if(s.version===2){
       s.version=3;s.calendarStart='2000-01-01';s.calendarDayAtStart=s.day;
@@ -4046,6 +5542,8 @@ function сгенерироватьРод(сид) {
     if(s.version===17){s.version=18;s.parameters=parameters(s.parameters);}
     if(s.version===18){s.version=19;s.housingWeather=null;for(const h of Object.values(s.households))h.home=null;}
     if(s.version===19){s.version=20;for(const h of Object.values(s.households))if(h.home)h.home.fuelStorage=null;}
+    // v21: новое тело. Старое здоровье в травмы не переводится — тело заводится заново по возрасту [не закреплено].
+    if(s.version===20){s.version=21;s.bodyWorld=bodyWorldFor(s);for(const p of Object.values(s.people))if(p.health<=0){const b=s.bodyWorld.people[p.id].body;b.alive=false;b.deathReason='умер';}}
     for(const h of Object.values(s.households))fuelStorage.bind(h);
     if(s.parameters.sleepGainPerWork!==undefined){delete s.parameters.sleepGainPerWork;s.parameters=parameters(s.parameters);}
     validate(s);
@@ -4482,6 +5980,132 @@ function сгенерироватьРод(сид) {
   }
   return {mount};
 });
+// Силуэт-индекс наблюдённых телесных следов (этап 7, решение ГД 29.10.2026, не канон).
+// Автор: Claude (claude-opus-5-5), 06.11.2026. Встроен в card.html 09.11.2026 (раздел «Тело», сборка sync-body-runtime.cjs).
+// Читает только снимок наблюдателя (observation из body.js), истину мира не трогает.
+(function (root) {
+  'use strict';
+
+  const W = 420, H = 360;
+  // Фигура смотрит на зрителя: правая сторона человека — слева на рисунке.
+  const R = 'right', L = 'left';
+  const PAIRED = {
+    глаз: {y: 28, right: 92, left: 108},
+    ухо: {y: 30, right: 78, left: 122},
+    плечо: {y: 82, right: 68, left: 132},
+    рука: {y: 135, right: 55, left: 145},
+    кисть: {y: 182, right: 47, left: 153},
+    бок: {y: 140, right: 80, left: 120},
+    бедро: {y: 215, right: 86, left: 114},
+    нога: {y: 250, right: 86, left: 114},
+    колено: {y: 256, right: 86, left: 114},
+    голень: {y: 292, right: 86, left: 114},
+    стопа: {y: 338, right: 86, left: 114}
+  };
+  const SINGLE = {
+    лоб: {x: 100, y: 16}, бровь: {x: 100, y: 23}, голова: {x: 100, y: 12}, лицо: {x: 100, y: 34},
+    шея: {x: 100, y: 58}, грудь: {x: 100, y: 100}, спина: {x: 100, y: 112}, живот: {x: 100, y: 150}
+  };
+  // Порядок важен: более узкое место проверяется раньше.
+  const STEMS = [
+    [/^(?:предплеч|локт)/, 'рука'], [/^(?:плеч)/, 'плечо'], [/^(?:кист|ладон|пал[ье]ц|пальц)/, 'кисть'], [/^(?:рук)/, 'рука'],
+    [/^(?:бедр)/, 'бедро'], [/^(?:колен)/, 'колено'], [/^(?:голен)/, 'голень'], [/^(?:стоп|ступн|пятк)/, 'стопа'], [/^(?:ног)/, 'нога'],
+    [/^(?:бок)/, 'бок'], [/^(?:глаз)/, 'глаз'], [/^(?:ухо|уха|уху|ухом|уши|ушей|ушах)$/, 'ухо'],
+    [/^(?:бров)/, 'бровь'], [/^лб|^лоб/, 'лоб'], [/^(?:лиц|щек|щёк|скул|губ|подбород)/, 'лицо'], [/^(?:голов|темя|затыл)/, 'голова'],
+    [/^ше[яиюе]$/, 'шея'], [/^(?:груд|ребр|рёбр)/, 'грудь'], [/^(?:спин|поясниц|лопат)/, 'спина'], [/^(?:живот|брюх)/, 'живот']
+  ];
+
+  // Место только из поля site. Без site или с неизвестным словом точки нет.
+  function anchor(site) {
+    if (typeof site !== 'string' || !site.trim()) return null;
+    const s = site.toLowerCase().replace(/ё/g, 'е');
+    // Основа ищется только с начала слова: «сбоку» не означает «бок».
+    const words = s.split(/[^а-я]+/).filter(Boolean);
+    const hit = STEMS.find(([re]) => words.some(w => re.test(w)));
+    if (!hit) return null;
+    const part = hit[1];
+    if (SINGLE[part]) return {part, side: null, x: SINGLE[part].x, y: SINGLE[part].y};
+    const p = PAIRED[part];
+    const side = /прав/.test(s) ? R : /лев/.test(s) ? L : null;
+    // Сторона не названа — точка на средней линии, сторону не выдумываем.
+    return {part, side, x: side ? p[side] : 100, y: p.y};
+  }
+
+  function esc(t) {
+    return String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+  }
+
+  // Следы из снимка: действующие раны с наблюдённым признаком и отметины с местом.
+  function traces(obs) {
+    if (!obs || obs.alive === false) return [];
+    const out = [];
+    for (const x of obs.injuries || []) {
+      if (!x || x.active === false) continue;
+      out.push({kind: 'рана', site: x.site ?? null, label: x.title || x.event || 'след', day: Number.isInteger(x.day) ? x.day : null});
+    }
+    for (const m of obs.marks || []) {
+      if (!m) continue;
+      out.push({kind: 'отметина', site: m.site ?? null, label: m.what || 'след', day: null});
+    }
+    return out;
+  }
+
+  // Сколько дней назад: «сегодня», «вчера», «3 дня назад».
+  function ago(n) {
+    if (n <= 0) return 'сегодня';
+    if (n === 1) return 'вчера';
+    const r10 = n % 10, r100 = n % 100;
+    const word = r100 >= 11 && r100 <= 14 ? 'дней' : r10 === 1 ? 'день' : r10 >= 2 && r10 <= 4 ? 'дня' : 'дней';
+    return n + ' ' + word + ' назад';
+  }
+
+  // today — текущий день карточки. У раны подпись несёт срок: «рубленая рана · 3 дня назад».
+  // Отметины срока не несут: это след на всю жизнь.
+  function build(obs, options) {
+    const o = options || {};
+    const placed = [], unplaced = [];
+    for (const t of traces(obs)) {
+      const a = anchor(t.site);
+      const since = t.day !== null && Number.isInteger(o.today) ? ' · ' + ago(o.today - t.day) : '';
+      const label = t.label + since;
+      if (a) placed.push({...t, ...a, text: label}); else unplaced.push({...t, text: label});
+    }
+    placed.sort((a, b) => a.y - b.y || a.x - b.x);
+    return {placed, unplaced, svg: placed.length ? svg(placed) : ''};
+  }
+
+  function svg(points) {
+    const figure = [
+      '<circle cx="100" cy="24" r="17"/>',
+      '<rect x="92" y="41" width="16" height="14" rx="4"/>',
+      '<rect x="68" y="55" width="64" height="112" rx="16"/>',
+      '<rect x="42" y="60" width="20" height="128" rx="10"/>',
+      '<rect x="138" y="60" width="20" height="128" rx="10"/>',
+      '<rect x="74" y="168" width="24" height="178" rx="11"/>',
+      '<rect x="102" y="168" width="24" height="178" rx="11"/>'
+    ].join('');
+    // Подпись на высоте своей точки; соседние раздвигаются, чтобы не налезали.
+    const lines = p => p.text.length > 30 && p.text.includes(' · ') ? p.text.split(' · ').map((t, i) => i ? '· ' + t : t) : [p.text];
+    let next = 10;
+    const rows = points.map(p => {
+      const ls = lines(p), ly = Math.max(p.y, next);
+      next = ly + 16 * ls.length + 4;
+      const text = ls.map((t, i) => `<tspan x="200" dy="${i ? 15 : 0}">${esc(t)}</tspan>`).join('');
+      return `<g class="силуэт-след" data-part="${esc(p.part)}" data-side="${p.side || 'mid'}">` +
+        `<polyline points="${p.x},${p.y} 178,${p.y} 194,${ly}" fill="none" stroke="#999" stroke-width="1"/>` +
+        `<circle cx="${p.x}" cy="${p.y}" r="4" fill="#222"/>` +
+        `<text x="200" y="${ly + 4}" font-size="13" fill="currentColor">${text}</text></g>`;
+    }).join('');
+    const summary = 'Силуэт: замеченные следы — ' + points.map(p => p.text).join('; ');
+    const h = Math.max(H, next);
+    return `<svg class="силуэт" viewBox="0 0 ${W} ${h}" width="100%" style="max-width:${W}px" role="img" aria-label="${esc(summary)}">` +
+      `<g class="силуэт-фигура" fill="none" stroke="#999" stroke-width="1.5">${figure}</g>${rows}</svg>`;
+  }
+
+  const api = {anchor, traces, build, ago};
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.NovgorSilhouette = api;
+})(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <!-- END GENERATED BODY RUNTIME -->
 <script>
@@ -4546,7 +6170,9 @@ function обновитьТело() {
         sleepSign&&{тип:"сон",сила_словами:sleepSign},o.mindSign&&{тип:"рассудок",сила_словами:o.mindSign},
         o.dirtSign&&{тип:"грязь тела",сила_словами:o.dirtSign}].filter(Boolean);
       if(Array.isArray(o.marks)&&o.marks.length)card.отметины=o.marks.map(m=>m.what+' — '+m.from);
-      card.признаки={на_виду:o.medicine.symptoms,при_осмотре_открыты:[]};
+      // Новая модель тела: признаки на людях, что может, раны и следы — только публичный снимок.
+      card.тело=o.body||null;
+      card.признаки={на_виду:[...new Set([...o.medicine.symptoms,...(o.body?.signs||[]).filter(x=>x!=='умер')])],при_осмотре_открыты:[]};
       card.телесная_сводка=o;
     }
     if (!o || o.stale) {
@@ -4774,6 +6400,27 @@ function нарисоватьДелаПоселения(к){
   if(st.spoiled)stock.appendChild(э('div','стр вним',экр('Испорчено браком: '+st.spoiled)));box.appendChild(stock);
   if(УИ.режим==='дев'){const dev=э('details','раск dev');dev.appendChild(э('summary','','Внутренние задачи расчёта'));for(const j of w.queue)dev.appendChild(э('div','мелко',экр(j.title+': '+j.completed+'/'+j.quantity+' · '+(j.lastRun?.status||'ожидает')+(j.lastRun?.reason?' · '+j.lastRun.reason:''))));box.appendChild(dev);}
   к.appendChild(box);
+}
+// Новая модель тела (09.11.2026): раздел строится только из публичного снимка observeBody —
+// признаки на людях, что может, раны с местом, следы; причин, фаз и чисел здесь нет и быть не может.
+function нарисоватьТело(к) {
+  const п=я(),т=п.тело;if(!т)return;
+  const block=э("section","");block.id="body-model";
+  block.appendChild(э("h3","","Тело"));
+  if(!т.alive){block.appendChild(э("p","","Умер."));к.appendChild(block);return;}
+  const signs=(т.signs||[]).filter(x=>x!=='умер');
+  block.appendChild(э("div","стр",signs.length?"На виду: "+signs.map(экр).join("; "):"На виду ничего особенного."));
+  const can=т.can||{};const bad=Object.entries(can).filter(([,v])=>v!=='как все');
+  block.appendChild(э("div","стр",bad.length?"Что может: "+bad.map(([k,v])=>экр(k)+" — "+экр(v)).join("; "):"Что может: всё как все."));
+  const wounds=(т.injuries||[]).filter(w=>w.active);
+  if(wounds.length)block.appendChild(э("div","стр","Раны: "+wounds.map(w=>экр(w.title)+" ("+экр(w.site)+")"+(w.bleeding?", идёт кровь":"")+(w.bandaged?", перевязано":"")+(w.splinted?", в лубке":"")).join("; ")));
+  if((т.marks||[]).length)block.appendChild(э("div","стр","Следы: "+т.marks.map(m=>экр(m.what)+(m.site?" — "+экр(m.site):"")).join("; ")));
+  if(typeof NovgorSilhouette!=="undefined"){
+    const r=NovgorSilhouette.build({day:т.day,alive:т.alive,injuries:т.injuries||[],marks:т.marks||[]},{today:т.day});
+    if(r.svg){const host=э("div","");host.id="body-silhouette";host.insertAdjacentHTML("beforeend",r.svg);block.appendChild(host);}
+    for(const u of r.unplaced||[])block.appendChild(э("div","мелко","Без места на силуэте: "+экр(u.text)));
+  }
+  к.appendChild(block);
 }
 function нарисоватьМедицину(к) {
   const п=я(),o=п.телесная_сводка,med=o?.medicine;
@@ -5136,6 +6783,7 @@ const РЕНДЕР = {
   "Здоровье"(к) {
     const п = я();
     нарисоватьБытТела(к);
+    нарисоватьТело(к);
     нарисоватьМедицину(к);
     const откр = п.признаки?.при_осмотре_открыты||[];
     if (откр.length) { к.appendChild(э("h3","","Выявлено при осмотре"));
