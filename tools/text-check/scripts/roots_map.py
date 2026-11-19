@@ -124,7 +124,8 @@ document.getElementById('legend').innerHTML=ROWS.map(r=>`<span><i style="backgro
  if(ancient)el('line',{x1:L+(Rt-L)*0.22,x2:L+(Rt-L)*0.22,y1:20,y2:H-30,stroke:css('--line')});
  const ticks=ancient?[mn,1800,mx]:[mn,Math.round((mn+mx)/2),mx];
  ticks.forEach(y=>el('text',{x:X(y),y:H-8,'font-size':10,opacity:.5,'text-anchor':'middle'},yl(y)));
- const used={};S.forEach((src,i)=>{const x=X(src.year),y=Y(src.relation);const g=el('g',{class:'node','data-i':i,'data-t':src.ti});
+ const used={},dots={};S.forEach((src,i)=>{let x=X(src.year);const y=Y(src.relation);const dd=dots[src.relation]=dots[src.relation]||[];
+  while(dd.some(o=>Math.abs(o-x)<13))x+=13;dd.push(x);const g=el('g',{class:'node','data-i':i,'data-t':src.ti});
   el('circle',{cx:x,cy:y,r:7,fill:css(REL[src.relation]),stroke:css('--bg'),'stroke-width':2},null,g);
   const u=used[src.relation]=used[src.relation]||[];const w=src.who.length*6.2+8;
   const anc=x>Rt-40?'end':x<L+30?'start':'middle';const cx=anc==='end'?x+8-w/2:anc==='start'?x-8+w/2:x;
