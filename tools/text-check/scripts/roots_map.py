@@ -12,6 +12,8 @@
   у тезиса:    "fragments": ["точная цитата из текста", ...]
   у источника: "year": -450, "year_label": "V в. до н. э.", "tradition": "буддизм"
   в корне файла: "meaning": "что текст говорит, одной-двумя фразами, без оценки"
+  линзы мировоззрения: "lenses": [{"id","name","meaning","against"}], у источника "lens": "<id>"
+  прочтение автора: "author_reading": "..."
   у спорного тезиса: "contested": true — карта предупредит, если корни найдены только с одной стороны
 Фрагмент ищется в тексте как есть, затем без учёта регистра и разницы е/ё.
 Ненайденные фрагменты печатаются предупреждением.
@@ -66,6 +68,9 @@ PAGE = r"""<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name
 body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:1.5rem}
 h1{font-size:22px;font-weight:500;margin:0 0 .2rem}.mut{color:var(--mut);font-size:13px}
 .meaning{border-left:3px solid var(--own);padding:.3rem 0 .3rem .9rem;margin:1rem 0;font-size:16px}.meaning span{display:block;font-size:12px;color:var(--mut)}
+.lensbar{display:flex;flex-wrap:wrap;gap:6px;margin:1rem 0 .2rem}.lensbar button{font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:6px;padding:4px 12px;cursor:pointer}.lensbar button.on{background:var(--fg);color:var(--bg)}
+#author{border-left-color:var(--ok)}
+svg .dim2{opacity:.12}.lensb{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--line);margin-left:6px}
 .warn{font-size:13px;color:var(--bad);margin:.4rem 0}
 .top{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:1rem 0}
 .top div{background:var(--line);border-radius:8px;padding:.6rem .8rem}.top b{display:block;font-size:22px;font-weight:500}.top span{font-size:12px;color:var(--mut)}
@@ -88,6 +93,8 @@ a{color:var(--dev)}
 </style></head><body>
 <h1>__TITLE__</h1>
 <p class="mut">Щёлкни подчёркнутую фразу, чтобы увидеть её родство в истории мысли, или точку на графике, чтобы найти фразу в тексте. Сходство не значит заимствование, расхождение не значит ошибку.</p>
+<div class="lensbar" id="lensbar"></div>
+<div class="meaning" id="author"></div>
 <div class="meaning" id="meaning"></div>
 <div class="top" id="top"></div>
 <div class="wrap">
@@ -100,14 +107,26 @@ a{color:var(--dev)}
  </div>
 </div>
 <script>
-const R=__DATA__;const MEANING=__MEANING__;
+const R=__DATA__;const MEANING=__MEANING__;const LENSES=__LENSES__;const AUTHOR=__AUTHOR__;let LENS=null;
 const REL={"совпадает":"--ok","развивает":"--dev","перекликается":"--q","расходится":"--bad"};
 const ROWS=["совпадает","развивает","перекликается","расходится"];
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const S=[];R.forEach((t,ti)=>(t.sources||[]).forEach(s=>{if(typeof s.year==="number")S.push(Object.assign({ti},s))}));
 // смысл текста
-if(MEANING)document.getElementById('meaning').innerHTML='<span>Что текст говорит (без оценки, по пересказам читателей)</span>'+esc(MEANING);
+function renderMeaning(){const box=document.getElementById('meaning');const L=LENSES.find(l=>l.id===LENS);
+ if(L)box.innerHTML=`<span>Как текст читает ${esc(L.name)}</span>${esc(L.meaning)}`+(L.against?`<div class="mut" style="margin-top:4px">С чем спорит, по мнению этого лагеря: ${esc(L.against)}</div>`:'');
+ else box.innerHTML=MEANING?'<span>Что текст говорит (нейтральный слой, по пересказам слепых читателей, без оценки)</span>'+esc(MEANING):'';}
+renderMeaning();
+if(AUTHOR)document.getElementById('author').innerHTML='<span>Прочтение автора — последнее слово о смысле, но не о правоте</span>'+esc(AUTHOR);
+else document.getElementById('author').style.display='none';
+if(LENSES.length){const bar=document.getElementById('lensbar');
+ const btn=(id,name)=>`<button data-l="${id??''}">${esc(name)}</button>`;
+ bar.innerHTML='<span class="mut" style="align-self:center;margin-right:4px">Линза:</span>'+btn(null,'нейтрально')+LENSES.map(l=>btn(l.id,l.name)).join('');
+ const set=id=>{LENS=id||null;bar.querySelectorAll('button').forEach(b=>b.classList.toggle('on',(b.dataset.l||null)===LENS));renderMeaning();
+  document.querySelectorAll('svg .node').forEach(n=>{const s=S[+n.dataset.i];n.classList.toggle('dim2',!!LENS&&s.lens!==LENS)});
+  marks.forEach(m=>{const t=R[+m.dataset.t];m.style.opacity=!LENS||(t.sources||[]).some(x=>x.lens===LENS)?1:.45})};
+ bar.querySelectorAll('button').forEach(b=>b.onclick=()=>set(b.dataset.l));setTimeout(()=>set(null),0)}
 // баланс спорных тезисов
 const side=r=>r==="расходится"?"contra":(r==="совпадает"||r==="развивает")?"pro":null;
 const oneSided=R.map(t=>{if(!t.contested)return null;const sd=new Set((t.sources||[]).map(x=>side(x.relation)).filter(Boolean));
@@ -155,7 +174,7 @@ const marks=[...document.querySelectorAll('mark.fr')];
 function light(ti,i){marks.forEach(m=>m.classList.toggle('on',+m.dataset.t===ti));
  document.querySelectorAll('svg .node').forEach(n=>n.classList.toggle('dim',i!=null?+n.dataset.i!==i:+n.dataset.t!==ti))}
 function srcHtml(s){const c=css(REL[s.relation]);const link=s.url?` · <a href="${esc(s.url)}" target="_blank">источник</a>`:"";
- return `<div class="src" style="border-color:${c}"><span class="badge" style="background:${c}">${esc(s.relation)}</span><b>${esc(s.who)}</b>
+ return `<div class="src" style="border-color:${c}"><span class="badge" style="background:${c}">${esc(s.relation)}</span><b>${esc(s.who)}</b>${s.lens?`<span class="lensb">${esc((LENSES.find(l=>l.id===s.lens)||{}).name||s.lens)}</span>`:''}
  <span class="mut">${esc(s.work||"")} ${esc(s.year_label||"")} ${esc(s.tag||"")}${link}</span>
  <div class="cols"><div><span>у него</span>${esc(s.idea)}</div><div><span>у тебя</span>${esc(s.vs)}</div></div></div>`}
 const head=t=>{const i=R.indexOf(t);return (oneSided[i]?`<div class="warn">Спорный тезис: найдены ${oneSided[i]}. Корни с другой стороны не найдены — выбор источников может работать как вывод.</div>`:'')+(t.implicit?'<div class="mut">невысказанный тезис, восстановлен по пересказам читателей</div>':'')+`<h3>${esc(t.thesis)}</h3>`};
@@ -180,6 +199,8 @@ if __name__ == "__main__":
     page = (PAGE.replace("__TITLE__", html.escape(R.get("title", "Корни мысли")))
             .replace("__TEXT__", mark_text(text, roots))
             .replace("__DATA__", json.dumps(roots, ensure_ascii=False).replace("</", "<\\/"))
-            .replace("__MEANING__", json.dumps(R.get("meaning", ""), ensure_ascii=False).replace("</", "<\\/")))
+            .replace("__MEANING__", json.dumps(R.get("meaning", ""), ensure_ascii=False).replace("</", "<\\/"))
+            .replace("__LENSES__", json.dumps(R.get("lenses", []), ensure_ascii=False).replace("</", "<\\/"))
+            .replace("__AUTHOR__", json.dumps(R.get("author_reading", ""), ensure_ascii=False).replace("</", "<\\/")))
     open(a.out, "w", encoding="utf-8").write(page)
     print("Карта:", a.out)
