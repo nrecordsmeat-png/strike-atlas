@@ -22,6 +22,7 @@ import json
 import os
 import re
 import statistics as st
+import sys
 from collections import Counter
 
 WORD = re.compile(r"[а-яёa-z]+")
@@ -74,109 +75,207 @@ def count_markers(text):
 
 # ---------- чтение выгрузок Telegram ----------
 
-def _strip_tags(s):
-    s = re.sub(r"<br\s*/?>", "\n", s)
-    s = re.sub(r"<blockquote.*?</blockquote>", "", s, flags=re.S)
-    return html.unescape(re.sub(r"<[^>]+>", "", s))
+from html.parser import HTMLParser
 
 
-def read_html(folder, author):
+class _TgHTML(HTMLParser):
+    """Разбирает экспорт Telegram в HTML деревом: границы сообщения, отправитель, узел текста.
+    Реакции, цитаты, пересланное и служебные блоки в текст не попадают."""
+    SKIP = {"reactions", "reaction", "blockquote", "reply_to", "forwarded", "media_wrap", "signature", "details"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.msgs, self.stack, self.cur, self.last_from = [], [], None, None
+        self.mode = None  # "from" | "text"
+        self.skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        cls = set((dict(attrs).get("class") or "").split())
+        if tag in ("br",):
+            if self.mode == "text" and not self.skip_depth:
+                self.cur["text"] += "\n"
+            return
+        self.stack.append((tag, cls))
+        if tag == "div" and {"message", "default"} <= cls:
+            self.cur = {"from": self.last_from, "text": "", "fwd": False, "depth": len(self.stack)}
+        if self.cur is None:
+            return
+        if "forwarded" in cls:
+            self.cur["fwd"] = True
+        if self.skip_depth or tag == "blockquote" or cls & self.SKIP:
+            self.skip_depth += 1
+            return
+        if tag == "div" and "from_name" in cls:
+            self.mode, self.cur["_from"] = "from", ""
+        elif tag == "div" and "text" in cls and self.mode is None:
+            self.mode = "text"
+            self.cur["_tdepth"] = len(self.stack)
+
+    def handle_endtag(self, tag):
+        if tag == "br" or not self.stack:
+            return
+        depth = len(self.stack)
+        self.stack.pop()
+        if self.cur is None:
+            return
+        if self.skip_depth:
+            self.skip_depth -= 1
+            return
+        if self.mode == "from" and tag == "div":
+            name = self.cur.pop("_from", "").strip()
+            if name:
+                self.cur["from"] = self.last_from = name
+            self.mode = None
+        elif self.mode == "text" and tag == "div" and depth == self.cur.get("_tdepth"):
+            self.mode = None
+        if depth == self.cur["depth"]:
+            if self.cur["text"].strip() and not self.cur["fwd"]:
+                self.msgs.append({"from": self.cur["from"], "from_id": None, "text": self.cur["text"].strip()})
+            self.cur = None
+
+    def handle_data(self, data):
+        if self.cur is None or self.skip_depth:
+            return
+        if self.mode == "from":
+            self.cur["_from"] += data
+        elif self.mode == "text":
+            self.cur["text"] += data
+
+
+def read_html(folder):
     files = sorted(glob.glob(os.path.join(folder, "messages*.html")), key=lambda f: (len(f), f))
-    out, last = [], None
+    out = []
     for f in files:
-        src = open(f, encoding="utf-8").read()
-        for m in re.split(r'<div class="message default', src)[1:]:
-            fn = re.search(r'<div class="from_name">\s*(.*?)\s*</div>', m, re.S)
-            if fn:
-                last = _strip_tags(fn.group(1)).strip()
-            if 'class="forwarded' in m:
-                continue
-            t = re.search(r'<div class="text">(.*?)</div>\s*(?:<div class="(?:reply|signature|media|photo)|</div>)', m, re.S)
-            if not t:
-                continue
-            if author and (last or "").strip() != author:
-                continue
-            txt = _strip_tags(t.group(1)).strip()
-            if txt:
-                out.append(txt)
+        p = _TgHTML()
+        p.feed(open(f, encoding="utf-8-sig").read())
+        out += p.msgs
     return out
 
 
-def read_json(path, author):
-    data = json.load(open(path, encoding="utf-8"))
+def read_json(path):
+    data = json.load(open(path, encoding="utf-8-sig"))
+    if "messages" not in data:
+        if "chats" in data:
+            raise SystemExit("Это полный экспорт аккаунта. Нужен экспорт одного чата или канала: "
+                             "открой чат в Telegram Desktop → три точки → «Экспорт истории чата».")
+        raise SystemExit("В result.json нет списка messages: формат не распознан.")
     out = []
-    for m in data.get("messages", []):
+    for m in data["messages"]:
         if m.get("type") != "message" or m.get("forwarded_from"):
-            continue
-        if author and m.get("from") != author:
             continue
         t = m.get("text")
         if isinstance(t, list):
             t = "".join(x if isinstance(x, str) else ("" if x.get("type") == "blockquote" else x.get("text", "")) for x in t)
         if t and t.strip():
-            out.append(t.strip())
+            out.append({"from": m.get("from"), "from_id": m.get("from_id"), "text": t.strip()})
     return out
+
+
+def pick_author(msgs, author):
+    """Выбор автора: по from_id, если он есть; по имени — только если имя однозначно."""
+    if not author:
+        return [m["text"] for m in msgs]
+    by_id = [m for m in msgs if m.get("from_id") == author]
+    if by_id:
+        return [m["text"] for m in by_id]
+    named = [m for m in msgs if m.get("from") == author]
+    ids = {m.get("from_id") for m in named if m.get("from_id")}
+    if len(ids) > 1:
+        raise SystemExit(f"Имя {author!r} носят несколько участников: {', '.join(sorted(ids))}. "
+                         "Укажи --author с нужным from_id.")
+    if ids:  # имя однозначно — берём все сообщения этого ID, даже после смены имени
+        the_id = ids.pop()
+        return [m["text"] for m in msgs if m.get("from_id") == the_id]
+    if named:
+        print("Внимание: в HTML-экспорте нет ID участников, тёзок различить нельзя.", file=sys.stderr)
+    return [m["text"] for m in named]
 
 
 def clean(msg):
     msg = re.sub(r"https?://\S+", "", msg)
-    msg = re.sub(r"«[^»]{40,}»", "", msg, flags=re.S)
-    msg = re.sub(r'"[^"]{40,}"', "", msg, flags=re.S)
+    # длинная цитата — внутри одной строки; кавычки на разных строках не склеиваются в одну «цитату»
+    msg = re.sub(r"«[^»\n]{40,400}»", "", msg)
+    msg = re.sub(r'"[^"\n]{40,400}"', "", msg)
     return "\n".join(l for l in msg.split("\n") if not re.match(r"^\s*[\U0001F1E6-\U0001F1FF]{2}", l))
+
+
+MIN_WORDS = 2000  # меньше — эталон не строится: нужно хотя бы 4 блока по 500 слов
 
 
 def build(folder, author, out, mfw_n=150, chunk=500):
     j = os.path.join(folder, "result.json")
-    msgs = read_json(j, author) if os.path.exists(j) else read_html(folder, author)
-    if not msgs:
-        raise SystemExit("Не нашёл сообщений. Проверь папку и, для переписки, точное имя в --author.")
-    text = "\n".join(clean(m) for m in msgs)
+    msgs = read_json(j) if os.path.exists(j) else read_html(folder)
+    texts = pick_author(msgs, author)
+    if not texts:
+        raise SystemExit("Не нашёл сообщений. Проверь папку и, для переписки, имя или from_id в --author.")
+    text = "\n".join(clean(m) for m in texts)
     W = tok(text)
-    mfw = [w for w, _ in Counter(W).most_common(mfw_n)]
+    if len(W) < MIN_WORDS:
+        raise SystemExit(f"Эталон не построен: {len(W)} слов, нужно не меньше {MIN_WORDS}.")
+    cnt = Counter(W)
     chunks = [W[i:i + chunk] for i in range(0, len(W) - chunk + 1, chunk)]
+    in_chunks = Counter(w for c in chunks for w in set(c))
+    # в словарь эталона попадают только частые слова, встречающиеся минимум в двух блоках: редкие и личные слова не сохраняются
+    mfw = [w for w, c in cnt.most_common() if c >= 5 and in_chunks[w] >= 2][:mfw_n]
     freqs = [[Counter(c)[w] / len(c) for w in mfw] for c in chunks]
     mu = [st.mean(col) for col in zip(*freqs)]
-    sd = [st.pstdev(col) + 1e-9 for col in zip(*freqs)]
+    sd = [st.pstdev(col) for col in zip(*freqs)]
+    keep = [i for i, v in enumerate(sd) if v > 0]
+    mfw, mu, sd, freqs = [mfw[i] for i in keep], [mu[i] for i in keep], [sd[i] for i in keep], [[f[i] for i in keep] for f in freqs]
+    if len(mfw) < 20:
+        raise SystemExit("Эталон не построен: слишком мало слов с разбросом между блоками.")
     own = sorted(st.mean(abs((f - m) / s) for f, m, s in zip(fr, mu, sd)) for fr in freqs)
-    prof = {"сообщений": len(msgs), "слов": len(W), "приметы": count_markers(text),
+    prof = {"сообщений": len(texts), "слов": len(W), "приметы": count_markers(text),
             "mfw": mfw, "mu": mu, "sd": sd, "chunk": chunk, "own_delta": own}
     json.dump(prof, open(out, "w", encoding="utf-8"), ensure_ascii=False)
-    print(f"Эталон: {len(msgs)} сообщений, {len(W)} слов → {out}")
+    print(f"Эталон: {len(texts)} сообщений, {len(W)} слов → {out}")
     if len(W) < 20000:
         print("Внимание: меньше 20 000 слов, эталон слабый.")
 
 
 def compare(textfile, proffile, jout=None):
-    t = open(textfile, encoding="utf-8").read()
+    raw = open(textfile, "rb").read()
+    try:
+        t = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        t = raw.decode("cp1251")
+    t = clean(t)  # та же очистка, что при построении эталона
     P = json.load(open(proffile, encoding="utf-8"))
-    mine, ref = count_markers(t), P["приметы"]
     W = tok(t)
+    if not W:
+        raise SystemExit("Текст пуст после очистки: сравнивать нечего.")
+    mine, ref = count_markers(t), P["приметы"]
     nsent = len([s for s in re.split(r"(?<=[.!?…])\s+|\n+", t) if tok(s)])
     rows, flags = [], []
+    low = t.lower()
     for k in ref:
         a, b = ref[k], mine[k]
         rows.append((k, a, b))
         if k.startswith("длина"):
             continue
-        # сколько раз примета ожидалась в тексте такого объёма
         expected = a * nsent / 100 if k.endswith("%") else a * len(W) / 1000
+        seen = b * (nsent / 100 if k.endswith("%") else len(W) / 1000)  # сколько раз примета реально встретилась
         if b == 0 and expected >= 2:
             flags.append(f"пропало: {k} (у автора {a}, в тексте 0; ожидалось около {round(expected)} раз)")
-        elif a < 0.5 and b >= 2:
-            flags.append(f"чужое: {k} (у автора почти нет, в тексте {b})")
-        elif b >= 2 and b >= 3 * max(a, 0.3):
-            flags.append(f"перебор: {k} (у автора {a}, в тексте {b})")
-    c = Counter(W)
-    z = [abs((c[w] / (len(W) or 1) - m) / s) for w, m, s in zip(P["mfw"], P["mu"], P["sd"])]
-    d = st.mean(z)
-    pct = round(100 * sum(x < d for x in P["own_delta"]) / len(P["own_delta"]))
+        elif seen >= 2 and a < 0.5 and b >= 2:
+            flags.append(f"чужое: {k} (у автора почти нет, в тексте {round(seen)} раз)")
+        elif seen >= 2 and b >= 2 and b >= 3 * max(a, 0.3):
+            flags.append(f"перебор: {k} (у автора {a}, в тексте {b}, это {round(seen)} раз)")
+    pct = None
+    if len(W) >= P.get("chunk", 500) and len(P.get("own_delta", [])) >= 4:
+        c = Counter(W)
+        z = [abs((c[w] / len(W) - m) / s) for w, m, s in zip(P["mfw"], P["mu"], P["sd"]) if s > 0]
+        d = st.mean(z)
+        pct = round(100 * sum(x < d for x in P["own_delta"]) / len(P["own_delta"]))
     print(f"{'примета (на 1000 слов)':38s}{'автор':>8s}{'текст':>8s}")
     for k, a, b in rows:
         print(f"{k:38s}{a:8}{b:8}")
-    print("\nРасхождения с голосом автора:")
+    print("\nРасхождения с голосом автора (эвристика, пороги не валидированы):")
     print("\n".join("  " + f for f in flags) if flags else "  заметных нет")
-    note = "" if len(W) >= 2000 else " (текст короче 2000 слов: показатель ненадёжен)"
-    print(f"\nОбщая непохожесть: дальше, чем {pct}% кусков самого автора{note}")
+    if pct is None:
+        print(f"\nОбщая непохожесть не считается: текст короче {P.get('chunk', 500)} слов или эталон слишком мал.")
+    else:
+        print(f"\nОбщая непохожесть: дальше, чем {pct}% блоков самого эталона (эвристика; эти же блоки задают норму)")
     if jout:
         json.dump({"приметы": [{"имя": k, "автор": a, "текст": b} for k, a, b in rows],
                    "расхождения": flags, "дельта_перцентиль": pct, "слов": len(W)},
@@ -188,7 +287,7 @@ if __name__ == "__main__":
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build", help="собрать эталон из выгрузки Telegram")
     b.add_argument("folder")
-    b.add_argument("--author", help="имя автора для переписки, как в выгрузке")
+    b.add_argument("--author", help="from_id или имя автора для переписки, как в выгрузке")
     b.add_argument("--out", default="profile.json")
     c = sub.add_parser("compare", help="сверить текст с эталоном")
     c.add_argument("text")

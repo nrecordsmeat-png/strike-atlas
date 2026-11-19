@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>text-check — как читатель поймёт текст</title>
+<style>
+:root{--bg:#fcfcfb;--fg:#0b0b0b;--mut:#6b6a66;--line:#e1e0d9;--card:#fff;--acc:#2a78d6;--ok:#1baf7a;--bad:#e34948;--q:#eda100}
+@media(prefers-color-scheme:dark){:root{--bg:#151515;--fg:#f0efec;--mut:#a3a29b;--line:#2c2c2a;--card:#1f1f1e;--acc:#3987e5}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:900px;margin:0 auto;padding:1.5rem}
+h1{font-size:24px;font-weight:500;margin:0}h2{font-size:18px;font-weight:500;margin:1.6rem 0 .5rem}h3{font-size:16px;font-weight:500;margin:0 0 .3rem}
+.mut{color:var(--mut);font-size:13px}a{color:var(--acc)}
+.tabs{display:flex;gap:6px;margin:1.2rem 0;flex-wrap:wrap}.tabs button{font:inherit;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:8px;padding:6px 14px;cursor:pointer}.tabs button.on{background:var(--fg);color:var(--bg)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem 1.2rem;margin:.8rem 0}
+.card .links a{margin-right:14px}
+textarea{width:100%;box-sizing:border-box;min-height:220px;font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:.8rem}
+button.go{font:inherit;border:0;background:var(--acc);color:#fff;border-radius:8px;padding:8px 18px;cursor:pointer;margin-top:.6rem}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:1rem 0}.kv div{background:var(--line);border-radius:8px;padding:.6rem .8rem}.kv b{display:block;font-size:20px;font-weight:500}.kv span{font-size:12px;color:var(--mut)}
+.hint{border-left:3px solid var(--q);padding:.2rem .8rem;margin:.4rem 0}.hint.ok{border-color:var(--ok)}
+ul{padding-left:1.2rem}li{margin:.25rem 0}
+section{display:none}section.on{display:block}
+</style>
+</head>
+<body>
+<h1>text-check</h1>
+<p class="mut">Как читатель поймёт текст: что из мысли дойдёт, где он остановится, что достроит сам, с какими школами мысли текст в родстве. Не редактура и не оценка правоты автора.</p>
+
+<div class="tabs" id="tabs">
+ <button data-s="gallery" class="on">Готовые разборы</button>
+ <button data-s="mech">Механика текста</button>
+ <button data-s="how">Как это работает</button>
+</div>
+
+<section id="gallery" class="on">
+ <p class="mut">Разборы делаются в чате с Claude по процедуре инструмента и выкладываются сюда. Щёлкай фразы и точки в карте: подсветится родство в истории мысли и место в тексте.</p>
+ <div id="list"><p class="mut">Загрузка…</p></div>
+</section>
+
+<section id="mech">
+ <p class="mut">Счётные замеры понятности: длина фраз и абзацев, длинные слова, связки, вопросы и обращения. Это грубое приближение к Гамбургской модели понятности: показывает, где посмотреть, но не оценивает мысль. Текст обрабатывается только в твоём браузере и никуда не отправляется.</p>
+ <textarea id="txt" placeholder="Вставь текст"></textarea>
+ <button class="go" id="run">Посчитать</button>
+ <div id="out"></div>
+</section>
+
+<section id="how">
+ <h2>Режимы</h2>
+ <ul>
+  <li><b>Зеркало</b> — пока текст пишется. Несколько моделей-читателей пересказывают его вслепую, автор отмечает «да, это / не то / так лучше». Где «не то», там и думать дальше.</li>
+  <li><b>Проверка</b> — когда текст готов и замысел ясен: какие опорные мысли дошли, где читатели остановились, что перестроили по-своему. У каждой отметки — цитата из ответа читателя.</li>
+  <li><b>Корни мысли</b> — с кем из мыслителей и исследователей тезисы текста совпадают, кого развивают, с кем расходятся. Для технических текстов — корни хода рассуждения, а не устройства.</li>
+  <li><b>Линзы мировоззрения</b> — для спорных текстов: как текст читают разные позиции. Это модели в роли, а не реальные люди, и так подписано.</li>
+ </ul>
+ <h2>Ограничения</h2>
+ <ul>
+  <li>Модели как читатели хорошо достраивают сжатый текст. «Модели поняли» не гарантирует, что поймёт любой человек.</li>
+  <li>Отметки, пороги механики и голоса — эвристики, на людях не проверены.</li>
+  <li>Связи без ссылки на источник показаны как гипотезы, отдельно от проверенных.</li>
+  <li>Сходство не значит заимствование, расхождение не значит ошибку.</li>
+ </ul>
+ <p>Код, процедура и описание: <a href="https://github.com/nrecordsmeat-png/strike-atlas/tree/main/tools/text-check">github.com/nrecordsmeat-png/strike-atlas/tools/text-check</a></p>
+</section>
+
+<script>
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+ document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.s))});
+
+// ---------- галерея
+fetch('reports/index.json').then(r=>r.json()).then(list=>{
+ document.getElementById('list').innerHTML=list.length?list.map(x=>`<div class="card"><h3>${esc(x.title)}</h3><p class="mut">${esc(x.about||'')}</p><div class="links">`+
+  (x.map?`<a href="../viewer/roots_view.html?report=../site/reports/${encodeURIComponent(x.map)}">Карта корней мысли</a>`:'')+
+  (x.check?`<a href="reports/${encodeURIComponent(x.check)}">Отчёт о понимании</a>`:'')+'</div></div>').join(''):'<p class="mut">Пока нет разборов.</p>';
+}).catch(e=>{document.getElementById('list').innerHTML='<p class="mut">Не удалось загрузить список разборов: '+esc(e)+'</p>'});
+
+// ---------- механика: тот же расчёт, что scripts/mechanics.py
+const VOW=new Set('аеёиоуыэюяaeiouy');
+const words=s=>s.match(/[а-яёa-z]+(?:-[а-яёa-z]+)*/gi)||[];
+const syl=w=>[...w.toLowerCase()].filter(c=>VOW.has(c)).length;
+const CONN=["потому что","поэтому","значит","то есть","так что","поскольку","следовательно","однако","но","зато","хотя","если","тогда","например","скажем","во-первых","во-вторых","итак","в итоге"];
+const ADDR=/(^|[^а-яёa-z])(ты|тебе|тебя|тобой|твой|твоя|твоё|твое|твои|вы|вам|вас|ваш|ваша|ваши|you|your|yours)(?=[^а-яёa-z]|$)/gi;
+const EX=/(^|[^а-яё])(например|скажем|вот|допустим|к примеру)(?=[^а-яё]|$)/gi;
+function sentences(t){const flat=t.replace(/([^\n])\n(?!\n)/g,'$1 ');return flat.split(/(?<=[.!?…])[»"”)]*\s+|\n{2,}/).map(x=>x.trim()).filter(x=>words(x).length)}
+function paragraphs(t){let b=t.split(/\n\s*\n/).filter(p=>words(p).length);if(b.length<=1)b=t.split('\n').filter(p=>words(p).length);return b}
+const median=a=>{const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length?(s.length%2?s[m]:(s[m-1]+s[m])/2):0};
+const cnt=(re,t)=>(t.match(re)||[]).length;
+document.getElementById('run').onclick=()=>{const t=document.getElementById('txt').value;const out=document.getElementById('out');
+ const W=words(t);if(!W.length){out.innerHTML='<p class="mut">Текст пуст: считать нечего.</p>';return}
+ const n=W.length,S=sentences(t),L=S.map(s=>words(s).length),P=paragraphs(t).map(p=>words(p).length),low=t.toLowerCase();
+ const per=c=>Math.round(c*10000/n)/10;
+ const longS=S.filter((s,i)=>L[i]>=25).sort((a,b)=>b.length-a.length);
+ const longW=W.filter(w=>syl(w)>=5).length;
+ let conn=0;CONN.forEach(c=>{conn+=cnt(new RegExp('(^|[^а-яё])'+c.replace('-','\\-')+'(?=[^а-яё]|$)','g'),low)});
+ const r={med:median(L),mean:Math.round(L.reduce((a,b)=>a+b,0)/L.length*10)/10,long:Math.round(100*longS.length/S.length),lw:Math.round(1000*longW/n)/10,
+  pmed:median(P),pmax:Math.max(...P),conn:per(conn),q:per(cnt(/\?/g,t)),addr:per(cnt(ADDR,t)),ex:per(cnt(EX,t)),excl:per(cnt(/!/g,t))};
+ const hints=[];if(r.med>15)hints.push('фразы длинные для живого текста');if(r.long>10)hints.push('много фраз от 25 слов');
+ if(r.lw>8)hints.push('много длинных слов: возможен канцелярит');if(r.pmax>150)hints.push('есть абзац длиннее 150 слов');
+ out.innerHTML=`<div class="kv">`+[[n,'слов'],[S.length,'предложений'],[P.length,'абзацев'],[r.med,'длина фразы, медиана'],[r.long+'%','фраз от 25 слов'],[r.lw+'%','длинных слов (5+ слогов)'],
+  [r.pmed,'слов на абзац, медиана'],[r.conn,'связок на 1000 слов'],[r.q,'вопросов на 1000'],[r.addr,'обращений на 1000'],[r.ex,'примеров на 1000']].map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join('')+'</div>'+
+  (hints.length?hints.map(h=>`<div class="hint">${esc(h)}</div>`).join(''):'<div class="hint ok">Явных механических проблем нет.</div>')+
+  (longS.length?'<h2>Самые длинные фразы</h2><ul>'+longS.slice(0,3).map(s=>`<li>${esc(s.slice(0,240))}${s.length>240?'…':''}</li>`).join('')+'</ul>':'')+
+  '<p class="mut">Это счётные замеры, а не оценка мысли. Понятность смысла проверяется пересказом — для этого нужен разбор в чате.</p>'};
+</script>
+</body>
+</html>

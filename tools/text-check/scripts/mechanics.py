@@ -25,7 +25,7 @@ CONNECTIVES = [
     "следовательно", "однако", "но", "зато", "хотя", "если", "тогда",
     "например", "скажем", "во-первых", "во-вторых", "итак", "в итоге",
 ]
-ADDRESS = re.compile(r"\b(ты|тебе|тебя|тобой|твой|твоя|твоё|твое|твои|вы|вам|вас|ваш|ваша|ваши)\b", re.I)
+ADDRESS = re.compile(r"\b(ты|тебе|тебя|тобой|твой|твоя|твоё|твое|твои|вы|вам|вас|ваш|ваша|ваши|you|your|yours)\b", re.I)
 EXAMPLE = re.compile(r"\b(например|скажем|вот|допустим|к примеру)\b", re.I)
 
 
@@ -38,8 +38,17 @@ def syllables(w):
 
 
 def sentences(text):
-    parts = re.split(r"(?<=[.!?…])\s+|\n+", text)
+    # одиночный перенос строки — не конец предложения; закрывающие кавычки и скобки остаются с предложением
+    flat = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
+    parts = re.split(r"(?<=[.!?…])[»\"”)]*\s+|\n{2,}", flat)
     return [p.strip() for p in parts if words(p)]
+
+
+def paragraphs(text):
+    blocks = [p for p in re.split(r"\n\s*\n", text) if words(p)]
+    if len(blocks) <= 1:  # текст без пустых строк — абзацем считается строка
+        blocks = [p for p in text.split("\n") if words(p)]
+    return blocks
 
 
 def analyze(text):
@@ -47,7 +56,7 @@ def analyze(text):
     n = len(W) or 1
     S = sentences(text)
     L = [len(words(s)) for s in S] or [0]
-    paras = [p for p in re.split(r"\n\s*\n|\n", text) if words(p)]
+    paras = paragraphs(text)
     P = [len(words(p)) for p in paras] or [0]
     low = text.lower()
     per1k = lambda c: round(c * 1000 / n, 1)
@@ -65,7 +74,7 @@ def analyze(text):
             "длина_фразы_средняя": round(st.mean(L), 1),
             "доля_фраз_от_25_слов_%": round(100 * len(long_sents) / (len(S) or 1)),
             "доля_длинных_слов_5+_слогов_%": round(100 * long_words / n, 1),
-            "самые_длинные_фразы": sorted(long_sents, key=len, reverse=True)[:3],
+            "самые_длинные_фразы": [x[:200] + ("…" if len(x) > 200 else "") for x in sorted(long_sents, key=len, reverse=True)[:3]],
         },
         "структура": {
             "слов_на_абзац_медиана": st.median(P),
@@ -116,7 +125,13 @@ if __name__ == "__main__":
     ap.add_argument("text")
     ap.add_argument("--json", help="сохранить результат в JSON")
     a = ap.parse_args()
-    t = open(a.text, encoding="utf-8").read()
+    raw = open(a.text, "rb").read()
+    try:
+        t = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        t = raw.decode("cp1251")
+    if not words(t):
+        sys.exit("Текст пуст: считать нечего.")
     r = analyze(t)
     print(report(r))
     if a.json:

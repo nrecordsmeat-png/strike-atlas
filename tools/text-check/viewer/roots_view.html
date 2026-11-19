@@ -110,6 +110,7 @@ const lensLabel=l=>l.source==='people'?`читатели позиции «${l.na
 function renderMeaning(){const box=document.getElementById('meaning');const L=LENSES.find(l=>l.id===LENS);
  if(L)box.innerHTML=`<span>Как текст читает ${esc(lensLabel(L))}</span>${esc(L.meaning)}`+(L.against?`<div class="mut" style="margin-top:4px">С чем спорит, по мнению этой позиции: ${esc(L.against)}</div>`:'');
  else box.innerHTML=P.meaning?'<span>Что текст говорит (нейтральный слой, по пересказам слепых читателей, без оценки)</span>'+esc(P.meaning):'<span>Смысл текста не указан</span>';}
+if(P.axis_note){const d=document.createElement('p');d.className='mut';d.textContent='Ось спора: '+P.axis_note;document.getElementById('lensbar').after(d)}
 if(P.author_reading)document.getElementById('author').innerHTML='<span>Прочтение автора — последнее слово о замысле, но не о правоте и не о том, что утверждает источник</span>'+esc(P.author_reading);
 else document.getElementById('author').style.display='none';
 // ---------- сводка
@@ -163,10 +164,11 @@ function srcHtml(s){const c=css(REL[s.relation]);const link=s.url?` · <a href="
  <div class="cols"><div><span>у него</span>${esc(s.idea)}</div><div><span>у тебя</span>${esc(s.vs)}</div></div></div>`}
 function head(ti){const t=R[ti];const bw=balance(ti);
  const imp=t.implicit?((t.from_readers||[]).length?`<div class="mut">невысказанный тезис, восстановлен по пересказам читателей: ${esc(t.from_readers.join(', '))}</div>`:'<div class="warn">невысказанный тезис — гипотеза координатора: ответы читателей к нему не приложены</div>'):'';
+ const alt=(t.alternatives||[]).length?`<div class="mut">другие прочтения: ${esc(t.alternatives.join('; '))}</div>`:'';
  const lvl=t.level?`<span class="lvl">${esc(t.level)}</span>`:'';
  const st={'searched_not_found':'<div class="src" style="border-color:var(--own)"><span class="badge" style="background:var(--own)">искали, не нашли</span>'+esc(t.own||'')+(t.search&&t.search.queries?`<div class="mut">запросы: ${esc(t.search.queries.join('; '))}</div>`:'')+'</div>',
   'not_searched':'<div class="mut">Поиск источников для этого тезиса не проводился.</div>'}[status(t)]||'';
- return (bw.length?`<div class="warn">Баланс: ${esc(bw.join('; '))}</div>`:'')+imp+`<h3>${lvl}${esc(t.thesis)}</h3>`+st}
+ return (bw.length?`<div class="warn">Баланс: ${esc(bw.join('; '))}</div>`:'')+imp+alt+`<h3>${lvl}${esc(t.thesis)}</h3>`+st}
 function apply(){const card=document.getElementById('card');const vis=x=>!LENS||x.lens===LENS||!x.lens;
  let ts=new Set(),is=new Set();
  if(!SEL){card.innerHTML='<span class="mut">Выбери фразу или точку.</span>'}
