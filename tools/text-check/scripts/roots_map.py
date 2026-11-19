@@ -86,6 +86,8 @@ svg text{fill:var(--fg)}svg .node{cursor:pointer}svg .dim{opacity:.15}
 .src{border-left:3px solid var(--line);padding:.1rem 0 .1rem .7rem;margin:.6rem 0}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:.3rem;font-size:14px}.cols span{display:block;font-size:11px;color:var(--mut)}
 .badge{font-size:11px;padding:1px 7px;border-radius:6px;color:#fff;margin-right:6px}
+.brow{display:grid;grid-template-columns:150px minmax(0,1fr) 2px minmax(0,1fr) 30px;gap:6px;align-items:center;font-size:13px;margin:3px 0;cursor:pointer;border-radius:6px;padding:2px 4px}.brow:hover,.brow.sel{background:var(--line)}.brow.head{cursor:default;font-size:11px;color:var(--mut)}.brow.head:hover{background:none}
+.bl{display:flex;justify-content:flex-end;align-items:center;gap:4px}.br{display:flex;align-items:center;gap:4px}.bl i,.br i{display:block;height:10px;border-radius:3px}.bc{height:16px;background:var(--mut);opacity:.4}.bl span,.br span,.be span{font-size:11px;color:var(--mut)}
 .bars .row{display:grid;grid-template-columns:150px minmax(0,1fr) 24px;gap:8px;align-items:center;font-size:13px;margin:4px 0}
 .bars .tr{background:var(--line);border-radius:4px;height:10px}.bars .fi{height:10px;border-radius:4px;background:var(--dev)}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mut);margin:.4rem 0}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
@@ -125,7 +127,7 @@ if(LENSES.length){const bar=document.getElementById('lensbar');
  bar.innerHTML='<span class="mut" style="align-self:center;margin-right:4px">Линза:</span>'+btn(null,'нейтрально')+LENSES.map(l=>btn(l.id,l.name)).join('');
  const set=id=>{LENS=id||null;bar.querySelectorAll('button').forEach(b=>b.classList.toggle('on',(b.dataset.l||null)===LENS));renderMeaning();
   document.querySelectorAll('svg .node').forEach(n=>{const s=S[+n.dataset.i];n.classList.toggle('dim2',!!LENS&&s.lens!==LENS)});
-  marks.forEach(m=>{const t=R[+m.dataset.t];m.style.opacity=!LENS||(t.sources||[]).some(x=>x.lens===LENS)?1:.45})};
+  marks.forEach(m=>{const t=R[+m.dataset.t];m.style.opacity=!LENS||(t.sources||[]).some(x=>x.lens===LENS)?1:.45});renderBars()};
  bar.querySelectorAll('button').forEach(b=>b.onclick=()=>set(b.dataset.l));setTimeout(()=>set(null),0)}
 // баланс спорных тезисов
 const side=r=>r==="расходится"?"contra":(r==="совпадает"||r==="развивает")?"pro":null;
@@ -165,10 +167,26 @@ document.getElementById('legend').innerHTML=ROWS.map(r=>`<span><i style="backgro
   el('text',{x:anc==='end'?x+8:anc==='start'?x-8:x,y:ly,'font-size':11,'text-anchor':anc},src.who,g);
   g.addEventListener('click',()=>pickSource(i))});
  document.getElementById('chart').appendChild(s)})();
-// бары традиций
-const tk=Object.entries(trad).sort((a,b)=>b[1]-a[1]),tm=Math.max(1,...tk.map(x=>x[1]));
-document.getElementById('bars').innerHTML=tk.length?'<div class="mut" style="margin-bottom:4px">Традиции и дисциплины</div>'+
- tk.map(([n,c])=>`<div class="row"><div>${esc(n)}</div><div class="tr"><div class="fi" style="width:${100*c/tm}%"></div></div><div>${c}</div></div>`).join(""):"";
+// союзники и оппоненты по традициям
+function renderBars(){const src=S.filter(x=>!LENS||x.lens===LENS);const g={};
+ src.forEach(x=>{const t=x.tradition||'без традиции';g[t]=g[t]||{pro:0,con:0,echo:0};
+  if(x.relation==='расходится')g[t].con++;else if(x.relation==='перекликается')g[t].echo++;else g[t].pro++});
+ const rows=Object.entries(g).sort((a,b)=>(b[1].pro-b[1].con)-(a[1].pro-a[1].con)||(b[1].pro+b[1].con)-(a[1].pro+a[1].con));
+ const mx=Math.max(1,...rows.map(([,v])=>Math.max(v.pro,v.con)));
+ document.getElementById('bars').innerHTML=rows.length?'<div class="mut" style="margin-bottom:6px">С какими школами мысли текст в согласии, а с какими в споре. Щёлкни строку — подсветятся связи в тексте и на графике.</div>'+
+  '<div class="brow head"><div></div><div style="text-align:right">в споре</div><div></div><div>в согласии</div><div></div></div>'+
+  rows.map(([n,v])=>`<div class="brow" data-tr="${esc(n)}"><div class="bn">${esc(n)}</div>
+   <div class="bl">${v.con?`<span>${v.con}</span><i style="width:${100*v.con/mx}%;background:var(--bad)"></i>`:''}</div><div class="bc"></div>
+   <div class="br">${v.pro?`<i style="width:${100*v.pro/mx}%;background:var(--ok)"></i><span>${v.pro}</span>`:''}</div>
+   <div class="be">${v.echo?`<span title="перекликается">≈${v.echo}</span>`:''}</div></div>`).join(''):'';
+ document.querySelectorAll('.brow[data-tr]').forEach(r=>r.onclick=()=>pickTradition(r.dataset.tr))}
+function pickTradition(tr){const src=S.map((x,i)=>[x,i]).filter(([x])=>(x.tradition||'без традиции')===tr&&(!LENS||x.lens===LENS));
+ const ts=new Set(src.map(([x])=>x.ti));const is=new Set(src.map(([,i])=>i));
+ marks.forEach(m=>m.classList.toggle('on',ts.has(+m.dataset.t)));
+ document.querySelectorAll('svg .node').forEach(n=>n.classList.toggle('dim',!is.has(+n.dataset.i)));
+ document.querySelectorAll('.brow[data-tr]').forEach(r=>r.classList.toggle('sel',r.dataset.tr===tr));
+ const first=marks.find(m=>ts.has(+m.dataset.t));if(first)first.scrollIntoView({behavior:'smooth',block:'center'});
+ document.getElementById('card').innerHTML=`<h3>${esc(tr)}: где связь с текстом</h3>`+src.map(([x])=>`<div class="mut" style="margin-top:.6rem">к тезису: ${esc(R[x.ti].thesis)}</div>`+srcHtml(x)).join('')}
 // выбор
 const marks=[...document.querySelectorAll('mark.fr')];
 function light(ti,i){marks.forEach(m=>m.classList.toggle('on',+m.dataset.t===ti));
@@ -184,6 +202,7 @@ function pickThesis(ti){const t=R[ti];light(ti,null);
 function pickSource(i){const s=S[i];light(s.ti,i);const m=marks.find(m=>+m.dataset.t===s.ti);if(m)m.scrollIntoView({behavior:'smooth',block:'center'});
  document.getElementById('card').innerHTML=head(R[s.ti])+srcHtml(s)}
 marks.forEach(m=>m.addEventListener('click',()=>pickThesis(+m.dataset.t)));
+renderBars();
 </script></body></html>"""
 
 
