@@ -11,6 +11,8 @@
 Что нужно в roots.json сверх обычного блока roots (см. examples/roots.json):
   у тезиса:    "fragments": ["точная цитата из текста", ...]
   у источника: "year": -450, "year_label": "V в. до н. э.", "tradition": "буддизм"
+  в корне файла: "meaning": "что текст говорит, одной-двумя фразами, без оценки"
+  у спорного тезиса: "contested": true — карта предупредит, если корни найдены только с одной стороны
 Фрагмент ищется в тексте как есть, затем без учёта регистра и разницы е/ё.
 Ненайденные фрагменты печатаются предупреждением.
 ВНИМАНИЕ: в карту целиком встраивается сам текст. Не выкладывай её публично, если текст личный.
@@ -63,6 +65,8 @@ PAGE = r"""<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name
 @media(prefers-color-scheme:dark){:root{--bg:#151515;--fg:#f0efec;--mut:#a3a29b;--line:#2c2c2a;--card:#1f1f1e;--hl:#5a4a12;--own:#9085e9}}
 body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:1.5rem}
 h1{font-size:22px;font-weight:500;margin:0 0 .2rem}.mut{color:var(--mut);font-size:13px}
+.meaning{border-left:3px solid var(--own);padding:.3rem 0 .3rem .9rem;margin:1rem 0;font-size:16px}.meaning span{display:block;font-size:12px;color:var(--mut)}
+.warn{font-size:13px;color:var(--bad);margin:.4rem 0}
 .top{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:1rem 0}
 .top div{background:var(--line);border-radius:8px;padding:.6rem .8rem}.top b{display:block;font-size:22px;font-weight:500}.top span{font-size:12px;color:var(--mut)}
 .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:1.5rem;align-items:start}
@@ -84,6 +88,7 @@ a{color:var(--dev)}
 </style></head><body>
 <h1>__TITLE__</h1>
 <p class="mut">Щёлкни подчёркнутую фразу, чтобы увидеть её родство в истории мысли, или точку на графике, чтобы найти фразу в тексте. Сходство не значит заимствование, расхождение не значит ошибку.</p>
+<div class="meaning" id="meaning"></div>
 <div class="top" id="top"></div>
 <div class="wrap">
  <div class="text">__TEXT__</div>
@@ -95,12 +100,18 @@ a{color:var(--dev)}
  </div>
 </div>
 <script>
-const R=__DATA__;
+const R=__DATA__;const MEANING=__MEANING__;
 const REL={"совпадает":"--ok","развивает":"--dev","перекликается":"--q","расходится":"--bad"};
 const ROWS=["совпадает","развивает","перекликается","расходится"];
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const S=[];R.forEach((t,ti)=>(t.sources||[]).forEach(s=>{if(typeof s.year==="number")S.push(Object.assign({ti},s))}));
+// смысл текста
+if(MEANING)document.getElementById('meaning').innerHTML='<span>Что текст говорит (без оценки, по пересказам читателей)</span>'+esc(MEANING);
+// баланс спорных тезисов
+const side=r=>r==="расходится"?"contra":(r==="совпадает"||r==="развивает")?"pro":null;
+const oneSided=R.map(t=>{if(!t.contested)return null;const sd=new Set((t.sources||[]).map(x=>side(x.relation)).filter(Boolean));
+ return sd.size<2?(sd.has("pro")?"только совпадения":sd.has("contra")?"только расхождения":"нет ни совпадений, ни расхождений"):null});
 // сводка
 const ys=S.map(s=>s.year);const trad={};S.forEach(s=>{if(s.tradition)trad[s.tradition]=(trad[s.tradition]||0)+1});
 const own=R.filter(t=>!(t.sources||[]).length).length;
@@ -108,7 +119,7 @@ const span=ys.length?Math.max(...ys)-Math.min(...ys):0;
 const yl=y=>y<0?Math.abs(y)+" до н. э.":String(y);
 document.getElementById('top').innerHTML=[
  [ys.length?"≈"+Math.round(span/100)+" в.":"—","охват родства"+(ys.length?` (${yl(Math.min(...ys))} — ${yl(Math.max(...ys))})`:"")],
- [Object.keys(trad).length,"традиций и дисциплин"],[S.length,"связей с источниками"],[own,"тезисов без близкого источника"]]
+ [Object.keys(trad).length,"традиций и дисциплин"],[S.length,"связей с источниками"],[own,"тезисов без близкого источника"],[oneSided.filter(Boolean).length,"спорных тезисов с корнями только с одной стороны"]]
  .map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join("");
 document.getElementById('legend').innerHTML=ROWS.map(r=>`<span><i style="background:var(${REL[r]})"></i>${r}</span>`).join("")+
  `<span><i style="background:var(--own)"></i>своё</span>`;
@@ -147,7 +158,7 @@ function srcHtml(s){const c=css(REL[s.relation]);const link=s.url?` · <a href="
  return `<div class="src" style="border-color:${c}"><span class="badge" style="background:${c}">${esc(s.relation)}</span><b>${esc(s.who)}</b>
  <span class="mut">${esc(s.work||"")} ${esc(s.year_label||"")} ${esc(s.tag||"")}${link}</span>
  <div class="cols"><div><span>у него</span>${esc(s.idea)}</div><div><span>у тебя</span>${esc(s.vs)}</div></div></div>`}
-const head=t=>(t.implicit?'<div class="mut">невысказанный тезис, восстановлен по пересказам читателей</div>':'')+`<h3>${esc(t.thesis)}</h3>`;
+const head=t=>{const i=R.indexOf(t);return (oneSided[i]?`<div class="warn">Спорный тезис: найдены ${oneSided[i]}. Корни с другой стороны не найдены — выбор источников может работать как вывод.</div>`:'')+(t.implicit?'<div class="mut">невысказанный тезис, восстановлен по пересказам читателей</div>':'')+`<h3>${esc(t.thesis)}</h3>`};
 function pickThesis(ti){const t=R[ti];light(ti,null);
  document.getElementById('card').innerHTML=head(t)+(t.own?`<div class="src" style="border-color:var(--own)"><span class="badge" style="background:var(--own)">своё</span>${esc(t.own)}</div>`:"")+
   (t.sources||[]).map(srcHtml).join("")}
@@ -168,6 +179,7 @@ if __name__ == "__main__":
     roots = R["roots"]
     page = (PAGE.replace("__TITLE__", html.escape(R.get("title", "Корни мысли")))
             .replace("__TEXT__", mark_text(text, roots))
-            .replace("__DATA__", json.dumps(roots, ensure_ascii=False).replace("</", "<\\/")))
+            .replace("__DATA__", json.dumps(roots, ensure_ascii=False).replace("</", "<\\/"))
+            .replace("__MEANING__", json.dumps(R.get("meaning", ""), ensure_ascii=False).replace("</", "<\\/")))
     open(a.out, "w", encoding="utf-8").write(page)
     print("Карта:", a.out)
