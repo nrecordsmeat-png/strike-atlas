@@ -1,0 +1,206 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>Корни мысли</title><style>
+
+:root{--bg:#fcfcfb;--fg:#0b0b0b;--mut:#6b6a66;--line:#e1e0d9;--card:#fff;--ok:#1baf7a;--dev:#2a78d6;--q:#eda100;--bad:#e34948;--own:#6250d6;--hl:#fff3c4}
+@media(prefers-color-scheme:dark){:root{--bg:#151515;--fg:#f0efec;--mut:#a3a29b;--line:#2c2c2a;--card:#1f1f1e;--hl:#5a4a12;--own:#9085e9}}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:1.5rem}
+h1{font-size:22px;font-weight:500;margin:0 0 .2rem}.mut{color:var(--mut);font-size:13px}
+.meaning{border-left:3px solid var(--own);padding:.3rem 0 .3rem .9rem;margin:1rem 0;font-size:16px}.meaning span{display:block;font-size:12px;color:var(--mut)}
+.lensbar{display:flex;flex-wrap:wrap;gap:6px;margin:1rem 0 .2rem}.lensbar button{font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:6px;padding:4px 12px;cursor:pointer}.lensbar button.on{background:var(--fg);color:var(--bg)}
+#author{border-left-color:var(--ok)}
+svg .dim2{opacity:.12}.lensb{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--line);margin-left:6px}
+.warn{font-size:13px;color:var(--bad);margin:.4rem 0}
+.top{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:1rem 0}
+.top div{background:var(--line);border-radius:8px;padding:.6rem .8rem}.top b{display:block;font-size:22px;font-weight:500}.top span{font-size:12px;color:var(--mut)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:1.5rem;align-items:start}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+.text p{margin:0 0 .8rem}
+mark.fr{background:transparent;border-bottom:2px solid var(--dev);cursor:pointer;color:inherit;padding:0 1px}
+mark.fr.own{border-bottom-color:var(--own)}mark.fr.imp{border-bottom-style:dashed}mark.fr.on{background:var(--hl)}
+.side{position:sticky;top:1rem}
+svg text{fill:var(--fg)}svg .node{cursor:pointer}svg .dim{opacity:.15}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;margin-top:.8rem;min-height:3rem}
+.card h3{font-size:15px;font-weight:500;margin:0 0 .4rem}
+.src{border-left:3px solid var(--line);padding:.1rem 0 .1rem .7rem;margin:.6rem 0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:.3rem;font-size:14px}.cols span{display:block;font-size:11px;color:var(--mut)}
+.badge{font-size:11px;padding:1px 7px;border-radius:6px;color:#fff;margin-right:6px}
+.brow{display:grid;grid-template-columns:150px minmax(0,1fr) 2px minmax(0,1fr) 30px;gap:6px;align-items:center;font-size:13px;margin:3px 0;cursor:pointer;border-radius:6px;padding:2px 4px}.brow:hover,.brow.sel{background:var(--line)}.brow.head{cursor:default;font-size:11px;color:var(--mut)}.brow.head:hover{background:none}
+.bl{display:flex;justify-content:flex-end;align-items:center;gap:4px}.br{display:flex;align-items:center;gap:4px}.bl i,.br i{display:block;height:10px;border-radius:3px}.bc{height:16px;background:var(--mut);opacity:.4}.bl span,.br span,.be span{font-size:11px;color:var(--mut)}
+.bars .row{display:grid;grid-template-columns:150px minmax(0,1fr) 24px;gap:8px;align-items:center;font-size:13px;margin:4px 0}
+.bars .tr{background:var(--line);border-radius:4px;height:10px}.bars .fi{height:10px;border-radius:4px;background:var(--dev)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--mut);margin:.4rem 0}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+a{color:var(--dev)}
+.dwarn{border:1px solid var(--bad);border-radius:8px;padding:.5rem .8rem;font-size:13px;color:var(--bad);margin:.6rem 0}
+.hyp{font-size:11px;padding:1px 7px;border-radius:6px;border:1px dashed var(--mut);color:var(--mut);margin-left:6px}
+.lvl{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--line);margin-right:6px}
+.nodate{font-size:13px;margin:.4rem 0}.nodate button{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:6px;padding:2px 8px;margin:2px;cursor:pointer}
+.bl i.u,.br i.u{opacity:.4}
+</style></head><body>
+<h1 id="title">Корни мысли</h1>
+<p class="mut">Щёлкни подчёркнутую фразу, чтобы увидеть её родство в истории мысли, или точку на графике, чтобы найти фразу в тексте. Сходство не значит заимствование, расхождение не значит ошибку.</p>
+<div id="datawarn"></div>
+<div class="lensbar" id="lensbar"></div>
+<div class="meaning" id="author"></div>
+<div class="meaning" id="meaning"></div>
+<div class="top" id="top"></div>
+<div class="wrap">
+ <div class="text" id="text"></div>
+ <div class="side">
+  <div class="legend" id="legend"></div>
+  <div id="chart"></div>
+  <div class="nodate" id="nodate"></div>
+  <div class="card" id="card"><span class="mut">Выбери фразу или точку.</span></div>
+  <div class="bars" id="bars" style="margin-top:1rem"></div>
+ </div>
+</div>
+<script>
+const PAYLOAD=/*__PAYLOAD__*/null;
+(async function(){
+let P=PAYLOAD;
+if(!P){const u=new URLSearchParams(location.search).get('report');
+ if(!u){document.getElementById('text').innerHTML='<p class="mut">Отчёт не загружен.</p>';return}
+ try{P=await (await fetch(u)).json()}catch(e){document.getElementById('text').innerHTML='<p class="dwarn">Не удалось загрузить отчёт: '+String(e)+'</p>';return}}
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const REL={"совпадает":"--ok","развивает":"--dev","перекликается":"--q","расходится":"--bad"};
+const ROWS=["совпадает","развивает","перекликается","расходится"];
+const R=P.roots||[],LENSES=P.lenses||[],TEXT=P.text||"",DW=[];
+document.title=P.title||'Корни мысли';document.getElementById('title').textContent=P.title||'Корни мысли';
+let LENS=null,SEL=null;
+// ---------- источники: все, включая без года; дубликаты считаются один раз
+const S=[],seen=new Set();
+R.forEach((t,ti)=>(t.sources||[]).forEach(s=>{const k=[s.who,s.work,s.relation,ti].join('|');if(seen.has(k)){DW.push(`дубликат источника «${s.who}» у тезиса ${ti+1} учтён один раз`);return}
+ seen.add(k);if(!REL[s.relation]){DW.push(`неизвестное отношение «${s.relation}» у «${s.who}»`);return}
+ S.push(Object.assign({ti,verified:/официально/.test(s.tag||'')&&!!s.url},s))}));
+// ---------- разметка текста в браузере: n-е вхождение, совместные фразы, переносы строк
+const norm=x=>x.toLowerCase().replace(/ё/g,'е');const NT=norm(TEXT);
+const spans={};
+R.forEach((t,ti)=>(t.fragments||[]).forEach(f=>{const fx=typeof f==='string'?f:f.text,occ=typeof f==='string'?1:(f.occurrence||1);
+ if(!fx){return}let i=-1,from=0;for(let k=0;k<occ;k++){i=NT.indexOf(norm(fx),from);if(i<0)break;from=i+1}
+ if(i<0){DW.push(`фраза тезиса ${ti+1} не найдена в тексте: «${fx.slice(0,60)}»`);return}
+ const key=i+':'+(i+fx.length);(spans[key]=spans[key]||{a:i,b:i+fx.length,ts:[]}).ts.push(ti)}));
+let list=Object.values(spans).sort((x,y)=>x.a-y.a||y.b-x.b),kept=[],end=-1;
+list.forEach(s=>{if(s.a<end){DW.push(`фраза тезиса ${s.ts.map(x=>x+1).join(', ')} перекрывает другую и не подсвечена`);return}kept.push(s);end=s.b});
+const lines=[];let buf='',pos=0;
+const push=(str,cls,ts)=>{str.split('\n').forEach((part,k)=>{if(k>0){lines.push(buf);buf=''}
+ if(part)buf+=cls?`<mark class="${cls}" data-ts="${ts}">${esc(part)}</mark>`:esc(part)})};
+kept.forEach(s=>{push(TEXT.slice(pos,s.a));const t0=R[s.ts[0]];
+ const cls='fr'+(s.ts.every(x=>!(R[x].sources||[]).length)?' own':'')+(s.ts.some(x=>R[x].implicit)?' imp':'');
+ push(TEXT.slice(s.a,s.b),cls,s.ts.join(' '));pos=s.b});push(TEXT.slice(pos));lines.push(buf);
+document.getElementById('text').innerHTML=lines.filter(l=>l.trim()).map(l=>`<p>${l}</p>`).join('');
+const marks=[...document.querySelectorAll('mark.fr')];const mts=m=>m.dataset.ts.split(' ').map(Number);
+// ---------- проверки данных
+if(!P.meaning)DW.push('смысл текста (meaning) не указан');
+R.forEach((t,ti)=>{if(t.contested!==undefined&&typeof t.contested!=='boolean')DW.push(`у тезиса ${ti+1} contested не true/false, считается false`);
+ if(!(t.sources||[]).length&&!t.search)DW.push(`у тезиса ${ti+1} нет источников и не записан статус поиска`)});
+if(DW.length)document.getElementById('datawarn').innerHTML=`<div class="dwarn"><b>Замечания к данным отчёта</b><br>${DW.map(esc).join('<br>')}</div>`;
+// ---------- статус тезиса
+const status=t=>(t.sources||[]).length?'found':(t.search&&t.search.status)||'not_searched';
+const isOwn=t=>status(t)==='searched_not_found';
+const side=r=>r==="расходится"?"contra":(r==="совпадает"||r==="развивает")?"pro":null;
+function balance(ti){const t=R[ti];if(t.contested!==true)return [];const out=[],src=S.filter(x=>x.ti===ti);
+ const sd=new Set(src.map(x=>side(x.relation)).filter(Boolean));
+ if(sd.size<2)out.push(sd.has('pro')?'найдены только совпадения':sd.has('contra')?'найдены только расхождения':'нет ни совпадений, ни расхождений');
+ LENSES.forEach(l=>{if(!src.some(x=>x.lens===l.id))out.push(`позиция «${l.name}» не представлена ни одним источником`)});
+ const unv=src.filter(x=>!x.verified).length;if(unv)out.push(`из ${src.length} связей не проверено ${unv}`);
+ if(t.search&&t.search.status==='searched_not_found_opposite')out.push('противоположная сторона искалась отдельно и не найдена');
+ return out}
+// ---------- смысл, автор, линзы
+const lensLabel=l=>l.source==='people'?`читатели позиции «${l.name}»`:`модель в роли позиции «${l.name}»`;
+function renderMeaning(){const box=document.getElementById('meaning');const L=LENSES.find(l=>l.id===LENS);
+ if(L)box.innerHTML=`<span>Как текст читает ${esc(lensLabel(L))}</span>${esc(L.meaning)}`+(L.against?`<div class="mut" style="margin-top:4px">С чем спорит, по мнению этой позиции: ${esc(L.against)}</div>`:'');
+ else box.innerHTML=P.meaning?'<span>Что текст говорит (нейтральный слой, по пересказам слепых читателей, без оценки)</span>'+esc(P.meaning):'<span>Смысл текста не указан</span>';}
+if(P.author_reading)document.getElementById('author').innerHTML='<span>Прочтение автора — последнее слово о замысле, но не о правоте и не о том, что утверждает источник</span>'+esc(P.author_reading);
+else document.getElementById('author').style.display='none';
+// ---------- сводка
+function renderTop(){const src=S.filter(x=>!LENS||x.lens===LENS);const ys=src.filter(x=>typeof x.year==='number').map(x=>x.year);
+ const yl=y=>y<0?Math.abs(y)+" до н. э.":String(y);const tr=new Set(src.map(x=>x.tradition).filter(Boolean));
+ const span=ys.length?Math.max(...ys)-Math.min(...ys):0;
+ document.getElementById('top').innerHTML=[
+  [ys.length?"≈"+Math.round(span/100)+" в.":"—","охват родства"+(ys.length?` (${yl(Math.min(...ys))} — ${yl(Math.max(...ys))})`:"")],
+  [tr.size,"традиций и дисциплин"],
+  [`${src.length}`,`связей, из них проверено по источнику ${src.filter(x=>x.verified).length}`],
+  [R.filter(isOwn).length,"тезисов: искали — близкого источника не нашли"],
+  [R.filter(t=>status(t)==='not_searched').length,"тезисов без поиска"],
+  [R.filter((t,i)=>balance(i).length).length,"спорных тезисов с замечаниями о балансе"]]
+  .map(([b,s])=>`<div><b>${b}</b><span>${s}</span></div>`).join("")}
+document.getElementById('legend').innerHTML=ROWS.map(r=>`<span><i style="background:var(${REL[r]})"></i>${r}</span>`).join("")+
+ `<span><i style="background:var(--own)"></i>искали, не нашли</span><span><i style="border:1px dashed var(--mut)"></i>гипотеза, не проверено</span>`;
+// ---------- график: точки не выходят за край, совпадающие даты складываются по вертикали
+(function(){const dated=S.map((x,i)=>[x,i]).filter(([x])=>typeof x.year==='number');
+ const W=560,H=380,ns="http://www.w3.org/2000/svg";
+ if(!dated.length){document.getElementById('chart').innerHTML='<p class="mut">У источников не указаны годы.</p>'}
+ else{const ys=dated.map(([x])=>x.year),mn=Math.min(...ys),mx=Math.max(...ys),L=95,Rt=W-20;const ancient=mn<1800&&mx>1800;
+ const X=y=>{if(!ancient)return L+(y-mn)/((mx-mn)||1)*(Rt-L);const cut=L+(Rt-L)*0.22;return y<1800?L+(y-mn)/((1800-mn)||1)*(cut-L):cut+(y-1800)/((mx-1800)||1)*(Rt-cut)};
+ const Y=r=>50+ROWS.indexOf(r)*82;
+ const s=document.createElementNS(ns,'svg');s.setAttribute('viewBox',`0 0 ${W} ${H}`);s.setAttribute('width','100%');
+ const el=(n,a,t,p)=>{const e=document.createElementNS(ns,n);for(const k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;(p||s).appendChild(e);return e};
+ ROWS.forEach(r=>{el('line',{x1:L,x2:Rt,y1:Y(r),y2:Y(r),stroke:css('--line'),'stroke-dasharray':'2 4'});el('text',{x:4,y:Y(r)+4,'font-size':11,opacity:.6},r)});
+ if(ancient)el('line',{x1:L+(Rt-L)*0.22,x2:L+(Rt-L)*0.22,y1:20,y2:H-30,stroke:css('--line')});
+ (ancient?[mn,1800,mx]:[mn,Math.round((mn+mx)/2),mx]).forEach(y=>el('text',{x:X(y),y:H-8,'font-size':10,opacity:.5,'text-anchor':'middle'},y<0?Math.abs(y)+" до н. э.":String(y)));
+ const used={},dots={};
+ dated.forEach(([src,i])=>{let x=Math.min(Rt,Math.max(L,X(src.year)));const base=Y(src.relation);const dd=dots[src.relation]=dots[src.relation]||[];
+  let tries=0;while(dd.some(o=>Math.abs(o-x)<13)&&tries<3){x=Math.min(Rt,x+13);tries++}
+  const stack=dd.filter(o=>Math.abs(o-x)<13).length;const y=base+(stack?((stack%2?1:-1)*Math.ceil(stack/2)*9):0);dd.push(x);
+  const g=el('g',{class:'node','data-i':i});
+  el('circle',{cx:x,cy:y,r:7,fill:src.verified?css(REL[src.relation]):css('--bg'),stroke:css(REL[src.relation]),'stroke-width':2,'stroke-dasharray':src.verified?'':'3 2'},null,g);
+  const u=used[src.relation]=used[src.relation]||[];const w=src.who.length*6.2+8;
+  const anc=x>Rt-40?'end':x<L+30?'start':'middle';const cx=anc==='end'?x+8-w/2:anc==='start'?x-8+w/2:x;
+  const slots=[base-14,base+23,base-33,base+42];let ly=null;
+  for(const sy of slots){if(!u.some(o=>o.y===sy&&Math.abs(o.x-cx)<(o.w+w)/2)){ly=sy;break}}
+  if(ly!==null){u.push({x:cx,y:ly,w});el('text',{x:anc==='end'?x+8:anc==='start'?x-8:x,y:ly,'font-size':11,'text-anchor':anc},src.who,g)}
+  el('title',{},`${src.who}${src.year_label?', '+src.year_label:''}`,g);
+  g.addEventListener('click',()=>{SEL={type:'source',id:i};apply()})});
+ document.getElementById('chart').appendChild(s)}
+ const nd=S.map((x,i)=>[x,i]).filter(([x])=>typeof x.year!=='number');
+ if(nd.length)document.getElementById('nodate').innerHTML='<span class="mut">Без даты (на графике не показаны):</span> '+nd.map(([x,i])=>`<button data-i="${i}">${esc(x.who)}</button>`).join('');
+ document.querySelectorAll('#nodate button').forEach(b=>b.onclick=()=>{SEL={type:'source',id:+b.dataset.i};apply()})})();
+// ---------- карточки
+function srcHtml(s){const c=css(REL[s.relation]);const link=s.url?` · <a href="${esc(s.url)}" target="_blank" rel="noopener">источник</a>`:"";
+ const lens=s.lens?`<span class="lensb">${esc((LENSES.find(l=>l.id===s.lens)||{}).name||s.lens)}</span>`:(LENSES.length?'<span class="lensb">общий</span>':'');
+ return `<div class="src" style="border-color:${c}"><span class="badge" style="background:${c}">${esc(s.relation)}</span><b>${esc(s.who)}</b>${lens}${s.verified?'':'<span class="hyp">гипотеза, не проверено по источнику</span>'}
+ <span class="mut">${esc(s.work||"")} ${esc(s.year_label||"")} ${esc(s.tag||"")}${link}</span>
+ <div class="cols"><div><span>у него</span>${esc(s.idea)}</div><div><span>у тебя</span>${esc(s.vs)}</div></div></div>`}
+function head(ti){const t=R[ti];const bw=balance(ti);
+ const imp=t.implicit?((t.from_readers||[]).length?`<div class="mut">невысказанный тезис, восстановлен по пересказам читателей: ${esc(t.from_readers.join(', '))}</div>`:'<div class="warn">невысказанный тезис — гипотеза координатора: ответы читателей к нему не приложены</div>'):'';
+ const lvl=t.level?`<span class="lvl">${esc(t.level)}</span>`:'';
+ const st={'searched_not_found':'<div class="src" style="border-color:var(--own)"><span class="badge" style="background:var(--own)">искали, не нашли</span>'+esc(t.own||'')+(t.search&&t.search.queries?`<div class="mut">запросы: ${esc(t.search.queries.join('; '))}</div>`:'')+'</div>',
+  'not_searched':'<div class="mut">Поиск источников для этого тезиса не проводился.</div>'}[status(t)]||'';
+ return (bw.length?`<div class="warn">Баланс: ${esc(bw.join('; '))}</div>`:'')+imp+`<h3>${lvl}${esc(t.thesis)}</h3>`+st}
+function apply(){const card=document.getElementById('card');const vis=x=>!LENS||x.lens===LENS||!x.lens;
+ let ts=new Set(),is=new Set();
+ if(!SEL){card.innerHTML='<span class="mut">Выбери фразу или точку.</span>'}
+ else if(SEL.type==='thesis'){ts.add(SEL.id);S.forEach((x,i)=>{if(x.ti===SEL.id&&vis(x))is.add(i)});
+  const hidden=S.filter(x=>x.ti===SEL.id&&!vis(x)).length;
+  card.innerHTML=head(SEL.id)+S.filter(x=>x.ti===SEL.id&&vis(x)).map(srcHtml).join('')+(hidden?`<div class="mut">Ещё ${hidden} источн. скрыто текущей линзой.</div>`:'')}
+ else if(SEL.type==='source'){const s=S[SEL.id];ts.add(s.ti);is.add(SEL.id);card.innerHTML=head(s.ti)+srcHtml(s)+(vis(s)?'':'<div class="mut">Этот источник относится к другой позиции.</div>')}
+ else if(SEL.type==='trad'){const src=S.map((x,i)=>[x,i]).filter(([x])=>(x.tradition||'без традиции')===SEL.id&&vis(x));
+  src.forEach(([x,i])=>{ts.add(x.ti);is.add(i)});
+  card.innerHTML=`<h3>${esc(SEL.id)}: где связь с текстом</h3>`+(src.length?src.map(([x])=>head(x.ti)+srcHtml(x)).join(''):'<div class="mut">В текущей линзе связей этой традиции нет.</div>')}
+ marks.forEach(m=>{const t=mts(m);m.classList.toggle('on',t.some(x=>ts.has(x)));m.style.opacity=!LENS||t.some(x=>(R[x].sources||[]).some(s=>s.lens===LENS||!s.lens))?1:.45});
+ document.querySelectorAll('svg .node').forEach(n=>{const i=+n.dataset.i;n.classList.toggle('dim2',!vis(S[i]));n.classList.toggle('dim',!!SEL&&!is.has(i))});
+ document.querySelectorAll('.brow[data-tr]').forEach(r=>r.classList.toggle('sel',!!SEL&&SEL.type==='trad'&&r.dataset.tr===SEL.id));
+ renderMeaning();renderTop()}
+// ---------- традиции
+function renderBars(){const vis=x=>!LENS||x.lens===LENS||!x.lens;const src=S.filter(vis);const g={};
+ src.forEach(x=>{const t=x.tradition||'без традиции';g[t]=g[t]||{pro:0,pu:0,con:0,cu:0,echo:0};
+  if(x.relation==='расходится'){g[t].con++;if(!x.verified)g[t].cu++}else if(x.relation==='перекликается')g[t].echo++;else{g[t].pro++;if(!x.verified)g[t].pu++}});
+ const rows=Object.entries(g).sort((a,b)=>(b[1].pro-b[1].con)-(a[1].pro-a[1].con)||(b[1].pro+b[1].con)-(a[1].pro+a[1].con));
+ const mx=Math.max(1,...rows.map(([,v])=>Math.max(v.pro,v.con)));
+ const bar=(n,u,col,dir)=>{const v=n-u;const a=`<i style="width:${100*v/mx}%;background:${col}"></i>`,b=u?`<i class="u" style="width:${100*u/mx}%;background:${col}"></i>`:'';return dir<0?b+a:a+b};
+ document.getElementById('bars').innerHTML=rows.length?'<div class="mut" style="margin-bottom:6px">Связи подобранных источников по школам мысли: число связей, а не позиция школы в целом. Бледная часть — гипотезы, не проверенные по источнику. Щёлкни строку — подсветятся связи в тексте и на графике.</div>'+
+  '<div class="brow head"><div></div><div style="text-align:right">в споре</div><div></div><div>в согласии</div><div></div></div>'+
+  rows.map(([n,v])=>`<div class="brow" data-tr="${esc(n)}"><div class="bn">${esc(n)}</div>
+   <div class="bl">${v.con?`<span>${v.con}</span>`+bar(v.con,v.cu,'var(--bad)',-1):''}</div><div class="bc"></div>
+   <div class="br">${v.pro?bar(v.pro,v.pu,'var(--ok)',1)+`<span>${v.pro}</span>`:''}</div>
+   <div class="be">${v.echo?`<span title="перекликается">≈${v.echo}</span>`:''}</div></div>`).join(''):'';
+ document.querySelectorAll('.brow[data-tr]').forEach(r=>r.onclick=()=>{SEL={type:'trad',id:r.dataset.tr};apply()})}
+// ---------- линзы
+if(LENSES.length){const bar=document.getElementById('lensbar');const btn=(id,name)=>`<button data-l="${id??''}">${esc(name)}</button>`;
+ bar.innerHTML='<span class="mut" style="align-self:center;margin-right:4px">Линза:</span>'+btn(null,'нейтрально')+LENSES.map(l=>btn(l.id,l.name)).join('');
+ bar.querySelectorAll('button').forEach(b=>b.onclick=()=>{LENS=b.dataset.l||null;bar.querySelectorAll('button').forEach(x=>x.classList.toggle('on',(x.dataset.l||null)===LENS));renderBars();apply()});
+ bar.querySelector('button[data-l=""]').classList.add('on')}
+marks.forEach(m=>m.addEventListener('click',()=>{SEL={type:'thesis',id:mts(m)[0]};apply()}));
+renderBars();apply();
+})();
+</script></body></html>

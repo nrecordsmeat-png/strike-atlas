@@ -9,8 +9,12 @@ mechanics.py и voice.py с флагом --json; оба необязательн
 Только стандартная библиотека Python 3.8+.
 """
 import argparse
+import hashlib
 import html
 import json
+import os
+import sys
+import tempfile
 
 MARK = {"+": ("понял", "ok"), "?": ("понял, но переспросил", "q"),
         "-": ("выпало", "miss"), "x": ("искажено", "bad")}
@@ -36,6 +40,71 @@ ul{padding-left:1.2rem}li{margin:.2rem 0}
 """
 
 
+class InputError(Exception):
+    pass
+
+
+def hid(text):
+    return hashlib.sha1(str(text).encode("utf-8")).hexdigest()[:10]
+
+
+def norm_mark(m):
+    """Отметка может быть строкой "+" или объектом {"m": "+", "evidence": "цитата из ответа"}."""
+    if isinstance(m, dict):
+        return m.get("m"), m.get("evidence", "")
+    return m, ""
+
+
+def validate(R):
+    """Проверяет данные до любой записи на диск. Бросает InputError с понятным текстом."""
+    if not isinstance(R, dict):
+        raise InputError("корень JSON должен быть объектом")
+    mode = R.get("mode", "check")
+    if mode not in ("check", "mirror", "roots"):
+        raise InputError(f"неизвестный mode: {mode!r}")
+    readers = R.get("readers", [])
+    if mode in ("check", "mirror") and not readers:
+        raise InputError("нет ни одного читателя (readers пуст)")
+    n = len(readers)
+    if mode == "check":
+        cps = R.get("checkpoints") or []
+        if not cps:
+            raise InputError("нет опорных мыслей (checkpoints пуст)")
+        for r in readers:
+            marks = r.get("marks", [])
+            if len(marks) != len(cps):
+                raise InputError(f"у читателя {r.get('name')!r} {len(marks)} отметок на {len(cps)} опор")
+            for m in marks:
+                if norm_mark(m)[0] not in MARK:
+                    raise InputError(f"недопустимая отметка {m!r} у читателя {r.get('name')!r}")
+    for key in ("gaps", "rebuilds"):
+        for g in R.get(key, []):
+            if g.get("readers"):
+                g["count"] = len(set(g["readers"]))
+            c = g.get("count")
+            if not isinstance(c, int) or c < 1 or (n and c > n):
+                raise InputError(f"{key}: count={c!r} вне диапазона 1..{n} в {g.get('place') or g.get('original')!r}")
+    if mode == "mirror":
+        for c in R.get("chain", []):
+            if not isinstance(c.get("count"), int) or not 1 <= c["count"] <= n:
+                raise InputError(f"chain: count={c.get('count')!r} вне диапазона 1..{n}")
+    return R
+
+
+def write_atomic(path, text):
+    """Пишет во временный файл рядом и подменяет итоговый только после успеха."""
+    d = os.path.dirname(os.path.abspath(path)) or "."
+    fd, tmp = tempfile.mkstemp(dir=d, prefix=".tmp_", suffix=".html")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+
+
 def e(s):
     return html.escape(str(s))
 
@@ -46,13 +115,19 @@ def coverage(R):
     for i, cp in enumerate(R["checkpoints"]):
         out.append(f"<tr><td>{i + 1}. {e(cp)}</td>")
         for r in R["readers"]:
-            m = r["marks"][i]
-            out.append(f'<td class="c {MARK[m][1]}" title="{MARK[m][0]}">{ICON[m]}</td>')
+            m, ev = norm_mark(r["marks"][i])
+            tip = MARK[m][0] + (f" — основание: «{ev}»" if ev else " — основание не записано")
+            star = "" if ev or m in "-" else "<sup>*</sup>"
+            out.append(f'<td class="c {MARK[m][1]}" title="{e(tip)}">{ICON[m]}{star}</td>')
         out.append("</tr>")
     out.append("</table><p class='mut'>" + " · ".join(f"{ICON[k]} {v[0]}" for k, v in MARK.items()) + "</p>")
-    n = len(R["readers"]) * len(R["checkpoints"])
-    full = sum(m == "+" for r in R["readers"] for m in r["marks"])
-    part = sum(m == "?" for r in R["readers"] for m in r["marks"])
+    allm = [norm_mark(m) for r in R["readers"] for m in r["marks"]]
+    n = len(allm)
+    full = sum(m == "+" for m, _ in allm)
+    part = sum(m == "?" for m, _ in allm)
+    noev = sum(1 for m, ev in allm if m in "+?x" and not ev)
+    if noev:
+        out.append(f"<p class='mut'>* отметок без записанного основания: {noev}. Их нельзя перепроверить по ответам читателей.</p>")
     return "".join(out), round(100 * full / n), round(100 * (full + part) / n)
 
 
@@ -67,6 +142,20 @@ def bars(title, items, total, label):
         out.append(f'<div class="row"><div>{e(it["place"])}{tag}{extra}</div>'
                    f'<div class="track"><div class="fill" style="width:{round(100 * it["count"] / total)}%"></div></div>'
                    f'<div>{it["count"]}</div></div>')
+    return "".join(out)
+
+
+def protocol_block(R):
+    ans = R.get("answers") or []
+    if not ans:
+        return ("<h2>Протокол чтений</h2><p class='mut'>Сырые ответы читателей не приложены. "
+                "Отметки и счётчики в этом отчёте нельзя перепроверить.</p>")
+    out = ["<h2>Протокол чтений</h2><p class='mut'>Первичные ответы, из которых сделаны отметки. "
+           "Модель и настройки указаны так, как их записал координатор; скрытые настройки платформы неизвестны.</p>"]
+    for a in ans:
+        meta = " · ".join(x for x in (a.get("model"), a.get("date"), a.get("input")) if x)
+        out.append(f"<details><summary><b>{e(a.get('reader', '?'))}</b> <span class='mut'>{e(meta)}</span></summary>"
+                   f"<pre style='white-space:pre-wrap;font:inherit;font-size:13px'>{e(a.get('raw', ''))}</pre></details>")
     return "".join(out)
 
 
@@ -94,7 +183,7 @@ def voice_block(V):
 
 MIRROR_JS = """
 <script>
-const KEY='textcheck:'+document.title;let S={};try{S=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+const KEY='textcheck:'+(document.body.dataset.doc||document.title);let S={};try{S=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 document.querySelectorAll('.pt').forEach(el=>{const id=el.dataset.id;const st=S[id]||{};
  el.querySelectorAll('button[data-v]').forEach(b=>{if(st.v===b.dataset.v)b.classList.add('on');
@@ -105,7 +194,7 @@ document.getElementById('copy').onclick=()=>{const L=[];document.querySelectorAl
  if(s.v||s.n)L.push('- '+el.dataset.text+' → '+(s.v||'без отметки')+(s.n?' ('+s.n+')':''))});
  const out=L.length?'Мои отметки по зеркалу:\\n'+L.join('\\n'):'Отметок нет';
  const ta=document.getElementById('out');ta.value=out;ta.style.display='block';ta.select();
- try{navigator.clipboard.writeText(out);document.getElementById('copy').textContent='Скопировано'}catch(e){}};
+ const btn=document.getElementById('copy');const fail=()=>{btn.textContent='Не удалось скопировать — выдели текст ниже и скопируй вручную'};try{navigator.clipboard.writeText(out).then(()=>{btn.textContent='Скопировано'},fail)}catch(e){fail()}};
 </script>"""
 
 MIRROR_CSS = """
@@ -121,6 +210,7 @@ textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;background
 
 
 def point(pid, text, who, sub=""):
+    pid = hid(text)  # ключ — содержание тезиса, а не его позиция: изменённый тезис не наследует отметку
     return (f'<div class="pt" data-id="{pid}" data-text="{e(text)}"><div class="h"><div>{e(text)}'
             f'{f"<div class=mut>{e(sub)}</div>" if sub else ""}</div><div class="who">{who}</div></div>'
             '<div class="btns">' + "".join(f'<button data-v="{v}">{v}</button>' for v in ("да, это", "не то", "так лучше")) +
@@ -132,7 +222,7 @@ def render_mirror(R, M=None, V=None):
     title = R.get("title", "Зеркало")
     rnd = R.get("round", 1)
     p = [f"<!DOCTYPE html><html lang='ru'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
-         f"<title>{e(title)} · круг {rnd}</title><style>{CSS}{MIRROR_CSS}</style></head><body>",
+         f"<title>{e(title)} · круг {rnd}</title><style>{CSS}{MIRROR_CSS}</style></head><body data-doc='{e(R.get('doc_id') or hid(title))}'>",
          f"<h1>{e(title)}</h1><p class='mut'>Зеркало, круг {rnd} · слепых читателей: {n}. "
          "Отметь, что совпадает с твоей мыслью, а что нет. Отметки сохраняются в этом браузере.</p>",
          "<h2>Главная мысль глазами читателей</h2>"]
@@ -157,6 +247,7 @@ def render_mirror(R, M=None, V=None):
         p.append(mech_block(M))
     if V:
         p.append(voice_block(V))
+    p.append(protocol_block(R))
     p.append("<h2>Вернуть в чат</h2><button id='copy'>Скопировать мои отметки</button>"
              "<textarea id='out' style='display:none;margin-top:8px;min-height:120px'></textarea>")
     p.append(MIRROR_JS + "</body></html>")
@@ -179,27 +270,38 @@ REL_COLOR = {"совпадает": "#1baf7a", "развивает": "#2a78d6", "
 
 
 def roots_block(roots):
+    """Сводка корней. «Своё» — только если поиск проводился и ничего не нашёл; проверенное отдельно от гипотез."""
     links = [s for t in roots for s in t.get("sources", [])]
-    cnt = {k: 0 for k in REL}
-    for t in roots:
-        if not t.get("sources"):
-            cnt["своё"] += 1
+    verified = lambda s: "официально" in (s.get("tag") or "") and bool(s.get("url"))
+    cnt = {k: [0, 0] for k in REL}
     for s in links:
-        cnt[s["relation"]] = cnt.get(s["relation"], 0) + 1
-    total = sum(cnt.values()) or 1
+        if s.get("relation") in cnt:
+            cnt[s["relation"]][0 if verified(s) else 1] += 1
+    status = lambda t: "found" if t.get("sources") else (t.get("search") or {}).get("status", "not_searched")
+    own = sum(status(t) == "searched_not_found" for t in roots)
+    nos = sum(status(t) == "not_searched" for t in roots)
     out = ["<h2>Корни мысли: откуда растут тезисы и где автор расходится</h2>",
-           "<div class='stack'>" + "".join(f"<div style='width:{100 * v / total}%;background:{REL_COLOR[k]}' title='{k}: {v}'></div>"
-                                          for k, v in cnt.items() if v) + "</div>",
-           "<p class='mut'>" + " · ".join(f"<span class='badge {REL[k]}'>{k}</span>{v}" for k, v in cnt.items() if v) + "</p>"]
+           "<p class='mut'>" + " · ".join(f"<span class='badge {REL[k]}'>{k}</span>{v[0] + v[1]}"
+                                          + (f" (не проверено {v[1]})" if v[1] else "") for k, v in cnt.items() if sum(v)) + "</p>",
+           f"<p class='mut'>Тезисов, где искали и близкого источника не нашли: {own}. Тезисов без поиска: {nos}.</p>"]
     for i, t in enumerate(roots):
         out.append(f"<div class='rt'><div class='th'>{i + 1}. {e(t['thesis'])}</div>")
-        if t.get("own"):
-            out.append(f"<div class='src'><span class='badge own'>своё</span>{e(t['own'])}</div>")
+        st = status(t)
+        if st == "searched_not_found":
+            q = "; ".join((t.get("search") or {}).get("queries", []))
+            out.append(f"<div class='src'><span class='badge own'>искали, не нашли</span>{e(t.get('own', ''))}"
+                       + (f"<div class='mut'>запросы: {e(q)}</div>" if q else "") + "</div>")
+        elif st == "not_searched":
+            out.append("<div class='mut'>Поиск источников не проводился.</div>")
         for s in t.get("sources", []):
+            rel = s.get("relation")
+            if rel not in REL:
+                continue
             link = f" · <a href='{e(s['url'])}'>источник</a>" if s.get("url") else ""
-            out.append(f"<div class='src {REL[s['relation']]}'><span class='badge {REL[s['relation']]}'>{e(s['relation'])}</span>"
-                       f"<b>{e(s['who'])}</b> <span class='mut'>{e(s.get('work', ''))} {e(s.get('tag', ''))}{link}</span>"
-                       f"<div>{e(s['idea'])}</div><div class='mut'>{e(s['vs'])}</div></div>")
+            hyp = "" if verified(s) else " <span class='mut'>[гипотеза, не проверено по источнику]</span>"
+            out.append(f"<div class='src {REL[rel]}'><span class='badge {REL[rel]}'>{e(rel)}</span>"
+                       f"<b>{e(s['who'])}</b> <span class='mut'>{e(s.get('work', ''))} {e(s.get('tag', ''))}{link}</span>{hyp}"
+                       f"<div>{e(s.get('idea', ''))}</div><div class='mut'>{e(s.get('vs', ''))}</div></div>")
         out.append("</div>")
     out.append("<p class='mut'>Сходство не значит заимствование, расхождение не значит ошибку. Показано родство мыслей, а не правота.</p>")
     return "".join(out)
@@ -243,6 +345,7 @@ def _render(R, M=None, V=None):
         parts.append(voice_block(V))
     if R.get("notes"):
         parts.append(f"<h2>Вывод</h2><p>{e(R['notes'])}</p>")
+    parts.append(protocol_block(R))
     parts.append("</body></html>")
     return "".join(parts)
 
@@ -254,6 +357,11 @@ if __name__ == "__main__":
     ap.add_argument("--voice")
     ap.add_argument("--out", default="report.html")
     a = ap.parse_args()
-    load = lambda p: json.load(open(p, encoding="utf-8")) if p else None
-    open(a.out, "w", encoding="utf-8").write(render(load(a.readers), load(a.mech), load(a.voice)))
+    load = lambda p: json.load(open(p, encoding="utf-8-sig")) if p else None
+    try:
+        R = validate(load(a.readers))
+        page = render(R, load(a.mech), load(a.voice))
+    except (InputError, json.JSONDecodeError, KeyError, TypeError) as err:
+        sys.exit(f"Ошибка во входных данных, отчёт не записан, старый файл не тронут: {err}")
+    write_atomic(a.out, page)
     print("Отчёт:", a.out)
