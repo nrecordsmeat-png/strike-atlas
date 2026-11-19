@@ -49,7 +49,7 @@ def mark_text(text, roots):
             print(f"фрагмент тезиса {ti + 1} перекрывает другой, пропущен", file=sys.stderr)
             continue
         out.append(html.escape(text[pos:a]))
-        own = "" if roots[ti].get("sources") else " own"
+        own = ("" if roots[ti].get("sources") else " own") + (" imp" if roots[ti].get("implicit") else "")
         out.append(f'<mark class="fr{own}" data-t="{ti}">{html.escape(text[a:b])}</mark>')
         pos = last_end = b
     out.append(html.escape(text[pos:]))
@@ -69,7 +69,7 @@ h1{font-size:22px;font-weight:500;margin:0 0 .2rem}.mut{color:var(--mut);font-si
 @media(max-width:900px){.wrap{grid-template-columns:1fr}}
 .text p{margin:0 0 .8rem}
 mark.fr{background:transparent;border-bottom:2px solid var(--dev);cursor:pointer;color:inherit;padding:0 1px}
-mark.fr.own{border-bottom-color:var(--own)}mark.fr.on{background:var(--hl)}
+mark.fr.own{border-bottom-color:var(--own)}mark.fr.imp{border-bottom-style:dashed}mark.fr.on{background:var(--hl)}
 .side{position:sticky;top:1rem}
 svg text{fill:var(--fg)}svg .node{cursor:pointer}svg .dim{opacity:.15}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.8rem 1rem;margin-top:.8rem;min-height:3rem}
@@ -147,11 +147,12 @@ function srcHtml(s){const c=css(REL[s.relation]);const link=s.url?` · <a href="
  return `<div class="src" style="border-color:${c}"><span class="badge" style="background:${c}">${esc(s.relation)}</span><b>${esc(s.who)}</b>
  <span class="mut">${esc(s.work||"")} ${esc(s.year_label||"")} ${esc(s.tag||"")}${link}</span>
  <div class="cols"><div><span>у него</span>${esc(s.idea)}</div><div><span>у тебя</span>${esc(s.vs)}</div></div></div>`}
+const head=t=>(t.implicit?'<div class="mut">невысказанный тезис, восстановлен по пересказам читателей</div>':'')+`<h3>${esc(t.thesis)}</h3>`;
 function pickThesis(ti){const t=R[ti];light(ti,null);
- document.getElementById('card').innerHTML=`<h3>${esc(t.thesis)}</h3>`+(t.own?`<div class="src" style="border-color:var(--own)"><span class="badge" style="background:var(--own)">своё</span>${esc(t.own)}</div>`:"")+
+ document.getElementById('card').innerHTML=head(t)+(t.own?`<div class="src" style="border-color:var(--own)"><span class="badge" style="background:var(--own)">своё</span>${esc(t.own)}</div>`:"")+
   (t.sources||[]).map(srcHtml).join("")}
 function pickSource(i){const s=S[i];light(s.ti,i);const m=marks.find(m=>+m.dataset.t===s.ti);if(m)m.scrollIntoView({behavior:'smooth',block:'center'});
- document.getElementById('card').innerHTML=`<h3>${esc(R[s.ti].thesis)}</h3>`+srcHtml(s)}
+ document.getElementById('card').innerHTML=head(R[s.ti])+srcHtml(s)}
 marks.forEach(m=>m.addEventListener('click',()=>pickThesis(+m.dataset.t)));
 </script></body></html>"""
 
