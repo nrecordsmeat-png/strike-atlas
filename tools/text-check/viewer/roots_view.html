@@ -101,7 +101,7 @@ R.forEach((t,ti)=>{if(t.contested!==undefined&&typeof t.contested!=='boolean')DW
  R.forEach((t,ti)=>{const fw=W((t.fragments||[]).map(f=>typeof f==='string'?f:(f&&f.text)||'').join(' ')+' '+(t.thesis||''));
   (t.sources||[]).forEach(s=>{const pw=W(s.post||s.vs),add=INF.filter(w=>pw.has(w)&&!fw.has(w));
    if(add.length)DW.push(`тезис ${ti+1}, ${s.who}: в пересказе тезиса слова, которых нет в тексте (${add.join(', ')}) — возможна подмена`);
-   const pl=(s.point||s.vs||'').toLowerCase().replace(/ё/g,'е'),v=VRD.filter(x=>pl.includes(x));
+   const pl=(s.point||s.vs||'').toLowerCase().replace(/ё/g,'е'),pw2=W(pl),v=VRD.filter(x=>x.trim().includes(' ')?pl.includes(x):pw2.has(x.trim()));
    const cd=[s.post,s.point,s.vs].join(' ').toLowerCase().replace(/ё/g,'е'),nl=NL.filter(x=>cd.includes(x));
    if(nl.length)DW.push(`тезис ${ti+1}, ${s.who}: похоже на связь с позицией, а не с текстом (${nl.join(', ')})`);
    if(v.length)DW.push(`тезис ${ti+1}, ${s.who}: «${s.relation==='расходится'?'расходятся в':'сходятся в'}» похоже на вердикт (${v.join(', ').trim()})`)})})}
@@ -113,7 +113,8 @@ const side=r=>r==="расходится"?"contra":(r==="совпадает"||r==
 function balance(ti){const t=R[ti];if(t.contested!==true)return [];const out=[],src=S.filter(x=>x.ti===ti);
  const sd=new Set(src.map(x=>side(x.relation)).filter(Boolean));
  if(sd.size<2)out.push(sd.has('pro')?'найдены только совпадения':sd.has('contra')?'найдены только расхождения':'нет ни совпадений, ни расхождений');
- LENSES.forEach(l=>{if(!src.some(x=>x.lens===l.id))out.push(`позиция «${l.name}» не представлена ни одним источником`)});
+ LENSES.forEach(l=>{if(src.some(x=>x.lens===l.id))return;const ls=(t.lens_search||{})[l.id];
+  out.push(ls&&ls.status==='searched_not_found'?`позиция «${l.name}»: искали, не нашли (запросы: ${(ls.queries||[]).join('; ')})`:`позиция «${l.name}» не представлена ни одним источником, поиск не записан`)});
  const unv=src.filter(x=>!x.verified).length;if(unv)out.push(`из ${src.length} связей не проверено ${unv}`);
  if(t.search&&t.search.status==='searched_not_found_opposite')out.push('противоположная сторона искалась отдельно и не найдена');
  return out}
