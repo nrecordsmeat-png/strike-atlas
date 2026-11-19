@@ -96,11 +96,14 @@ R.forEach((t,ti)=>{if(t.contested!==undefined&&typeof t.contested!=='boolean')DW
  if(!(t.sources||[]).length&&!t.search)DW.push(`у тезиса ${ti+1} нет источников и не записан статус поиска`)});
 {const W=x=>new Set((x||'').toLowerCase().replace(/ё/g,'е').match(/[а-яa-z]+/g)||[]);
  const INF=['все','всех','всем','всякий','всякая','всякое','любой','любая','любое','любые','любую','всегда','никогда','только','ничто','ничего','никакой','никакая','никакое','целиком','полностью'];
- const VRD=['на самом деле','в действительности','ошибается','ошибочно','неправ','не прав','опровергает','опровергнут','заблуждается','прав ','правы '];
+ const VRD=['на самом деле','в действительности','ошибается','ошибочно','неправ','не прав','опровергает','опровергнут','заблуждается','прав ','правы ','осмыслен','справедлив'];
+ const NL=['в посте его нет','в посте этого нет','в тексте этого нет','в тексте его нет','этот лагерь','этого лагеря','не касается','в самом посте','в самом тексте'];
  R.forEach((t,ti)=>{const fw=W((t.fragments||[]).map(f=>typeof f==='string'?f:(f&&f.text)||'').join(' ')+' '+(t.thesis||''));
-  (t.sources||[]).forEach(s=>{const pw=W(s.post),add=INF.filter(w=>pw.has(w)&&!fw.has(w));
+  (t.sources||[]).forEach(s=>{const pw=W(s.post||s.vs),add=INF.filter(w=>pw.has(w)&&!fw.has(w));
    if(add.length)DW.push(`тезис ${ti+1}, ${s.who}: в пересказе тезиса слова, которых нет в тексте (${add.join(', ')}) — возможна подмена`);
-   const pl=(s.point||'').toLowerCase().replace(/ё/g,'е'),v=VRD.filter(x=>pl.includes(x));
+   const pl=(s.point||s.vs||'').toLowerCase().replace(/ё/g,'е'),v=VRD.filter(x=>pl.includes(x));
+   const cd=[s.post,s.point,s.vs].join(' ').toLowerCase().replace(/ё/g,'е'),nl=NL.filter(x=>cd.includes(x));
+   if(nl.length)DW.push(`тезис ${ti+1}, ${s.who}: похоже на связь с позицией, а не с текстом (${nl.join(', ')})`);
    if(v.length)DW.push(`тезис ${ti+1}, ${s.who}: «${s.relation==='расходится'?'расходятся в':'сходятся в'}» похоже на вердикт (${v.join(', ').trim()})`)})})}
 if(DW.length)document.getElementById('datawarn').innerHTML=`<div class="dwarn"><b>Замечания к данным отчёта</b><br>${DW.map(esc).join('<br>')}</div>`;
 // ---------- статус тезиса
@@ -175,7 +178,7 @@ function cardBody(s){if(!s.post&&!s.point)return `<div class="cols"><div><span>�
  const pl=s.relation==='расходится'?'расходятся в':'сходятся в';
  return `<div class="rows"><div><span>пост</span>${esc(s.post||'')}</div><div><span>источник</span>${esc(s.idea||'')}</div><div><span>${pl}</span>${esc(s.point||'')}</div></div>`}
 function head(ti){const t=R[ti];const bw=balance(ti);
- const imp=t.implicit?((t.from_readers||[]).length?`<div class="mut">невысказанный тезис, восстановлен по пересказам читателей: ${esc(t.from_readers.join(', '))}</div>`:'<div class="warn">невысказанный тезис — гипотеза координатора: ответы читателей к нему не приложены</div>'):'';
+ const imp=t.implicit?(t.basis==='author'?'<div class="mut">невысказанный тезис, сформулирован автором</div>':(t.from_readers||[]).length?`<div class="mut">невысказанный тезис, восстановлен по пересказам читателей: ${esc(t.from_readers.join(', '))}</div>`:'<div class="warn">невысказанный тезис — гипотеза координатора: ответы читателей к нему не приложены</div>'):'';
  const alt=(t.alternatives||[]).map(a=>typeof a==='object'&&a&&a.reader?`<div class="mut">так понял читатель ${esc(a.reader)}: ${esc(a.reading||'')}</div>`:`<div class="warn">другое прочтение без читателя: ${esc(typeof a==='object'?JSON.stringify(a):a)}</div>`).join('');
  const bas={author:'тезис словами автора',text:'тезис прямо из текста',readers:'тезис по прочтению слепых читателей'}[t.basis];
  const bl=bas?`<div class="mut">${bas}</div>`:'<div class="warn">не указано, откуда тезис</div>';
