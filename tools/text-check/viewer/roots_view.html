@@ -35,6 +35,7 @@ a{color:var(--dev)}
 .lvl{font-size:11px;padding:1px 7px;border-radius:6px;background:var(--line);margin-right:6px}
 .nodate{font-size:13px;margin:.4rem 0}.nodate button{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--fg);border-radius:6px;padding:2px 8px;margin:2px;cursor:pointer}
 .bl i.u,.br i.u{opacity:.4}
+.rows>div{margin-top:4px}.rows span{display:inline-block;min-width:96px;color:var(--mut,#888);font-size:12px}
 </style></head><body>
 <h1 id="title">Корни мысли</h1>
 <p class="mut">Щёлкни подчёркнутую фразу, чтобы увидеть её родство в истории мысли, или точку на графике, чтобы найти фразу в тексте. Сходство не значит заимствование, расхождение не значит ошибку.</p>
@@ -93,6 +94,14 @@ const marks=[...document.querySelectorAll('mark.fr')];const mts=m=>m.dataset.ts.
 if(!P.meaning)DW.push('смысл текста (meaning) не указан');
 R.forEach((t,ti)=>{if(t.contested!==undefined&&typeof t.contested!=='boolean')DW.push(`у тезиса ${ti+1} contested не true/false, считается false`);
  if(!(t.sources||[]).length&&!t.search)DW.push(`у тезиса ${ti+1} нет источников и не записан статус поиска`)});
+{const W=x=>new Set((x||'').toLowerCase().replace(/ё/g,'е').match(/[а-яa-z]+/g)||[]);
+ const INF=['все','всех','всем','всякий','всякая','всякое','любой','любая','любое','любые','любую','всегда','никогда','только','ничто','ничего','никакой','никакая','никакое','целиком','полностью'];
+ const VRD=['на самом деле','в действительности','ошибается','ошибочно','неправ','не прав','опровергает','опровергнут','заблуждается','прав ','правы '];
+ R.forEach((t,ti)=>{const fw=W((t.fragments||[]).map(f=>typeof f==='string'?f:(f&&f.text)||'').join(' ')+' '+(t.thesis||''));
+  (t.sources||[]).forEach(s=>{const pw=W(s.post),add=INF.filter(w=>pw.has(w)&&!fw.has(w));
+   if(add.length)DW.push(`тезис ${ti+1}, ${s.who}: в пересказе тезиса слова, которых нет в тексте (${add.join(', ')}) — возможна подмена`);
+   const pl=(s.point||'').toLowerCase().replace(/ё/g,'е'),v=VRD.filter(x=>pl.includes(x));
+   if(v.length)DW.push(`тезис ${ti+1}, ${s.who}: «${s.relation==='расходится'?'расходятся в':'сходятся в'}» похоже на вердикт (${v.join(', ').trim()})`)})})}
 if(DW.length)document.getElementById('datawarn').innerHTML=`<div class="dwarn"><b>Замечания к данным отчёта</b><br>${DW.map(esc).join('<br>')}</div>`;
 // ---------- статус тезиса
 const status=t=>(t.sources||[]).length?'found':(t.search&&t.search.status)||'not_searched';
@@ -161,14 +170,19 @@ function srcHtml(s){const c=css(REL[s.relation]);const link=s.url?` · <a href="
  const lens=s.lens?`<span class="lensb">${esc((LENSES.find(l=>l.id===s.lens)||{}).name||s.lens)}</span>`:(LENSES.length?'<span class="lensb">общий</span>':'');
  return `<div class="src" style="border-color:${c}"><span class="badge" style="background:${c}">${esc(s.relation)}</span><b>${esc(s.who)}</b>${lens}${s.verified?'':'<span class="hyp">гипотеза, не проверено по источнику</span>'}
  <span class="mut">${esc(s.work||"")} ${esc(s.year_label||"")} ${esc(s.tag||"")}${link}</span>
- <div class="cols"><div><span>у него</span>${esc(s.idea)}</div><div><span>у тебя</span>${esc(s.vs)}</div></div></div>`}
+ ${cardBody(s)}</div>`}
+function cardBody(s){if(!s.post&&!s.point)return `<div class="cols"><div><span>у него</span>${esc(s.idea||'')}</div><div><span>у тебя</span>${esc(s.vs||'')}</div></div><div class="warn">карточка в старом формате</div>`;
+ const pl=s.relation==='расходится'?'расходятся в':'сходятся в';
+ return `<div class="rows"><div><span>пост</span>${esc(s.post||'')}</div><div><span>источник</span>${esc(s.idea||'')}</div><div><span>${pl}</span>${esc(s.point||'')}</div></div>`}
 function head(ti){const t=R[ti];const bw=balance(ti);
  const imp=t.implicit?((t.from_readers||[]).length?`<div class="mut">невысказанный тезис, восстановлен по пересказам читателей: ${esc(t.from_readers.join(', '))}</div>`:'<div class="warn">невысказанный тезис — гипотеза координатора: ответы читателей к нему не приложены</div>'):'';
- const alt=(t.alternatives||[]).length?`<div class="mut">другие прочтения: ${esc(t.alternatives.join('; '))}</div>`:'';
+ const alt=(t.alternatives||[]).map(a=>typeof a==='object'&&a&&a.reader?`<div class="mut">так понял читатель ${esc(a.reader)}: ${esc(a.reading||'')}</div>`:`<div class="warn">другое прочтение без читателя: ${esc(typeof a==='object'?JSON.stringify(a):a)}</div>`).join('');
+ const bas={author:'тезис словами автора',text:'тезис прямо из текста',readers:'тезис по прочтению слепых читателей'}[t.basis];
+ const bl=bas?`<div class="mut">${bas}</div>`:'<div class="warn">не указано, откуда тезис</div>';
  const lvl=t.level?`<span class="lvl">${esc(t.level)}</span>`:'';
  const st={'searched_not_found':'<div class="src" style="border-color:var(--own)"><span class="badge" style="background:var(--own)">искали, не нашли</span>'+esc(t.own||'')+(t.search&&t.search.queries?`<div class="mut">запросы: ${esc(t.search.queries.join('; '))}</div>`:'')+'</div>',
   'not_searched':'<div class="mut">Поиск источников для этого тезиса не проводился.</div>'}[status(t)]||'';
- return (bw.length?`<div class="warn">Баланс: ${esc(bw.join('; '))}</div>`:'')+imp+alt+`<h3>${lvl}${esc(t.thesis)}</h3>`+st}
+ return (bw.length?`<div class="warn">Баланс: ${esc(bw.join('; '))}</div>`:'')+imp+bl+alt+`<h3>${lvl}${esc(t.thesis)}</h3>`+st}
 function apply(){const card=document.getElementById('card');const vis=x=>!LENS||x.lens===LENS||!x.lens;
  let ts=new Set(),is=new Set();
  if(!SEL){card.innerHTML='<span class="mut">Выбери фразу или точку.</span>'}
