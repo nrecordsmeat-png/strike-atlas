@@ -163,7 +163,60 @@ def render_mirror(R, M=None, V=None):
     return "".join(p)
 
 
+REL = {"совпадает": "ok", "развивает": "dev", "расходится": "bad", "перекликается": "q", "своё": "own"}
+ROOTS_CSS = """
+.rt{border:1px solid var(--line);border-radius:10px;padding:.7rem .9rem;margin:.6rem 0}
+.rt .th{font-weight:500;margin-bottom:.3rem}.src{border-left:3px solid var(--line);padding:.1rem 0 .1rem .7rem;margin:.5rem 0}
+.src.ok{border-color:#1baf7a}.src.dev{border-color:#2a78d6}.src.bad{border-color:#e34948}.src.q{border-color:#eda100}
+.badge{font-size:12px;padding:1px 8px;border-radius:6px;margin-right:6px;background:var(--line)}
+.badge.ok{background:var(--ok);color:var(--okf)}.badge.bad{background:var(--bad);color:var(--badf)}.badge.q{background:var(--q);color:var(--qf)}
+.badge.dev{background:#e6f1fb;color:#0c447c}.badge.own{background:#eeedfe;color:#3c3489}
+@media(prefers-color-scheme:dark){.badge.dev{background:#0c447c;color:#b5d4f4}.badge.own{background:#3c3489;color:#cecbf6}}
+.stack{display:flex;height:14px;border-radius:4px;overflow:hidden;margin:.4rem 0}.stack div{height:14px}
+a{color:var(--bar)}
+"""
+REL_COLOR = {"совпадает": "#1baf7a", "развивает": "#2a78d6", "расходится": "#e34948", "перекликается": "#eda100", "своё": "#6250d6"}
+
+
+def roots_block(roots):
+    links = [s for t in roots for s in t.get("sources", [])]
+    cnt = {k: 0 for k in REL}
+    for t in roots:
+        if not t.get("sources"):
+            cnt["своё"] += 1
+    for s in links:
+        cnt[s["relation"]] = cnt.get(s["relation"], 0) + 1
+    total = sum(cnt.values()) or 1
+    out = ["<h2>Корни мысли: откуда растут тезисы и где автор расходится</h2>",
+           "<div class='stack'>" + "".join(f"<div style='width:{100 * v / total}%;background:{REL_COLOR[k]}' title='{k}: {v}'></div>"
+                                          for k, v in cnt.items() if v) + "</div>",
+           "<p class='mut'>" + " · ".join(f"<span class='badge {REL[k]}'>{k}</span>{v}" for k, v in cnt.items() if v) + "</p>"]
+    for i, t in enumerate(roots):
+        out.append(f"<div class='rt'><div class='th'>{i + 1}. {e(t['thesis'])}</div>")
+        if t.get("own"):
+            out.append(f"<div class='src'><span class='badge own'>своё</span>{e(t['own'])}</div>")
+        for s in t.get("sources", []):
+            link = f" · <a href='{e(s['url'])}'>источник</a>" if s.get("url") else ""
+            out.append(f"<div class='src {REL[s['relation']]}'><span class='badge {REL[s['relation']]}'>{e(s['relation'])}</span>"
+                       f"<b>{e(s['who'])}</b> <span class='mut'>{e(s.get('work', ''))} {e(s.get('tag', ''))}{link}</span>"
+                       f"<div>{e(s['idea'])}</div><div class='mut'>{e(s['vs'])}</div></div>")
+        out.append("</div>")
+    out.append("<p class='mut'>Сходство не значит заимствование, расхождение не значит ошибку. Показано родство мыслей, а не правота.</p>")
+    return "".join(out)
+
+
 def render(R, M=None, V=None):
+    html_ = _render(R, M, V)
+    if R.get("roots"):
+        html_ = html_.replace("</style>", ROOTS_CSS + "</style>", 1).replace("</body>", roots_block(R["roots"]) + "</body>", 1)
+    return html_
+
+
+def _render(R, M=None, V=None):
+    if R.get("mode") == "roots":
+        t = e(R.get("title", "Корни мысли"))
+        return (f"<!DOCTYPE html><html lang='ru'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
+                f"<title>{t}</title><style>{CSS}</style></head><body><h1>{t}</h1></body></html>")
     if R.get("mode") == "mirror":
         return render_mirror(R, M, V)
     cov, full, any_ = coverage(R)
